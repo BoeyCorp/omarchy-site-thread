@@ -5,6 +5,7 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 import "Model.js" as Model
+import "GlobeModel.js" as GlobeModel
 
 Panel {
   id: root
@@ -40,13 +41,10 @@ Panel {
   readonly property int panelWidth: setting("panelWidth", 780)
   readonly property int refreshSeconds: setting("refreshSeconds", 30)
 
-  property string globeMode: "globe"
-  property real globeRotDeg: 115.0
   property bool autoRotate: false
   property string issueFilter: "all"
   property int refreshAgeSec: 0
   property double lastRefreshMs: Date.now()
-  property var hoveredGlobeSite: null
 
   property var data: ({ connected: false })
   property bool loading: false
@@ -507,12 +505,6 @@ Panel {
     onTriggered: root.refreshAgeSec = Math.max(0, Math.floor((Date.now() - root.lastRefreshMs) / 1000))
   }
 
-  Timer {
-    interval: 140
-    running: root.autoRotate && root.opened && root.activeTab === 0
-    repeat: true
-    onTriggered: root.globeRotDeg = (root.globeRotDeg + 2.0) % 360
-  }
 
   implicitWidth: button.implicitWidth + (badge.visible ? badge.width : 0)
   implicitHeight: button.implicitHeight
@@ -1172,7 +1164,7 @@ Panel {
               }
             }
 
-            // ASCII GLOBE & WORLD TOPOLOGY CARD
+            // 3D VECTOR GLOBE (OMAGLOBE CANVAS INTEGRATION)
             BorderSurface {
               width: parent.width
               implicitHeight: globeCardColumn.implicitHeight + Style.space(20)
@@ -1200,55 +1192,66 @@ Panel {
                     Text { textFormat: Text.PlainText; text: "GLOBAL FLEET TOPOLOGY"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                   }
 
-                  // Globe / Map mode switcher
+                  // Controls: Focus, Rotate left/right, Auto-rotate
                   Row {
                     spacing: Style.space(4)
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
 
+                    // Focus sites
                     Rectangle {
-                      width: globeBtnText.implicitWidth + Style.space(14)
+                      width: focusBtnText.implicitWidth + Style.space(14)
                       height: Style.space(22)
                       radius: 3
-                      color: root.globeMode === "globe" ? root.accent : root.track
-                      Text { textFormat: Text.PlainText; id: globeBtnText; anchors.centerIn: parent; text: " 3D Globe"; color: root.globeMode === "globe" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: root.globeMode === "globe" }
-                      MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.globeMode = "globe" }
-                    }
-
-                    Rectangle {
-                      width: mapBtnText.implicitWidth + Style.space(14)
-                      height: Style.space(22)
-                      radius: 3
-                      color: root.globeMode === "map" ? root.accent : root.track
-                      Text { textFormat: Text.PlainText; id: mapBtnText; anchors.centerIn: parent; text: "󰍹 Fleet Map"; color: root.globeMode === "map" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: root.globeMode === "map" }
-                      MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.globeMode = "map" }
+                      color: focusMouse.containsMouse ? root.cardHover : root.track
+                      Text { textFormat: Text.PlainText; id: focusBtnText; anchors.centerIn: parent; text: " Focus"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
+                      MouseArea {
+                        id: focusMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                          if (root.data && root.data.sites && root.data.sites.length > 0) {
+                            fleetGlobe.focusSite(root.data.sites[0])
+                          }
+                        }
+                      }
                     }
 
                     // Rotate left
                     Rectangle {
-                      visible: root.globeMode === "globe"
                       width: Style.space(22)
                       height: Style.space(22)
                       radius: 3
                       color: rotLeftMouse.containsMouse ? root.cardHover : root.track
                       Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: "◀"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                      MouseArea { id: rotLeftMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.globeRotDeg = (root.globeRotDeg - 25 + 360) % 360 }
+                      MouseArea {
+                        id: rotLeftMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(fleetGlobe.centreLongitude - 25)
+                      }
                     }
 
                     // Rotate right
                     Rectangle {
-                      visible: root.globeMode === "globe"
                       width: Style.space(22)
                       height: Style.space(22)
                       radius: 3
                       color: rotRightMouse.containsMouse ? root.cardHover : root.track
                       Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: "▶"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                      MouseArea { id: rotRightMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.globeRotDeg = (root.globeRotDeg + 25) % 360 }
+                      MouseArea {
+                        id: rotRightMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(fleetGlobe.centreLongitude + 25)
+                      }
                     }
 
                     // Auto-rotate toggle
                     Rectangle {
-                      visible: root.globeMode === "globe"
                       width: autoRotText.implicitWidth + Style.space(10)
                       height: Style.space(22)
                       radius: 3
@@ -1261,84 +1264,38 @@ Panel {
                   }
                 }
 
-                // ASCII Art Render Container with Site Location Overlays
-                Item {
-                  id: asciiCanvasContainer
+                // 3D Globe Canvas Container
+                Rectangle {
+                  id: globeContainer
                   width: parent.width
-                  height: Style.space(220)
+                  height: Style.space(260)
+                  color: root.isLightTheme ? "#f1f5f9" : "#080b11"
+                  radius: Style.cornerRadius - 2
+                  border.width: 1
+                  border.color: root.outline
                   clip: true
 
-                  // ASCII background map / globe
-                  Text {
-                    textFormat: Text.PlainText
-                    anchors.centerIn: parent
-                    text: root.globeMode === "globe" ? Model.renderAsciiGlobe(root.globeRotDeg) : Model.renderAsciiMap()
-                    font.family: root.fontFamily
-                    font.pixelSize: 11
-                    font.bold: false
-                    color: root.isLightTheme ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.45) : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.35)
-                    horizontalAlignment: Text.AlignHCenter
-                    lineHeight: 0.95
-                  }
-
-                  // Site Location Dots overlaid onto the ASCII grid
-                  Repeater {
-                    model: root.data.sites || []
-
-                    Item {
-                      required property var modelData
-                      readonly property real siteLat: Number(modelData.lat !== undefined ? modelData.lat : 0)
-                      readonly property real siteLng: Number(modelData.lng !== undefined ? modelData.lng : 0)
-                      readonly property var proj: root.globeMode === "globe"
-                        ? Model.projectSiteGlobe(siteLat, siteLng, root.globeRotDeg, asciiCanvasContainer.width, asciiCanvasContainer.height)
-                        : Model.projectSiteMap(siteLat, siteLng, asciiCanvasContainer.width, asciiCanvasContainer.height)
-
-                      visible: proj && proj.visible === true
-                      x: Math.round((proj ? proj.x : 0) - width / 2)
-                      y: Math.round((proj ? proj.y : 0) - height / 2)
-                      width: Style.space(16)
-                      height: Style.space(16)
-
-                      // Pulsing outer ripple
-                      Rectangle {
-                        anchors.centerIn: parent
-                        width: parent.width
-                        height: parent.height
-                        radius: width / 2
-                        color: "transparent"
-                        border.width: 1
-                        border.color: Model.siteColor(modelData.status, root.healthy, root.backup, root.urgent)
-                        opacity: 0.7
-                        SequentialAnimation on scale {
-                          running: root.opened
-                          loops: Animation.Infinite
-                          NumberAnimation { from: 0.8; to: 1.4; duration: 1000; easing.type: Easing.OutQuad }
-                          NumberAnimation { from: 1.4; to: 0.8; duration: 1000; easing.type: Easing.InQuad }
-                        }
-                      }
-
-                      // Solid status dot
-                      Rectangle {
-                        anchors.centerIn: parent
-                        width: Style.space(8)
-                        height: width
-                        radius: width / 2
-                        color: Model.siteColor(modelData.status, root.healthy, root.backup, root.urgent)
-                      }
-
-                      MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: root.hoveredGlobeSite = modelData
-                        onExited: root.hoveredGlobeSite = null
-                        onClicked: root.openSite(modelData)
-                      }
+                  Globe {
+                    id: fleetGlobe
+                    anchors.fill: parent
+                    sites: root.data && root.data.sites ? root.data.sites : []
+                    autoRotate: root.autoRotate && root.opened && root.activeTab === 0
+                    fontFamily: root.fontFamily
+                    sphereColor: root.isLightTheme ? "#e2e8f0" : "#0f1520"
+                    landColor: root.isLightTheme ? "#94a3b8" : "#1e293b"
+                    gridColor: root.isLightTheme ? "#cbd5e1" : "#334155"
+                    outlineColor: root.accent
+                    textColor: root.foreground
+                    healthy: root.healthy
+                    backup: root.backup
+                    urgent: root.urgent
+                    onSiteActivated: function(site) {
+                      root.openSite(site)
                     }
                   }
                 }
 
-                // Interactive Telemetry Chip at bottom of card
+                // Interactive Telemetry Strip
                 Rectangle {
                   width: parent.width
                   height: Style.space(26)
@@ -1349,22 +1306,19 @@ Panel {
 
                   Row {
                     anchors.centerIn: parent
-                    spacing: Style.space(6)
+                    spacing: Style.space(8)
                     Rectangle {
                       width: Style.space(6)
                       height: width
                       radius: width / 2
-                      color: root.hoveredGlobeSite ? Model.siteColor(root.hoveredGlobeSite.status, root.healthy, root.backup, root.urgent) : root.healthy
+                      color: root.healthy
                       anchors.verticalCenter: parent.verticalCenter
                     }
                     Text { textFormat: Text.PlainText;
-                      text: root.hoveredGlobeSite
-                        ? (Model.safe(root.hoveredGlobeSite.name) + " · " + Model.safe(root.hoveredGlobeSite.gatewayModel, "Gateway") + " (" + Model.safe(root.hoveredGlobeSite.gatewayIp, "IP") + ") · " + (root.hoveredGlobeSite.clientCount || 0) + " clients · " + Model.safe(root.hoveredGlobeSite.statusText))
-                        : (root.data.sites ? root.data.sites.length + " sites active in fleet · Click or hover a node on the globe to inspect" : "Fleet active")
-                      color: root.hoveredGlobeSite ? root.foreground : root.dim
+                      text: (root.data && root.data.sites ? root.data.sites.length : 0) + " sites online  ·  Drag to rotate  ·  Scroll to zoom  ·  Click node to inspect"
+                      color: root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 1
-                      font.bold: root.hoveredGlobeSite !== null
                       anchors.verticalCenter: parent.verticalCenter
                     }
                   }

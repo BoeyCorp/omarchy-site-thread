@@ -4,7 +4,7 @@ UniFi SiteThread is a high-density, NOC-style UniFi Network and Protect operatio
 
 Version 0.5.0 enhancements:
 
-- **ASCII Fleet Globe & NOC World Map**: Interactive 3D ASCII orthographic globe and 2D equirectangular fleet map with color-coded status dots (green = online, amber = backup WAN, red = offline), manual/auto rotation, and one-click site drilldowns.
+- **Interactive 3D Vector Earth Globe**: High-fidelity 3D vector canvas Earth globe based on [OmaGlobe](https://github.com/zamak/omaglobe) / Natural Earth geometry. Features drag-to-rotate, mouse-wheel zoom, auto-rotation, coordinate graticule, radial atmospheric shading, and glowing status beacon nodes with click-to-drilldown into individual sites.
 - **Agent Hub-Inspired High-Density Cockpit**: Compact header with status pill, last-refresh age, smooth rotating spinner, and active refresh glow bar. Four top-level metric tiles breakdown Sites, Gateways & Multi-WAN, Network Devices, and Clients (split into Wi-Fi and Wired).
 - **Persistent Issue History & Resolution Tracking**: Active incidents plus resolved issues saved across sessions (`~/.config/site-thread/issues.json`). Resolved incidents are clearly distinguished as greyed-out cards with resolution timestamps and duration metrics. Includes filters for `All`, `Active`, and `Resolved`, plus a `Clear History` action.
 - **Dynamic Omarchy Theme Reactivity**: Plugin bar icon and popup container automatically adapt to the user's active Omarchy desktop theme and light/dark luminance modes, replacing hardcoded color overrides with dynamic palette variables.
