@@ -1188,18 +1188,17 @@ Panel {
                 spacing: Style.space(8)
 
                 // Globe Header Accessory Bar
-                Row {
+                Item {
                   width: parent.width
-                  spacing: Style.space(8)
+                  height: Style.space(24)
 
                   Row {
                     spacing: Style.space(6)
+                    anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     Text { textFormat: Text.PlainText; text: "\uf0ac"; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption; anchors.verticalCenter: parent.verticalCenter }
                     Text { textFormat: Text.PlainText; text: "GLOBAL FLEET TOPOLOGY"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                   }
-
-                  Item { width: 1; height: 1; Layout.fillWidth: true }
 
                   // Globe / Map mode switcher
                   Row {
@@ -1562,11 +1561,13 @@ Panel {
             spacing: Style.space(8)
 
             // Header & Filter bar
-            Row {
+            Item {
               width: parent.width
-              spacing: Style.space(8)
+              height: Style.space(24)
 
               PanelSectionHeader {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
                 width: parent.width - Style.space(280)
                 text: "FLEET ISSUES & EVENT JOURNAL"
                 foreground: root.foreground
