@@ -43,8 +43,147 @@ Panel {
 
   property bool autoRotate: false
   property string issueFilter: "all"
+  property string deviceFilter: "all"
   property int refreshAgeSec: 0
   property double lastRefreshMs: Date.now()
+  property bool analyticsOpen: false
+  property bool settingsMode: false
+  property bool enableMultiDot: setting("enableMultiDot", true)
+  property string badgeMode: setting("badgeMode", "alerts")
+  property string preferredTerminal: setting("terminalCommand", "xdg-terminal-exec")
+
+  function openSettings() { settingsMode = true }
+  function closeSettings() { settingsMode = false }
+  function openAnalytics() { analyticsOpen = true }
+  function closeAnalytics() { analyticsOpen = false }
+  function toggleAnalytics() { analyticsOpen = !analyticsOpen }
+
+  function getBadgeText() {
+    if (root.badgeMode === "off") return ""
+    if (root.badgeMode === "clients") {
+      return String(root.data && root.data.network && root.data.network.clientCount ? root.data.network.clientCount : "")
+    } else if (root.badgeMode === "sites") {
+      return (root.data && root.data.sites) ? (root.data.sites.length + "/" + root.data.sites.length) : ""
+    }
+    return root.alertCount > 0 ? String(root.alertCount) : ""
+  }
+
+  function getTerminalArgs(cmdArgs, workspacePath) {
+    var termSetting = root.preferredTerminal || ""
+    var ws = workspacePath || ""
+    if (ws.indexOf("file://") === 0) ws = decodeURIComponent(ws.substring(7))
+
+    if (!termSetting || termSetting === "xdg-terminal-exec") {
+      var args = ["xdg-terminal-exec"]
+      if (ws) args.push("--dir=" + ws)
+      args.push("--")
+      return args.concat(cmdArgs)
+    }
+
+    var parts = termSetting.split(/\s+/).filter(function(p) { return p.length > 0 })
+    var bin = parts[0].split("/").pop()
+    if (bin === "xdg-terminal-exec") {
+      if (ws) parts.push("--dir=" + ws)
+      parts.push("--")
+      return parts.concat(cmdArgs)
+    } else if (bin === "foot") {
+      if (ws) parts.push("-D", ws)
+      return parts.concat(cmdArgs)
+    } else if (bin === "kitty") {
+      if (ws) parts.push("-d", ws)
+      return parts.concat(cmdArgs)
+    } else if (bin === "ghostty") {
+      if (ws) parts.push("--working-directory=" + ws)
+      if (parts.indexOf("-e") === -1) parts.push("-e")
+      return parts.concat(cmdArgs)
+    } else if (bin === "alacritty") {
+      if (ws) parts.push("--working-directory", ws)
+      if (parts.indexOf("-e") === -1) parts.push("-e")
+      return parts.concat(cmdArgs)
+    } else {
+      if (parts.indexOf("-e") !== -1 || parts.indexOf("--") !== -1) {
+        return parts.concat(cmdArgs)
+      }
+      return parts.concat(["-e"]).concat(cmdArgs)
+    }
+  }
+
+  function launchSsh(host, user) {
+    var u = user || "root"
+    var h = host || ""
+    if (!h) return
+    var target = u ? (u + "@" + h) : h
+    var termArgs = getTerminalArgs(["ssh", target])
+    Quickshell.execDetached(termArgs)
+  }
+
+  function launchPing(host) {
+    if (!host) return
+    var termArgs = getTerminalArgs(["ping", host])
+    Quickshell.execDetached(termArgs)
+  }
+
+  function updateSetting(name, value) {
+    if (name === "enableMultiDot") root.enableMultiDot = value
+    else if (name === "badgeMode") root.badgeMode = value
+    else if (name === "terminalCommand") root.preferredTerminal = value
+    else if (name === "autoRotate") root.autoRotate = value
+
+    var next = Object.assign({}, root.settings || {})
+    next[name] = value
+    if (typeof root.writeSettings === "function") {
+      root.writeSettings(next)
+    } else if (root.settings !== undefined) {
+      root.settings = next
+    }
+  }
+
+  function clearResolvedIssues() {
+    clearHistoryProc.command = [root.helper, "clear-history"]
+    clearHistoryProc.running = true
+  }
+
+  function getAllFleetDevices() {
+    var out = []
+    if (root.data && root.data.network && Array.isArray(root.data.network.devices)) {
+      out = out.concat(root.data.network.devices)
+    }
+    if (root.data && Array.isArray(root.data.devices)) {
+      for (var i = 0; i < root.data.devices.length; i++) {
+        var d = root.data.devices[i]
+        var exists = false
+        for (var j = 0; j < out.length; j++) {
+          if ((d.mac && out[j].mac === d.mac) || (d.name && out[j].name === d.name && d.ip === out[j].ip)) {
+            exists = true
+            break
+          }
+        }
+        if (!exists) out.push(d)
+      }
+    }
+    if (root.data && Array.isArray(root.data.sites)) {
+      for (var k = 0; k < root.data.sites.length; k++) {
+        var s = root.data.sites[k]
+        if (s.gatewayModel && s.gatewayIp) {
+          var gwFound = false
+          for (var m = 0; m < out.length; m++) {
+            if (out[m].ip === s.gatewayIp) { gwFound = true; break }
+          }
+          if (!gwFound) {
+            out.unshift({
+              name: s.name + " Gateway (" + s.gatewayModel + ")",
+              model: s.gatewayModel,
+              ip: s.gatewayIp,
+              site: s.name,
+              online: s.status !== "down",
+              category: "gateways"
+            })
+          }
+        }
+      }
+    }
+    return out
+  }
 
   property var data: ({ connected: false })
   property bool loading: false
@@ -290,7 +429,7 @@ Panel {
   }
 
   function requestSnapshot() {
-    var viewingProtect = inSite ? siteTab === 1 : activeTab === 2
+    var viewingProtect = inSite ? siteTab === 1 : activeTab === 4
     if (!opened || !viewingProtect || selectedCameraId === "" || snapshotProc.running) return
     snapshotProc.command = inSite
       ? [helper, "snapshot", selectedCameraId, String(selectedSite.hostId)]
@@ -316,7 +455,7 @@ Panel {
   }
 
   onActiveTabChanged: {
-    if (!inSite && activeTab === 2 && data.protect && data.protect.cameras && data.protect.cameras.length > 0) {
+    if (!inSite && activeTab === 4 && data.protect && data.protect.cameras && data.protect.cameras.length > 0) {
       if (selectedCameraId === "") selectCamera(data.protect.cameras[0])
       else requestSnapshot()
     }
@@ -492,7 +631,7 @@ Panel {
 
   Timer {
     interval: 2500
-    running: root.opened && root.selectedCameraId !== "" && (root.inSite ? root.siteTab === 1 : root.activeTab === 2)
+    running: root.opened && root.selectedCameraId !== "" && (root.inSite ? root.siteTab === 1 : root.activeTab === 4)
     repeat: true
     triggeredOnStart: false
     onTriggered: root.requestSnapshot()
@@ -506,7 +645,7 @@ Panel {
   }
 
 
-  implicitWidth: button.implicitWidth + (badge.visible ? badge.width : 0)
+  implicitWidth: button.implicitWidth + (multiDotRow.visible ? multiDotRow.width + Style.space(6) : 0) + (badge.visible ? badge.width + Style.space(4) : 0)
   implicitHeight: button.implicitHeight
 
   BarIconButton {
@@ -533,29 +672,74 @@ Panel {
     dimmed: !root.connected
     tooltipText: !root.connected
       ? "UniFi SiteThread · Connect"
-      : "UniFi SiteThread · " + Model.safe(root.data.message, "Connected")
+      : ("UniFi SiteThread · " + Model.safe(root.data.message, "Connected") + "\nLeft-click: Dashboard • Right-click: Settings • Middle-click: Refresh")
     onPressed: function(b) {
-      if (b === Qt.MiddleButton) root.refresh()
-      else root.toggle()
+      if (b === Qt.RightButton) {
+        if (!root.opened) root.open()
+        root.settingsMode = true
+      } else if (b === Qt.MiddleButton) {
+        root.refresh()
+      } else {
+        if (root.opened && root.settingsMode) root.settingsMode = false
+        else root.toggle()
+      }
+    }
+  }
+
+  // Multi-Dot Site Status Row on Bar
+  Row {
+    id: multiDotRow
+    parent: root
+    visible: root.enableMultiDot && root.data && root.data.sites && root.data.sites.length > 0
+    x: button.x + button.width - Style.space(2)
+    y: Math.max(0, (root.height - height) / 2)
+    height: Style.space(14)
+    spacing: Style.space(3)
+    anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+
+    Repeater {
+      model: root.data && root.data.sites ? root.data.sites : []
+      delegate: Item {
+        required property var modelData
+        width: Style.space(6)
+        height: Style.space(6)
+        anchors.verticalCenter: parent.verticalCenter
+
+        Rectangle {
+          anchors.centerIn: parent
+          width: Style.space(5)
+          height: Style.space(5)
+          radius: width / 2
+          color: modelData.status === "down" ? root.urgent : (modelData.status === "backup" ? root.backup : root.healthy)
+          opacity: (modelData.status === "down" || modelData.status === "backup") ? 0.9 : 0.85
+
+          SequentialAnimation on opacity {
+            running: modelData.status === "down" || modelData.status === "backup"
+            loops: Animation.Infinite
+            NumberAnimation { from: 0.35; to: 1.0; duration: 600; easing.type: Easing.InOutQuad }
+            NumberAnimation { from: 1.0; to: 0.35; duration: 600; easing.type: Easing.InOutQuad }
+          }
+        }
+      }
     }
   }
 
   Rectangle {
     id: badge
     parent: root
-    visible: root.alertCount > 0
-    x: button.x + button.width - Style.space(4)
+    visible: root.getBadgeText() !== ""
+    x: multiDotRow.visible ? multiDotRow.x + multiDotRow.width + Style.space(3) : button.x + button.width - Style.space(4)
     y: Math.max(0, (root.height - height) / 2)
     width: Math.max(height, badgeText.implicitWidth + Style.space(6))
     height: Style.space(15)
     radius: height / 2
-    color: root.barSeverity === "critical" ? root.urgent : root.backup
+    color: root.barSeverity === "critical" ? root.urgent : (root.barSeverity === "warning" ? root.backup : root.accent)
     border.width: 1
     border.color: (Color.popups && Color.popups.background) ? Color.popups.background : "#1E1E2E"
     Text { textFormat: Text.PlainText;
       id: badgeText
       anchors.centerIn: parent
-      text: String(root.alertCount)
+      text: root.getBadgeText()
       color: "#ffffff"
       font.family: root.fontFamily
       font.pixelSize: Style.font.caption
@@ -563,145 +747,428 @@ Panel {
     }
   }
 
-  PopupCard {
+  KeyboardPanel {
     id: popup
     anchorItem: button
     bar: root.bar
     owner: root
     open: root.opened
-    triggerMode: "click"
+    focusTarget: keyCatcher
     contentWidth: popup.fittedContentWidth(Style.space(root.panelWidth))
-    contentHeight: popup.fittedContentHeight(Math.min(Style.space(650), content.implicitHeight))
+    contentHeight: popup.fittedContentHeight(Math.min(Style.space(680), content.implicitHeight))
 
-    Flickable {
-      id: scroll
+    PanelKeyCatcher {
+      id: keyCatcher
       anchors.fill: parent
-      contentWidth: width
-      contentHeight: content.implicitHeight
-      clip: true
-      boundsBehavior: Flickable.StopAtBounds
-      interactive: contentHeight > height
 
-      Column {
-        id: content
-        width: scroll.width
-        spacing: Style.space(12)
+      onMoveRequested: function(dx, dy) {
+        if (dy !== 0) scroll.contentY = Math.max(0, Math.min(scroll.contentHeight - scroll.height, scroll.contentY + dy * 56))
+      }
+      onCloseRequested: root.close()
+      onTextKey: function(t) {
+        if (t === "r" || t === "R") {
+          if (root.inSite) root.loadSite()
+          else root.refresh()
+        } else if (t === "s" || t === "S") {
+          root.settingsMode ? root.closeSettings() : root.openSettings()
+        } else if (t === "a" || t === "A" || t === "m" || t === "M") {
+          root.toggleAnalytics()
+        } else if (t === "w" || t === "W") {
+          root.openConsole()
+        } else if (t === "q" || t === "Q") {
+          root.close()
+        } else if (t === "1") {
+          root.activeTab = 0
+        } else if (t === "2") {
+          root.activeTab = 1
+        } else if (t === "3") {
+          root.activeTab = 2
+        } else if (t === "4") {
+          root.activeTab = 3
+        } else if (t === "5" && root.data && root.data.protect && root.data.protect.available) {
+          root.activeTab = 4
+        }
+      }
 
-        Row {
-          width: parent.width
-          spacing: Style.space(10)
-          PanelActionButton {
-            visible: root.inSite
-            iconText: "\uf060"
-            tooltipText: "Back to all sites"
-            foreground: root.foreground
-            fontFamily: root.fontFamily
-            size: Style.space(28)
-            onClicked: root.backToSites()
-          }
-          UnifiIcon {
-            size: Style.space(18)
-            color: root.accent
-            anchors.verticalCenter: parent.verticalCenter
-          }
-          Column {
-            width: parent.width - Style.space(root.inSite ? 190 : 200)
-            spacing: Style.space(1)
-            Row {
+      Flickable {
+        id: scroll
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: content.implicitHeight
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        interactive: contentHeight > height
+
+        Column {
+          id: content
+          width: scroll.width
+          spacing: Style.space(12)
+
+          // Agent Hub Style Header Card
+          BorderSurface {
+            id: mainHeader
+            width: parent.width
+            color: root.card
+            borderSpec: Border.flat(root.isLightTheme ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12) : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.08), 1)
+            padding: Style.space(8)
+            radius: Style.cornerRadius
+            implicitHeight: headerRow.implicitHeight + contentTopInset + contentBottomInset
+
+            RowLayout {
+              id: headerRow
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.topMargin: mainHeader.contentTopInset
+              anchors.rightMargin: mainHeader.contentRightInset
+              anchors.bottomMargin: mainHeader.contentBottomInset
+              anchors.leftMargin: mainHeader.contentLeftInset
               spacing: Style.space(8)
-              Text { textFormat: Text.PlainText;
-                text: root.inSite ? Model.safe(root.selectedSite.name, "UNIFI SITE") : "UNIFI SITETHREAD"
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.title
-                font.bold: true
-              }
+
+              // Back button if inside site
               Rectangle {
-                visible: root.connected && !root.inSite
-                radius: 3
-                height: Style.space(16)
-                width: statusPillText.implicitWidth + Style.space(8)
-                color: root.barSeverity === "critical" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.18) : (root.barSeverity === "warning" ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.18) : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.18))
-                border.width: 1
-                border.color: root.barSeverity === "critical" ? root.urgent : (root.barSeverity === "warning" ? root.backup : root.healthy)
-                anchors.verticalCenter: parent.verticalCenter
-                Text { textFormat: Text.PlainText;
-                  id: statusPillText
+                visible: root.inSite
+                radius: 4
+                color: backMouse.containsMouse ? root.cardHover : root.track
+                Layout.preferredWidth: Style.space(26)
+                Layout.preferredHeight: Style.space(26)
+                Text {
+                  textFormat: Text.PlainText;
                   anchors.centerIn: parent
-                  text: root.barSeverity === "critical" ? "ATTENTION" : (root.barSeverity === "warning" ? "BACKUP WAN" : "OPERATIONAL")
-                  color: root.barSeverity === "critical" ? root.urgent : (root.barSeverity === "warning" ? root.backup : root.healthy)
+                  text: ""
+                  color: root.foreground
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption - 1
-                  font.bold: true
+                  font.pixelSize: Style.font.caption
+                }
+                MouseArea {
+                  id: backMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.backToSites()
+                }
+              }
+
+              // UniFi Logo
+              UnifiIcon {
+                size: Style.space(20)
+                color: root.accent
+                Layout.alignment: Qt.AlignVCenter
+              }
+
+              // Title & Subtitle + Live refresh age / refreshing state
+              ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 1
+
+                RowLayout {
+                  spacing: Style.space(6)
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: root.settingsMode
+                      ? "UNIFI SITETHREAD SETTINGS"
+                      : (root.inSite
+                          ? Model.safe(root.selectedSite.name, "UNIFI SITE")
+                          : "UNIFI SITETHREAD")
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.title
+                    font.bold: true
+                  }
+
+                  // Status badge
+                  Rectangle {
+                    visible: root.connected && !root.inSite && !root.settingsMode
+                    radius: 3
+                    height: Style.space(16)
+                    implicitWidth: statusPillText.implicitWidth + Style.space(8)
+                    color: root.barSeverity === "critical"
+                      ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.18)
+                      : (root.barSeverity === "warning"
+                          ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.18)
+                          : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.18))
+                    border.width: 1
+                    border.color: root.barSeverity === "critical" ? root.urgent : (root.barSeverity === "warning" ? root.backup : root.healthy)
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      id: statusPillText
+                      anchors.centerIn: parent
+                      text: root.barSeverity === "critical" ? "ATTENTION" : (root.barSeverity === "warning" ? "BACKUP WAN" : "OPERATIONAL")
+                      color: root.barSeverity === "critical" ? root.urgent : (root.barSeverity === "warning" ? root.backup : root.healthy)
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      font.bold: true
+                    }
+                  }
+                }
+
+                RowLayout {
+                  Layout.fillWidth: true
+                  spacing: Style.space(6)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: root.settingsMode
+                      ? "Configuration, Badge Modes & Terminal Launcher"
+                      : (root.inSite
+                          ? Model.safe(root.selectedSite.statusText, "Live site view")
+                          : (root.connected ? Model.summarySubtitle(root.data) : "Network + Protect"))
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                  }
+
+                  // Age indicator
+                  RowLayout {
+                    spacing: Style.space(3)
+                    visible: !root.loading && root.connected && root.refreshAgeSec >= 0
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: ""
+                      color: root.refreshAgeSec > 120 ? root.urgent : root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                      opacity: 0.7
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: {
+                        var a = root.refreshAgeSec
+                        if (a < 0) return ""
+                        if (a < 10) return "Refreshed just now"
+                        if (a < 60) return "Refreshed " + a + "s ago"
+                        if (a < 3600) return "Refreshed " + Math.floor(a / 60) + "m ago"
+                        return "Refreshed " + Math.floor(a / 3600) + "h " + Math.floor((a % 3600) / 60) + "m ago"
+                      }
+                      color: root.refreshAgeSec > 120 ? root.urgent : root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      opacity: 0.85
+                    }
+                  }
+
+                  // Refreshing spinner text
+                  RowLayout {
+                    spacing: Style.space(3)
+                    visible: root.loading
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: ""
+                      color: root.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                      transformOrigin: Item.Center
+
+                      RotationAnimation on rotation {
+                        running: root.loading
+                        loops: Animation.Infinite
+                        from: 0
+                        to: 360
+                        duration: 800
+                      }
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: "Refreshing…"
+                      color: root.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      opacity: 0.9
+                    }
+                  }
+                }
+              }
+
+              // Header Action Buttons cluster
+              RowLayout {
+                spacing: Style.space(4)
+                Layout.alignment: Qt.AlignVCenter
+
+                // 1. Analytics Floating Window Button
+                Rectangle {
+                  visible: root.connected && !root.settingsMode
+                  radius: 3
+                  color: chartMouse.containsMouse ? root.cardHover : root.track
+                  Layout.preferredHeight: Style.space(24)
+                  Layout.preferredWidth: Style.space(24)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    anchors.centerIn: parent
+                    text: ""
+                    color: root.analyticsOpen ? root.accent : root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+
+                  MouseArea {
+                    id: chartMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleAnalytics()
+                  }
+                }
+
+                // 2. Open Web UniFi Console Button
+                Rectangle {
+                  visible: root.connected && !root.settingsMode
+                  radius: 3
+                  color: webMouse.containsMouse ? root.cardHover : root.track
+                  Layout.preferredHeight: Style.space(24)
+                  Layout.preferredWidth: Style.space(24)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    anchors.centerIn: parent
+                    text: ""
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+
+                  MouseArea {
+                    id: webMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.openConsole()
+                  }
+                }
+
+                // 3. Refresh Button
+                Rectangle {
+                  radius: 3
+                  color: refMouse.containsMouse ? root.cardHover : root.track
+                  Layout.preferredHeight: Style.space(24)
+                  Layout.preferredWidth: Style.space(24)
+
+                  Text {
+                    id: refBtnIcon
+                    textFormat: Text.PlainText;
+                    anchors.centerIn: parent
+                    text: ""
+                    color: root.loading ? root.accent : root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    transformOrigin: Item.Center
+
+                    RotationAnimation on rotation {
+                      running: root.loading
+                      loops: Animation.Infinite
+                      from: 0
+                      to: 360
+                      duration: 800
+                    }
+                  }
+
+                  MouseArea {
+                    id: refMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.inSite ? root.loadSite() : root.refresh()
+                  }
+                }
+
+                // 4. Settings Button
+                Rectangle {
+                  radius: 3
+                  color: setMouse.containsMouse ? root.cardHover : root.track
+                  Layout.preferredHeight: Style.space(24)
+                  Layout.preferredWidth: Style.space(24)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    anchors.centerIn: parent
+                    text: root.settingsMode ? "" : ""
+                    color: root.settingsMode ? root.accent : root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+
+                  MouseArea {
+                    id: setMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.settingsMode ? root.closeSettings() : root.openSettings()
+                  }
                 }
               }
             }
-            Text { textFormat: Text.PlainText;
-              text: root.inSite
-                ? Model.safe(root.selectedSite.statusText, "Live site view")
-                : (root.connected ? Model.summarySubtitle(root.data) : "Network + Protect")
-              color: root.dim
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-            }
-          }
-          Text { textFormat: Text.PlainText;
-            visible: root.connected && !root.inSite && root.refreshAgeSec >= 0
-            text: Model.formatAge(root.refreshAgeSec)
-            color: root.refreshAgeSec > 120 ? root.urgent : root.dim
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption - 1
-            anchors.verticalCenter: parent.verticalCenter
-          }
-          PanelActionButton {
-            id: refreshActionBtn
-            iconText: "\uf021"
-            tooltipText: "Refresh"
-            foreground: root.loading ? root.accent : root.foreground
-            fontFamily: root.fontFamily
-            size: Style.space(28)
-            onClicked: root.inSite ? root.loadSite() : root.refresh()
-            RotationAnimation on rotation {
-              running: root.loading
-              loops: Animation.Infinite
-              from: 0
-              to: 360
-              duration: 800
-            }
-          }
-          PanelActionButton {
-            visible: root.connected && !root.inSite
-            iconText: "\uf35d"
-            tooltipText: "Open UniFi"
-            foreground: root.foreground
-            fontFamily: root.fontFamily
-            size: Style.space(28)
-            onClicked: root.openConsole()
-          }
-        }
 
-        Rectangle {
-          width: parent.width
-          height: 2
-          color: "transparent"
-          clip: true
-          visible: root.loading
-          Rectangle {
-            id: refreshProgressGlow
-            width: parent.width * 0.35
-            height: 2
-            radius: 1
-            color: root.accent
-            NumberAnimation on x {
-              running: root.loading && root.opened
-              loops: Animation.Infinite
-              from: -refreshProgressGlow.width
-              to: parent.width
-              duration: 800
-              easing.type: Easing.InOutQuad
+            // Animated Progress Glow Pill on bottom border during refresh
+            Rectangle {
+              id: refreshProgressBar
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.bottom: parent.bottom
+              anchors.bottomMargin: 1
+              height: 2
+              color: "transparent"
+              clip: true
+              visible: root.loading
+
+              Rectangle {
+                id: glowPill
+                anchors.verticalCenter: parent.verticalCenter
+                height: 2
+                width: Math.max(50, parent.width * 0.35)
+                radius: 1
+                color: root.accent
+
+                NumberAnimation on x {
+                  running: root.loading && root.opened
+                  loops: Animation.Infinite
+                  from: -glowPill.width
+                  to: refreshProgressBar.width
+                  duration: 800
+                  easing.type: Easing.InOutQuad
+                }
+              }
             }
           }
-        }
+
+          // Settings View
+          SettingsView {
+            visible: root.settingsMode
+            width: parent.width
+            settings: ({
+              enableMultiDot: root.enableMultiDot,
+              badgeMode: root.badgeMode,
+              refreshSeconds: root.refreshSeconds,
+              terminalCommand: root.preferredTerminal,
+              autoRotate: root.autoRotate
+            })
+            foreground: root.foreground
+            dim: root.dim
+            accent: root.accent
+            card: root.card
+            cardHover: root.cardHover
+            track: root.track
+            outline: root.outline
+            urgent: root.urgent
+            healthy: root.healthy
+            fontFamily: root.fontFamily
+            onSettingChanged: function(key, val) {
+              root.updateSetting(key, val)
+            }
+            onClearHistoryRequested: {
+              root.clearResolvedIssues()
+            }
+            onCloseSettingsRequested: {
+              root.closeSettings()
+            }
+          }
 
         Text { textFormat: Text.PlainText;
           visible: root.notice !== ""
@@ -715,7 +1182,7 @@ Panel {
         }
 
         Column {
-          visible: !root.connected
+          visible: !root.connected && !root.settingsMode
           width: parent.width
           spacing: Style.space(12)
 
@@ -1015,7 +1482,7 @@ Panel {
         }
 
         Column {
-          visible: root.connected && !root.inSite
+          visible: root.connected && !root.inSite && !root.settingsMode
           width: parent.width
           spacing: Style.space(12)
 
@@ -1023,36 +1490,54 @@ Panel {
             width: parent.width
             height: Style.space(30)
             color: root.track
-            radius: Style.cornerRadius
+            radius: 4
             border.width: 1
             border.color: root.outline
 
-            Row {
+            RowLayout {
               anchors.fill: parent
               anchors.margins: Style.space(2)
-              spacing: Style.space(3)
+              spacing: Style.space(2)
 
               Repeater {
                 model: [
-                  { id: 0, label: "Overview", icon: "\uf3c5" },
-                  { id: 1, label: root.cloudMode ? "Sites (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "Devices", icon: "\uf233" },
-                  { id: 2, label: "Issues (" + root.activeIssuesCount + ")", icon: "\uf071" },
-                  { id: 3, label: "Cameras (" + (root.data.protect && root.data.protect.cameras ? root.data.protect.cameras.length : 0) + ")", icon: "\uf03d", visible: !root.cloudMode || (root.data.protect && root.data.protect.available) }
+                  { id: 0, label: "Overview", icon: "\uf0e4" },
+                  { id: 1, label: root.cloudMode ? "Sites (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "Sites", icon: "\uf132" },
+                  { id: 2, label: "Devices (" + (root.data.network && root.data.network.deviceCount ? root.data.network.deviceCount : (root.data.network && root.data.network.devices ? root.data.network.devices.length : 0)) + ")", icon: "\uf0e8" },
+                  { id: 3, label: "Issues (" + root.activeIssuesCount + ")", icon: "\uf071" },
+                  { id: 4, label: "Cameras (" + (root.data.protect && root.data.protect.cameras ? root.data.protect.cameras.length : 0) + ")", icon: "\uf03d", visible: !root.cloudMode || (root.data.protect && root.data.protect.available) }
                 ]
-                Rectangle {
+                delegate: Rectangle {
                   required property var modelData
                   visible: modelData.visible !== false
-                  width: Math.floor((parent.width - Style.space(12)) / (3 + (root.data.protect && root.data.protect.available ? 1 : 0)))
-                  height: parent.height
-                  radius: Style.cornerRadius - 1
+                  Layout.fillWidth: true
+                  Layout.fillHeight: true
+                  radius: 3
                   readonly property bool isSelected: root.activeTab === modelData.id
                   color: isSelected ? root.accent : (tabMouse.containsMouse ? root.cardHover : "transparent")
 
-                  Row {
+                  Behavior on color { ColorAnimation { duration: 120 } }
+
+                  RowLayout {
                     anchors.centerIn: parent
                     spacing: Style.space(5)
-                    Text { textFormat: Text.PlainText; text: modelData.icon; color: isSelected ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                    Text { textFormat: Text.PlainText; text: modelData.label; color: isSelected ? (root.isLightTheme ? "#ffffff" : "#000000") : (isSelected ? root.foreground : root.dim); font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: isSelected }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: modelData.icon
+                      color: isSelected ? (root.isLightTheme ? "#ffffff" : "#000000") : (tabMouse.containsMouse ? root.foreground : root.dim)
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: modelData.label
+                      color: isSelected ? (root.isLightTheme ? "#ffffff" : "#000000") : (tabMouse.containsMouse ? root.foreground : root.dim)
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      font.bold: isSelected
+                    }
                   }
 
                   MouseArea {
@@ -1073,101 +1558,60 @@ Panel {
             width: parent.width
             spacing: Style.space(10)
 
-            // 4-Card Cockpit Metric Row
-            Row {
+            // 4-Card Cockpit Metric Row using StatBlock
+            RowLayout {
               width: parent.width
-              spacing: Style.space(8)
+              spacing: Style.space(6)
 
-              // 1. SITES METRIC CARD
-              BorderSurface {
-                width: Math.floor((content.width - Style.space(24)) / 4)
-                implicitHeight: sitesMetricCol.implicitHeight + Style.space(16)
-                color: root.card
-                radius: Style.cornerRadius
-                borderSpec: Border.flat(root.outline, 1)
-                Column {
-                  id: sitesMetricCol
-                  anchors.centerIn: parent
-                  spacing: Style.space(2)
-                  Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: Style.space(5)
-                    Text { textFormat: Text.PlainText; text: "\uf3c5"; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                    Text { textFormat: Text.PlainText; text: "SITES"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                  }
-                  Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: String(root.data.sites ? root.data.sites.length : 1); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.title; font.bold: true }
-                  Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: root.siteDownCount > 0 ? (root.siteDownCount + " Down") : "All Healthy"; color: root.siteDownCount > 0 ? root.urgent : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                }
+              StatBlock {
+                label: "SITES"
+                value: String(root.data.sites ? root.data.sites.length : 1)
+                subvalue: root.siteDownCount > 0 ? (root.siteDownCount + " Down") : "All Healthy"
+                iconText: "\uf132"
+                valColor: root.foreground
+                subColor: root.siteDownCount > 0 ? root.urgent : root.healthy
+                trackColor: root.track
+                fontFamily: root.fontFamily
+                isHighlighted: root.siteDownCount > 0
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 1 }
               }
 
-              // 2. GATEWAYS & WAN METRIC CARD
-              BorderSurface {
-                width: Math.floor((content.width - Style.space(24)) / 4)
-                implicitHeight: gwMetricCol.implicitHeight + Style.space(16)
-                color: root.card
-                radius: Style.cornerRadius
-                borderSpec: Border.flat(root.outline, 1)
-                Column {
-                  id: gwMetricCol
-                  anchors.centerIn: parent
-                  spacing: Style.space(2)
-                  Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: Style.space(5)
-                    Text { textFormat: Text.PlainText; text: "\uf233"; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                    Text { textFormat: Text.PlainText; text: "GATEWAYS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                  }
-                  Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: String(root.data.network && root.data.network.gatewaysCount ? root.data.network.gatewaysCount : (root.data.sites ? root.data.sites.length : 1)); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.title; font.bold: true }
-                  Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: root.siteBackupCount > 0 ? (root.siteBackupCount + " Backup WAN") : "WAN Normal"; color: root.siteBackupCount > 0 ? root.backup : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                }
+              StatBlock {
+                label: "GATEWAYS"
+                value: String(root.data.network && root.data.network.gatewaysCount ? root.data.network.gatewaysCount : (root.data.sites ? root.data.sites.length : 1))
+                subvalue: root.siteBackupCount > 0 ? (root.siteBackupCount + " Backup WAN") : "WAN Normal"
+                iconText: "\uf0e8"
+                valColor: root.foreground
+                subColor: root.siteBackupCount > 0 ? root.backup : root.healthy
+                trackColor: root.track
+                fontFamily: root.fontFamily
+                isHighlighted: root.siteBackupCount > 0
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 1 }
               }
 
-              // 3. DEVICES METRIC CARD
-              BorderSurface {
-                width: Math.floor((content.width - Style.space(24)) / 4)
-                implicitHeight: devMetricCol.implicitHeight + Style.space(16)
-                color: root.card
-                radius: Style.cornerRadius
-                borderSpec: Border.flat(root.outline, 1)
-                Column {
-                  id: devMetricCol
-                  anchors.centerIn: parent
-                  spacing: Style.space(2)
-                  Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: Style.space(5)
-                    Text { textFormat: Text.PlainText; text: "\uf2db"; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                    Text { textFormat: Text.PlainText; text: "DEVICES"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                  }
-                  Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: String(root.data.network ? root.data.network.deviceCount || 0 : 0); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.title; font.bold: true }
-                  Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: Number(root.data.network && root.data.network.offlineCount || 0) > 0 ? (root.data.network.offlineCount + " Offline") : "0 Offline"; color: Number(root.data.network && root.data.network.offlineCount || 0) > 0 ? root.urgent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                }
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 1 }
+              StatBlock {
+                label: "DEVICES"
+                value: String(root.data.network && root.data.network.deviceCount ? root.data.network.deviceCount : (root.data.network && root.data.network.devices ? root.data.network.devices.length : 0))
+                subvalue: (root.data.network && root.data.network.offlineCount > 0) ? (root.data.network.offlineCount + " Offline") : "All Online"
+                iconText: "\uf233"
+                valColor: root.foreground
+                subColor: (root.data.network && root.data.network.offlineCount > 0) ? root.urgent : root.healthy
+                trackColor: root.track
+                fontFamily: root.fontFamily
+                isHighlighted: !!(root.data.network && root.data.network.offlineCount > 0)
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 2 }
               }
 
-              // 4. CLIENTS METRIC CARD
-              BorderSurface {
-                width: Math.floor((content.width - Style.space(24)) / 4)
-                implicitHeight: cliMetricCol.implicitHeight + Style.space(16)
-                color: root.card
-                radius: Style.cornerRadius
-                borderSpec: Border.flat(root.outline, 1)
-                Column {
-                  id: cliMetricCol
-                  anchors.centerIn: parent
-                  spacing: Style.space(2)
-                  Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: Style.space(5)
-                    Text { textFormat: Text.PlainText; text: "\uf0c0"; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                    Text { textFormat: Text.PlainText; text: "CLIENTS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                  }
-                  Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: String(root.data.network ? root.data.network.clientCount || 0 : 0); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.title; font.bold: true }
-                  Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: "WiFi: " + (root.data.network && root.data.network.wifiClients ? root.data.network.wifiClients : 0) + " · Wired: " + (root.data.network && root.data.network.wiredClients ? root.data.network.wiredClients : 0); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                }
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 1 }
+              StatBlock {
+                label: "CLIENTS"
+                value: String(root.data.network && root.data.network.clientCount ? root.data.network.clientCount : 0)
+                subvalue: "\uf1eb " + (root.data.network ? (root.data.network.wifiClients || 0) : 0) + " · \udb81\ude00 " + (root.data.network ? (root.data.network.wiredClients || 0) : 0)
+                iconText: "\uf109"
+                valColor: root.foreground
+                subColor: root.dim
+                trackColor: root.track
+                fontFamily: root.fontFamily
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 2 }
               }
             }
 
@@ -1716,7 +2160,7 @@ Panel {
                       Text { textFormat: Text.PlainText; id: activePillLabel; anchors.centerIn: parent; text: "ACTIVE"; color: modelData.severity === "critical" ? root.urgent : root.backup; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
                     }
                   }
-                  MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 2 }
+                  MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 3 }
                 }
               }
             }
@@ -1763,7 +2207,7 @@ Panel {
 
                   // Main site telemetry
                   Column {
-                    width: parent.width - Style.space(root.cloudMode ? 240 : 130)
+                    width: parent.width - Style.space(root.cloudMode ? 280 : 130)
                     spacing: Style.space(2)
                     Row {
                       spacing: Style.space(6)
@@ -1806,16 +2250,27 @@ Panel {
                       anchors.fill: parent
                       hoverEnabled: true
                       cursorShape: Qt.PointingHandCursor
-                      onClicked: {
-                        var ip = String(modelData.gatewayIp || "").trim()
-                        if (ip) {
-                          try {
-                            Quickshell.execDetached(["xdg-terminal-exec", "--", "ssh", "admin@" + ip])
-                          } catch (e) {
-                            console.warn("SSH terminal error", e)
-                          }
-                        }
-                      }
+                      onClicked: root.launchSsh(modelData.gatewayIp, "root")
+                    }
+                  }
+
+                  // Ping Gateway Action Button
+                  Rectangle {
+                    visible: root.cloudMode && modelData.gatewayIp !== undefined && modelData.gatewayIp !== ""
+                    width: pingBtnText.implicitWidth + Style.space(12)
+                    height: Style.space(24)
+                    radius: 3
+                    color: pingMouse.containsMouse ? root.cardHover : root.track
+                    border.width: 1
+                    border.color: root.outline
+                    anchors.verticalCenter: parent.verticalCenter
+                    Text { textFormat: Text.PlainText; id: pingBtnText; anchors.centerIn: parent; text: "Ping"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                    MouseArea {
+                      id: pingMouse
+                      anchors.fill: parent
+                      hoverEnabled: true
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: root.launchPing(modelData.gatewayIp)
                     }
                   }
 
@@ -1852,9 +2307,37 @@ Panel {
             }
           }
 
-          // TAB 2: ISSUES & AUDIT TRAIL (HISTORICAL RESOLVED ISSUES GREYED OUT)
+          // TAB 2: DEVICES (FLEET HARDWARE INVENTORY VIEW)
           Column {
             visible: root.activeTab === 2
+            width: parent.width
+            spacing: Style.space(8)
+
+            DeviceInventoryView {
+              width: parent.width
+              devices: root.getAllFleetDevices()
+              currentFilter: root.deviceFilter
+              foreground: root.foreground
+              dim: root.dim
+              accent: root.accent
+              card: root.card
+              cardHover: root.cardHover
+              track: root.track
+              outline: root.outline
+              urgent: root.urgent
+              healthy: root.healthy
+              fontFamily: root.fontFamily
+              onSshRequested: function(ip, user) { root.launchSsh(ip, user) }
+              onPingRequested: function(ip) { root.launchPing(ip) }
+              onWebRequested: function(ip) {
+                if (ip) Quickshell.execDetached(["xdg-open", "https://" + ip])
+              }
+            }
+          }
+
+          // TAB 3: ISSUES & AUDIT TRAIL (HISTORICAL RESOLVED ISSUES GREYED OUT)
+          Column {
+            visible: root.activeTab === 3
             width: parent.width
             spacing: Style.space(8)
 
@@ -2023,9 +2506,9 @@ Panel {
             }
           }
 
-          // TAB 3: PROTECT CAMERAS
+          // TAB 4: PROTECT CAMERAS
           Column {
-            visible: root.activeTab === 3
+            visible: root.activeTab === 4
             width: parent.width
             spacing: Style.space(8)
             PanelSectionHeader { width: parent.width; text: root.cloudMode ? "PROTECT ACROSS ALL SITES" : "PROTECT CAMERAS"; foreground: root.foreground; fontFamily: root.fontFamily }
@@ -2112,7 +2595,7 @@ Panel {
         }
 
         Column {
-          visible: root.connected && root.inSite
+          visible: root.connected && root.inSite && !root.settingsMode
           width: parent.width
           spacing: Style.space(12)
 
@@ -2219,41 +2702,28 @@ Panel {
             visible: root.siteData && root.siteData.ok === true && root.siteTab === 0
             width: parent.width
             spacing: Style.space(8)
-            PanelSectionHeader { width: parent.width; text: "LIVE NETWORK DEVICES"; foreground: root.foreground; fontFamily: root.fontFamily }
-            Repeater {
-              model: root.siteData.network && root.siteData.network.devices ? root.siteData.network.devices : []
-              BorderSurface {
-                required property var modelData
-                width: content.width
-                implicitHeight: siteDeviceRow.implicitHeight + Style.space(16)
-                color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.035)
-                radius: Style.cornerRadius
-                borderSpec: Border.flat(Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.09), 1)
-                Row {
-                  id: siteDeviceRow
-                  anchors.left: parent.left
-                  anchors.right: parent.right
-                  anchors.verticalCenter: parent.verticalCenter
-                  anchors.margins: Style.space(9)
-                  spacing: Style.space(10)
-                  Rectangle { width: Style.space(9); height: width; radius: width / 2; color: modelData.online ? root.healthy : root.urgent; anchors.verticalCenter: parent.verticalCenter }
-                  Column {
-                    width: parent.width - Style.space(125)
-                    Text { textFormat: Text.PlainText; width: parent.width; text: Model.safe(modelData.name, "UniFi device"); elide: Text.ElideRight; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true }
-                    Text { textFormat: Text.PlainText; width: parent.width; text: Model.safe(modelData.model, "") + (modelData.ip ? "  ·  " + Model.safe(modelData.ip, "") : ""); elide: Text.ElideRight; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                  }
-                  Text { textFormat: Text.PlainText; text: modelData.online ? (modelData.update ? "UPDATE" : "ONLINE") : "OFFLINE"; color: modelData.online ? root.dim : root.urgent; font.family: root.fontFamily; font.pixelSize: Style.font.caption; anchors.verticalCenter: parent.verticalCenter }
-                }
-              }
-            }
-            Text { textFormat: Text.PlainText;
-              visible: !root.siteData.network || root.siteData.network.devices.length === 0
+            PanelSectionHeader { width: parent.width; text: "NETWORK TOPOLOGY & DEVICES"; foreground: root.foreground; fontFamily: root.fontFamily }
+
+            TopologyTreeView {
               width: parent.width
-              text: "No Network devices were returned for this site"
-              horizontalAlignment: Text.AlignHCenter
-              color: root.dim
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
+              site: root.selectedSite
+              devices: root.siteData && root.siteData.network && root.siteData.network.devices ? root.siteData.network.devices : []
+              foreground: root.foreground
+              dim: root.dim
+              accent: root.accent
+              card: root.card
+              cardHover: root.cardHover
+              track: root.track
+              outline: root.outline
+              urgent: root.urgent
+              healthy: root.healthy
+              backup: root.backup
+              fontFamily: root.fontFamily
+              onSshRequested: function(ip, user) { root.launchSsh(ip, user) }
+              onPingRequested: function(ip) { root.launchPing(ip) }
+              onWebRequested: function(ip) {
+                if (ip) Quickshell.execDetached(["xdg-open", "https://" + ip])
+              }
             }
           }
 
@@ -2319,6 +2789,29 @@ Panel {
       }
     }
   }
+}
+
+  Loader {
+    id: analyticsWindowLoader
+    active: root.analyticsOpen
+    source: "windows/AnalyticsWindow.qml"
+    onLoaded: {
+      if (item) {
+        item.data = Qt.binding(function() { return root.data })
+        item.visible = true
+      }
+    }
+  }
+
+  Connections {
+    target: analyticsWindowLoader.item
+    ignoreUnknownSignals: true
+    function onVisibleChanged() {
+      if (analyticsWindowLoader.item && !analyticsWindowLoader.item.visible) {
+        root.analyticsOpen = false
+      }
+    }
+  }
 
   IpcHandler {
     target: root.ipcTarget
@@ -2327,8 +2820,13 @@ Panel {
     function show(): void { root.open() }
     function hide(): void { root.close() }
     function toggle(): void { root.toggle() }
+    function openSettings(): void { root.open(); root.openSettings() }
+    function closeSettings(): void { root.closeSettings() }
+    function openAnalytics(): void { root.openAnalytics() }
+    function closeAnalytics(): void { root.closeAnalytics() }
+    function toggleAnalytics(): void { root.toggleAnalytics() }
     function tab(index: int): void {
-      root.activeTab = Math.max(0, Math.min(2, index))
+      root.activeTab = Math.max(0, Math.min(4, index))
       root.open()
     }
     function rotate(longitude: real): void {
@@ -2340,6 +2838,8 @@ Panel {
     function status(): string {
       return JSON.stringify({
         opened: root.opened,
+        settingsMode: root.settingsMode,
+        analyticsOpen: root.analyticsOpen,
         hasBar: root.bar !== null,
         rootWindow: root.QsWindow.window !== null,
         buttonWindow: button.QsWindow.window !== null,

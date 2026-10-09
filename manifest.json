@@ -21,7 +21,10 @@
     "defaultSection": "right",
     "defaults": {
       "refreshSeconds": 30,
-      "panelWidth": 760
+      "panelWidth": 780,
+      "enableMultiDot": true,
+      "badgeMode": "alerts",
+      "terminalCommand": "xdg-terminal-exec"
     },
     "schema": [
       {
@@ -35,13 +38,32 @@
         "description": "How often UniFi SiteThread refreshes Network and Protect health."
       },
       {
+        "key": "badgeMode",
+        "type": "enum",
+        "label": "Bar badge mode",
+        "options": ["alerts", "clients", "sites", "off"],
+        "defaultValue": "alerts"
+      },
+      {
+        "key": "enableMultiDot",
+        "type": "boolean",
+        "label": "Show multi-dot site status in bar",
+        "defaultValue": true
+      },
+      {
+        "key": "terminalCommand",
+        "type": "string",
+        "label": "Terminal command for SSH",
+        "defaultValue": "xdg-terminal-exec"
+      },
+      {
         "key": "panelWidth",
         "type": "integer",
         "label": "Panel width",
         "min": 520,
         "max": 1200,
         "step": 20,
-        "defaultValue": 760
+        "defaultValue": 780
       }
     ]
   }
