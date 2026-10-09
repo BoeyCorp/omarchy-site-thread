@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "larrywcox.site-thread",
   "name": "UniFi SiteThread",
-  "version": "0.4.7",
-  "author": "Larry Cox",
-  "description": "Fleet-wide UniFi Site Manager with in-panel Network and Protect site views.",
-  "homepage": "https://github.com/larrywcox/omarchy-site-thread",
+  "version": "0.5.0",
+  "author": "Larry Cox (Forked by BoeyCorp)",
+  "description": "Fleet-wide UniFi Site Manager cockpit with ASCII fleet globe, resolved issue history, and in-panel Network and Protect telemetry.",
+  "homepage": "https://github.com/BoeyCorp/omarchy-site-thread",
   "license": "MIT",
   "kinds": [
     "bar-widget"

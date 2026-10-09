@@ -1,37 +1,18 @@
-# UniFi SiteThread for Omarchy
+# UniFi SiteThread for Omarchy (BoeyCorp Fork)
 
-UniFi SiteThread is a unified UniFi Network and Protect operations panel for the
-Omarchy top bar.
+UniFi SiteThread is a high-density, NOC-style UniFi Network and Protect operations cockpit for the Omarchy top bar.
 
-Version 0.4.7 provides:
+Version 0.5.0 enhancements:
 
-- A health-aware bar icon with offline-device badges.
-- A browser-based UI Account sign-in handoff and masked API-key entry.
-- One aggregated view of every site the UI Account owns or administers.
-- Per-site device, client, offline, firmware, ISP, and WAN-uptime summaries.
-- Green online, yellow backup-WAN, and red unreachable status indicators.
-- A fixed high-visibility red for unavailable sites, independent of the Omarchy theme.
-- An always-white UniFi SiteThread top-bar icon.
-- An always-white SiteThread logo inside the popup.
-- A top-bar badge that counts unreachable sites only, never offline devices.
-- Two-check outage confirmation so a brief cloud disconnect does not immediately mark a site red.
-- Sites ordered by health first (unreachable, failover, healthy), then alphabetically by name.
-- An in-plugin site view with Back navigation—site selection never leaves the panel.
-- Live per-site Network inventory through UniFi Cloud Connector.
-- Per-site Protect detection, camera inventory, and live-refreshing camera views.
-- Protect controls are hidden automatically on sites where Protect is not installed.
-- The Overview alert names only sites with outages or active WAN failover.
-- Overview summary tiles expand into clickable site, device, client, and issue lists.
-- Individual offline devices stay in the expandable Issues list.
-- Fleet-wide device and Protect inventory through the official Site Manager API.
-- An optional direct-console mode for local-only sites and Protect snapshots.
-- Certificate fingerprint verification before any credential is transmitted.
-- Persistent authentication through the desktop Secret Service.
-- Overview cards for devices, clients, cameras, updates, and offline equipment.
-- Network device inventory and health.
-- Protect camera inventory and live snapshot refresh while the panel is open.
-- Bounded API responses and JSON models to prevent remote memory exhaustion.
-- Plain-text rendering for all externally sourced labels.
+- **ASCII Fleet Globe & NOC World Map**: Interactive 3D ASCII orthographic globe and 2D equirectangular fleet map with color-coded status dots (green = online, amber = backup WAN, red = offline), manual/auto rotation, and one-click site drilldowns.
+- **Agent Hub-Inspired High-Density Cockpit**: Compact header with status pill, last-refresh age, smooth rotating spinner, and active refresh glow bar. Four top-level metric tiles breakdown Sites, Gateways & Multi-WAN, Network Devices, and Clients (split into Wi-Fi and Wired).
+- **Persistent Issue History & Resolution Tracking**: Active incidents plus resolved issues saved across sessions (`~/.config/site-thread/issues.json`). Resolved incidents are clearly distinguished as greyed-out cards with resolution timestamps and duration metrics. Includes filters for `All`, `Active`, and `Resolved`, plus a `Clear History` action.
+- **Dynamic Omarchy Theme Reactivity**: Plugin bar icon and popup container automatically adapt to the user's active Omarchy desktop theme and light/dark luminance modes, replacing hardcoded color overrides with dynamic palette variables.
+- **Gateway Telemetry & 1-Click SSH**: Displays gateway model (e.g. UCG-Max, UCG-Ultra, UDM-Pro) and LAN IP, with a direct SSH button opening your default terminal via `xdg-terminal-exec`.
+- **Health-Aware Bar Icon**: Dynamic offline device and outage counters.
+- **Browser-Based UI Account Sign-In**: Masked Site Manager API-key flow saved in desktop Secret Service via `secret-tool`.
+- **Multi-Site Fleet Aggregation**: Direct Network and Protect overview across all owned or managed UI consoles.
+- **Strict Plaintext QML Rendering**: Defense-in-depth sanitization preventing remote code injection or HTML escaping issues.
 
 ## Security model
 

@@ -30,6 +30,8 @@ LEGACY_APP = "unifi-fabric"
 PROFILE = "default"
 CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / APP
 CONFIG_FILE = CONFIG_DIR / "connection.json"
+ISSUES_FILE = CONFIG_DIR / "issues.json"
+MAX_HISTORY_ISSUES = 30
 LEGACY_CONFIG_FILE = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / LEGACY_APP / "connection.json"
 RUNTIME_DIR = Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/{APP}-{os.getuid()}")) / APP
 KEY_PATTERN = re.compile(r"^[A-Za-z0-9._~+/=-]{8,4096}$")
@@ -571,16 +573,201 @@ def site_health(stats: dict[str, Any], counts: dict[str, Any]) -> tuple[str, str
     return "up", "Online"
 
 
+TIMEZONE_COORDS: dict[str, tuple[float, float]] = {
+    "Australia/Perth": (-31.95, 115.86),
+    "Australia/Eucla": (-31.68, 128.88),
+    "Australia/Darwin": (-12.46, 130.84),
+    "Australia/Brisbane": (-27.47, 153.02),
+    "Australia/Adelaide": (-34.93, 138.60),
+    "Australia/Sydney": (-33.87, 151.21),
+    "Australia/Melbourne": (-37.81, 144.96),
+    "Australia/Hobart": (-42.88, 147.33),
+    "America/New_York": (40.71, -74.01),
+    "America/Chicago": (41.88, -87.63),
+    "America/Denver": (39.74, -104.99),
+    "America/Los_Angeles": (34.05, -118.24),
+    "America/Anchorage": (61.22, -149.90),
+    "America/Honolulu": (21.31, -157.86),
+    "America/Phoenix": (33.45, -112.07),
+    "America/Toronto": (43.65, -79.38),
+    "America/Vancouver": (49.28, -123.12),
+    "America/Sao_Paulo": (-23.55, -46.63),
+    "Europe/London": (51.51, -0.13),
+    "Europe/Dublin": (53.35, -6.26),
+    "Europe/Paris": (48.86, 2.35),
+    "Europe/Berlin": (52.52, 13.40),
+    "Europe/Amsterdam": (52.37, 4.89),
+    "Europe/Madrid": (40.42, -3.70),
+    "Europe/Rome": (41.90, 12.50),
+    "Asia/Tokyo": (35.68, 139.77),
+    "Asia/Seoul": (37.57, 126.98),
+    "Asia/Singapore": (1.35, 103.82),
+    "Asia/Hong_Kong": (22.32, 114.17),
+    "Asia/Shanghai": (31.23, 121.47),
+    "Asia/Taipei": (25.03, 121.57),
+    "Asia/Dubai": (25.20, 55.27),
+    "Asia/Bangkok": (13.76, 100.50),
+    "Pacific/Auckland": (-36.85, 174.76),
+}
+
+
+def site_coordinates(meta: dict[str, Any], timezone: str, index: int = 0) -> tuple[float, float]:
+    lat = nested_number(meta, "lat") or nested_number(meta, "latitude")
+    lng = nested_number(meta, "lng") or nested_number(meta, "longitude") or nested_number(meta, "lon")
+    if lat != 0 or lng != 0:
+        return round(lat, 4), round(lng, 4)
+    if timezone in TIMEZONE_COORDS:
+        base_lat, base_lng = TIMEZONE_COORDS[timezone]
+        offset = (index % 5) * 0.4
+        return round(base_lat + (offset if index % 2 == 0 else -offset), 4), round(base_lng + offset, 4)
+    return 0.0, 0.0
+
+
+def track_issues(sites: list[dict[str, Any]], devices: list[dict[str, Any]], is_demo: bool = False) -> list[dict[str, Any]]:
+    now = int(time.time())
+    if is_demo:
+        return [
+            {
+                "id": "site:warehouse:down",
+                "type": "site_down",
+                "title": "Warehouse site unreachable",
+                "site": "Warehouse",
+                "severity": "critical",
+                "active": True,
+                "startedAt": now - 1080,
+                "durationSeconds": 1080,
+            },
+            {
+                "id": "site:office:backup",
+                "type": "backup_wan",
+                "title": "Main Office secondary WAN failover",
+                "site": "Main Office",
+                "severity": "warning",
+                "active": False,
+                "startedAt": now - 3600,
+                "resolvedAt": now - 2400,
+                "durationSeconds": 1200,
+            },
+            {
+                "id": "device:sw:update",
+                "type": "device_offline",
+                "title": "Core Switch rebooted (Firmware update)",
+                "site": "Main Office",
+                "model": "USW Pro 24 PoE",
+                "severity": "info",
+                "active": False,
+                "startedAt": now - 14400,
+                "resolvedAt": now - 14100,
+                "durationSeconds": 300,
+            },
+        ]
+
+    active_now: dict[str, dict[str, Any]] = {}
+    for s in sites:
+        st = str(s.get("status", "up"))
+        sid = str(s.get("id", ""))
+        sname = str(s.get("name", "Site"))
+        if st == "down":
+            key = f"site:{sid}:down"
+            active_now[key] = {
+                "id": key,
+                "type": "site_down",
+                "title": f"{sname} site unreachable",
+                "site": sname,
+                "siteId": sid,
+                "severity": "critical",
+                "active": True,
+                "startedAt": now,
+            }
+        elif st == "backup":
+            key = f"site:{sid}:backup"
+            active_now[key] = {
+                "id": key,
+                "type": "backup_wan",
+                "title": f"{sname} on backup WAN",
+                "site": sname,
+                "siteId": sid,
+                "severity": "warning",
+                "active": True,
+                "startedAt": now,
+            }
+
+    for d in devices:
+        if not d.get("online", True):
+            did = str(d.get("id", ""))
+            dname = str(d.get("name", "Device"))
+            dsite = str(d.get("site", ""))
+            key = f"device:{did}:offline"
+            active_now[key] = {
+                "id": key,
+                "type": "device_offline",
+                "title": f"{dname} offline",
+                "site": dsite,
+                "model": str(d.get("model", "")),
+                "severity": "critical",
+                "active": True,
+                "startedAt": now,
+            }
+
+    history: list[dict[str, Any]] = []
+    if ISSUES_FILE.is_file():
+        try:
+            raw = decode_json(ISSUES_FILE.read_text(encoding="utf-8"))
+            if isinstance(raw, list):
+                history = [item for item in raw if isinstance(item, dict) and "id" in item]
+        except Exception:
+            history = []
+
+    history_by_id = {str(item["id"]): item for item in history}
+    result_active: list[dict[str, Any]] = []
+    for key, cur in active_now.items():
+        if key in history_by_id and history_by_id[key].get("active"):
+            prev = history_by_id[key]
+            started_at = int(prev.get("startedAt", now))
+            cur["startedAt"] = started_at
+            cur["durationSeconds"] = max(1, now - started_at)
+        else:
+            cur["durationSeconds"] = 1
+        result_active.append(cur)
+
+    result_resolved: list[dict[str, Any]] = []
+    for prev in history:
+        pid = str(prev.get("id", ""))
+        was_active = bool(prev.get("active", False))
+        if was_active and pid not in active_now:
+            resolved_copy = dict(prev)
+            resolved_copy["active"] = False
+            started_at = int(prev.get("startedAt", now))
+            resolved_copy["resolvedAt"] = now
+            resolved_copy["durationSeconds"] = max(1, now - started_at)
+            result_resolved.append(resolved_copy)
+        elif not was_active:
+            result_resolved.append(prev)
+
+    result_resolved.sort(key=lambda x: int(x.get("resolvedAt", 0)), reverse=True)
+    result_resolved = result_resolved[:MAX_HISTORY_ISSUES]
+
+    try:
+        private_dir(CONFIG_DIR)
+        to_save = result_active + result_resolved
+        ISSUES_FILE.write_text(json.dumps(to_save, separators=(",", ":")), encoding="utf-8")
+    except Exception:
+        pass
+
+    return result_active + result_resolved
+
+
 def site_sort_key(site: dict[str, Any]) -> tuple[int, str]:
     priority = {"down": 0, "backup": 1, "up": 2}
     return priority.get(str(site.get("status", "up")), 3), str(site.get("name", "")).casefold()
 
 
 def demo_summary() -> dict[str, Any]:
+    now = int(time.time())
     devices = [
-        {"id": "gw", "name": "Dream Machine Pro", "model": "UDM Pro", "ip": "10.0.0.1", "online": True, "update": False},
-        {"id": "sw", "name": "Core Switch", "model": "USW Pro 24 PoE", "ip": "10.0.0.2", "online": True, "update": True},
-        {"id": "ap", "name": "Living Room AP", "model": "U7 Pro", "ip": "10.0.0.3", "online": True, "update": False},
+        {"id": "gw", "name": "Dream Machine Pro", "model": "UDM Pro", "ip": "10.0.0.1", "online": True, "update": False, "site": "Home"},
+        {"id": "sw", "name": "Core Switch", "model": "USW Pro 24 PoE", "ip": "10.0.0.2", "online": True, "update": True, "site": "Main Office"},
+        {"id": "ap", "name": "Living Room AP", "model": "U7 Pro", "ip": "10.0.0.3", "online": True, "update": False, "site": "Home"},
     ]
     cameras = [
         {"id": "frontdoor", "name": "Front Door", "model": "G4 Doorbell Pro", "online": True, "recording": True},
@@ -588,16 +775,36 @@ def demo_summary() -> dict[str, Any]:
         {"id": "backyard", "name": "Backyard", "model": "G5 Turret", "online": True, "recording": True},
     ]
     sites = [
-        {"id": "home", "hostId": "console-home", "name": "Home", "isp": "Fiber", "deviceCount": 8, "clientCount": 47, "offlineCount": 0, "updateCount": 1, "wanUptime": 100, "permission": "owner", "status": "up", "statusText": "Online"},
-        {"id": "office", "hostId": "console-office", "name": "Main Office", "isp": "Business Fiber", "deviceCount": 19, "clientCount": 86, "offlineCount": 0, "updateCount": 0, "wanUptime": 99.99, "permission": "admin", "status": "backup", "statusText": "Backup WAN active"},
-        {"id": "warehouse", "hostId": "console-warehouse", "name": "Warehouse", "isp": "Cable", "deviceCount": 11, "clientCount": 31, "offlineCount": 11, "updateCount": 2, "wanUptime": 99.72, "permission": "admin", "status": "down", "statusText": "Site unreachable"},
+        {
+            "id": "home", "hostId": "console-home", "name": "Home", "isp": "Fiber", "timezone": "Australia/Perth",
+            "lat": -31.95, "lng": 115.86, "gatewayModel": "UDM Pro", "gatewayIp": "10.0.0.1",
+            "deviceCount": 8, "clientCount": 47, "wifiClients": 38, "wiredClients": 9,
+            "offlineCount": 0, "updateCount": 1, "wanUptime": 100, "permission": "owner", "status": "up", "statusText": "Online"
+        },
+        {
+            "id": "office", "hostId": "console-office", "name": "Main Office", "isp": "Business Fiber", "timezone": "Europe/London",
+            "lat": 51.51, "lng": -0.13, "gatewayModel": "UDM SE", "gatewayIp": "192.168.10.1",
+            "deviceCount": 19, "clientCount": 86, "wifiClients": 62, "wiredClients": 24,
+            "offlineCount": 0, "updateCount": 0, "wanUptime": 99.99, "permission": "admin", "status": "backup", "statusText": "Backup WAN active"
+        },
+        {
+            "id": "warehouse", "hostId": "console-warehouse", "name": "Warehouse", "isp": "Cable", "timezone": "America/Chicago",
+            "lat": 41.88, "lng": -87.63, "gatewayModel": "UXG Pro", "gatewayIp": "10.20.0.1",
+            "deviceCount": 11, "clientCount": 31, "wifiClients": 8, "wiredClients": 23,
+            "offlineCount": 11, "updateCount": 2, "wanUptime": 99.72, "permission": "admin", "status": "down", "statusText": "Site unreachable"
+        },
     ]
     sites.sort(key=site_sort_key)
+    issues = track_issues(sites, devices, is_demo=True)
     return {
         "ok": True, "connected": True, "demo": True, "mode": "cloud", "host": "unifi.ui.com", "site": "3 sites", "sites": sites,
-        "severity": "critical", "message": "1 device offline across 3 sites",
-        "network": {"available": True, "devices": devices, "deviceCount": 38, "offlineCount": 1, "updateCount": 3, "clientCount": 164},
+        "severity": "critical", "message": "1 site unreachable · 1 on backup WAN",
+        "network": {
+            "available": True, "devices": devices, "deviceCount": 38, "offlineCount": 1, "updateCount": 3, "clientCount": 164,
+            "wifiClients": 108, "wiredClients": 56, "gatewaysCount": 3
+        },
         "protect": {"available": True, "cameras": cameras, "cameraCount": 3, "offlineCount": 0},
+        "issues": issues,
     }
 
 
@@ -652,6 +859,8 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         name = host_names.get(host_id, raw_name) if raw_name.lower() == "default" else raw_name
         device_count = int(nested_number(counts, "totalDevice"))
         client_count = int(sum(nested_number(counts, key) for key in ("wifiClient", "wiredClient", "guestClient")))
+        wifi_count = int(nested_number(counts, "wifiClient"))
+        wired_count = int(nested_number(counts, "wiredClient"))
         offline_count = int(nested_number(counts, "offlineDevice"))
         update_count = int(nested_number(counts, "pendingUpdateDevice"))
         total_devices += device_count
@@ -661,14 +870,35 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         status, status_text = site_health(stats, counts)
         if host_id in host_online and not host_online[host_id]:
             status, status_text = "down", "Site unreachable"
+        lat, lng = site_coordinates(meta, model_string(first_value(meta, "timezone"), max_length=128), len(sites))
+
+        site_devs = [
+            d for d in flattened
+            if model_string(first_value(d, "hostId", "id"), max_length=256) == host_id
+            or model_string(first_value(d, "hostName", "name")) == name
+            or str(d.get("site", "")).casefold() == name.casefold()
+        ]
+        gw_item = next(
+            (d for d in site_devs if any(k in str(d.get("model", "")).lower() for k in ("udm", "ucg", "uxg", "gateway", "usg"))),
+            None
+        )
+        gw_model = model_string(first_value(gw_item, "model", "shortname", "type")) if gw_item else ""
+        gw_ip = model_string(first_value(gw_item, "ipAddress", "ip", "lanIp"), max_length=64) if gw_item else ""
+
         sites.append({
             "id": model_string(first_value(item, "siteId", "id"), max_length=128),
             "hostId": host_id,
             "name": name,
             "isp": model_string(first_value(isp_info, "name", "organization")),
             "timezone": model_string(first_value(meta, "timezone"), max_length=128),
+            "lat": lat,
+            "lng": lng,
+            "gatewayModel": gw_model,
+            "gatewayIp": gw_ip,
             "deviceCount": device_count,
             "clientCount": client_count,
+            "wifiClients": wifi_count,
+            "wiredClients": wired_count,
             "offlineCount": offline_count,
             "updateCount": update_count,
             "wanUptime": nested_number(percentages, "wanUptime"),
@@ -704,6 +934,12 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         severity, message = "warning", f"{total_updates} firmware update(s) across {len(sites)} sites"
     else:
         severity, message = "healthy", f"All {len(sites)} sites operational"
+
+    total_wifi = sum(s.get("wifiClients", 0) for s in sites)
+    total_wired = sum(s.get("wiredClients", 0) for s in sites)
+    total_gateways = sum(bool(s.get("gatewayModel")) for s in sites)
+    issues = track_issues(sites, devices, is_demo=False)
+
     return {
         "ok": True,
         "connected": True,
@@ -714,8 +950,19 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         "sites": sites,
         "severity": severity,
         "message": message,
-        "network": {"available": True, "devices": devices, "deviceCount": total_devices, "offlineCount": total_offline, "updateCount": total_updates, "clientCount": total_clients},
+        "network": {
+            "available": True,
+            "devices": devices,
+            "deviceCount": total_devices,
+            "offlineCount": total_offline,
+            "updateCount": total_updates,
+            "clientCount": total_clients,
+            "wifiClients": total_wifi,
+            "wiredClients": total_wired,
+            "gatewaysCount": total_gateways,
+        },
         "protect": {"available": bool(cameras), "cameras": cameras, "cameraCount": len(cameras), "offlineCount": sum(not item["online"] for item in cameras)},
+        "issues": issues,
     }
 
 
@@ -838,7 +1085,20 @@ def build_summary(config: dict[str, Any], key: str) -> dict[str, Any]:
             "cameraCount": len(cameras),
             "offlineCount": offline_cameras,
         },
+        "issues": track_issues([], devices, is_demo=False),
     }
+
+
+def command_clear_history() -> None:
+    if ISSUES_FILE.is_file():
+        try:
+            raw = decode_json(ISSUES_FILE.read_text(encoding="utf-8"))
+            if isinstance(raw, list):
+                active = [i for i in raw if isinstance(i, dict) and i.get("active")]
+                ISSUES_FILE.write_text(json.dumps(active, separators=(",", ":")), encoding="utf-8")
+        except Exception:
+            ISSUES_FILE.unlink(missing_ok=True)
+    emit({"ok": True, "cleared": True})
 
 
 def command_probe(raw_host: str) -> None:
@@ -973,6 +1233,7 @@ def parse_args() -> argparse.Namespace:
     snapshot = sub.add_parser("snapshot")
     snapshot.add_argument("camera_id")
     snapshot.add_argument("host_id", nargs="?")
+    sub.add_parser("clear-history")
     sub.add_parser("disconnect")
     return parser.parse_args()
 
@@ -992,6 +1253,8 @@ def main() -> None:
             command_site(args.host_id, args.site_id)
         elif args.command == "snapshot":
             command_snapshot(args.camera_id, args.host_id)
+        elif args.command == "clear-history":
+            command_clear_history()
         elif args.command == "disconnect":
             command_disconnect()
     except FabricError as exc:
