@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Commons
@@ -690,7 +691,7 @@ Panel {
   Row {
     id: multiDotRow
     parent: root
-    visible: root.enableMultiDot && root.data && root.data.sites && root.data.sites.length > 0
+    visible: Boolean(root.enableMultiDot && root.data && root.data.sites && root.data.sites.length > 0)
     x: button.x + button.width - Style.space(2)
     y: Math.max(0, (root.height - height) / 2)
     height: Style.space(14)

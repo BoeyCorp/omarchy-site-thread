@@ -187,11 +187,10 @@ FloatingWindow {
 
             Canvas {
               id: chartCanvas
-              anchors.fill: parent
-              anchors.topMargin: Style.space(38)
-              anchors.bottomMargin: Style.space(18)
-              anchors.leftMargin: Style.space(10)
-              anchors.rightMargin: Style.space(10)
+              Layout.fillWidth: true
+              Layout.fillHeight: true
+              Layout.minimumHeight: Style.space(140)
+              Layout.margins: Style.space(8)
               onPaint: {
                 var ctx = getContext("2d")
                 if (!ctx) return
@@ -254,9 +253,9 @@ FloatingWindow {
 
             // Legend
             RowLayout {
-              anchors.bottom: parent.bottom
-              anchors.right: parent.right
-              anchors.margins: Style.space(8)
+              Layout.alignment: Qt.AlignRight
+              Layout.rightMargin: Style.space(8)
+              Layout.bottomMargin: Style.space(8)
               spacing: Style.space(12)
 
               RowLayout {
@@ -284,36 +283,31 @@ FloatingWindow {
             Layout.fillHeight: true
             Layout.preferredHeight: 3
 
-            RowLayout {
-              anchors.fill: parent
-              anchors.topMargin: Style.space(32)
-              anchors.margins: Style.space(10)
-              spacing: Style.space(16)
+            ColumnLayout {
+              Layout.fillWidth: true
+              Layout.fillHeight: true
+              Layout.margins: Style.space(8)
+              spacing: Style.space(6)
 
-              ColumnLayout {
+              Text { textFormat: Text.PlainText; text: "5 GHz High-Throughput (9 clients · 64%)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+              Rectangle {
                 Layout.fillWidth: true
-                spacing: Style.space(6)
-
-                Text { textFormat: Text.PlainText; text: "5 GHz High-Throughput (9 clients · 64%)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                Rectangle {
-                  Layout.fillWidth: true
-                  height: Style.space(8)
-                  radius: 4
-                  color: root.track
-                  Rectangle { width: parent.width * 0.64; height: parent.height; radius: 4; color: root.accent }
-                }
-
-                Text { textFormat: Text.PlainText; text: "2.4 GHz IoT & Legacy (5 clients · 36%)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                Rectangle {
-                  Layout.fillWidth: true
-                  height: Style.space(8)
-                  radius: 4
-                  color: root.track
-                  Rectangle { width: parent.width * 0.36; height: parent.height; radius: 4; color: root.backup }
-                }
-
-                Text { textFormat: Text.PlainText; text: "6 GHz WiFi 7 (U7 Pro Ready)"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                height: Style.space(8)
+                radius: 4
+                color: root.track
+                Rectangle { width: parent.width * 0.64; height: parent.height; radius: 4; color: root.accent }
               }
+
+              Text { textFormat: Text.PlainText; text: "2.4 GHz IoT & Legacy (5 clients · 36%)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+              Rectangle {
+                Layout.fillWidth: true
+                height: Style.space(8)
+                radius: 4
+                color: root.track
+                Rectangle { width: parent.width * 0.36; height: parent.height; radius: 4; color: root.backup }
+              }
+
+              Text { textFormat: Text.PlainText; text: "6 GHz WiFi 7 (U7 Pro Ready)"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
             }
           }
         }
@@ -335,9 +329,9 @@ FloatingWindow {
             Layout.fillHeight: true
 
             Flickable {
-              anchors.fill: parent
-              anchors.topMargin: Style.space(32)
-              anchors.margins: Style.space(6)
+              Layout.fillWidth: true
+              Layout.fillHeight: true
+              Layout.margins: Style.space(6)
               contentWidth: width
               contentHeight: siteMatrixCol.implicitHeight
               clip: true
