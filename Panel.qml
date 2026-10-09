@@ -1271,33 +1271,370 @@ Panel {
                   }
                 }
 
-                // 3D Globe Canvas Container
+                // 3D Globe Canvas Container & In-View Sites Panel
                 Rectangle {
                   id: globeContainer
                   width: parent.width
-                  height: Style.space(260)
+                  height: Style.space(275)
                   color: root.isLightTheme ? "#f1f5f9" : "#080b11"
                   radius: Style.cornerRadius - 2
                   border.width: 1
                   border.color: root.outline
                   clip: true
 
-                  Globe {
-                    id: fleetGlobe
-                    anchors.fill: parent
-                    sites: root.data && root.data.sites ? root.data.sites : []
-                    autoRotate: root.autoRotate && root.opened && root.activeTab === 0
-                    fontFamily: root.fontFamily
-                    sphereColor: root.isLightTheme ? "#e2e8f0" : "#0f1520"
-                    landColor: root.isLightTheme ? "#94a3b8" : "#1e293b"
-                    gridColor: root.isLightTheme ? "#cbd5e1" : "#334155"
-                    outlineColor: root.accent
-                    textColor: root.foreground
-                    healthy: root.healthy
-                    backup: root.backup
-                    urgent: root.urgent
-                    onSiteActivated: function(site) {
-                      root.openSite(site)
+                  Item {
+                    id: globeWrapper
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.right: visibleSitesPanel.left
+                    clip: true
+
+                    Globe {
+                      id: fleetGlobe
+                      anchors.fill: parent
+                      sites: root.data && root.data.sites ? root.data.sites : []
+                      autoRotate: root.autoRotate && root.opened && root.activeTab === 0
+                      fontFamily: root.fontFamily
+                      sphereColor: root.isLightTheme ? "#e2e8f0" : "#0f1520"
+                      landColor: root.isLightTheme ? "#94a3b8" : "#1e293b"
+                      gridColor: root.isLightTheme ? "#cbd5e1" : "#334155"
+                      outlineColor: root.accent
+                      textColor: root.foreground
+                      healthy: root.healthy
+                      backup: root.backup
+                      urgent: root.urgent
+                      onSiteActivated: function(site) {
+                        root.openSite(site)
+                      }
+                    }
+                  }
+
+                  // Right Side Panel: Sites currently visible on the globe
+                  Rectangle {
+                    id: visibleSitesPanel
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: Style.space(240)
+                    color: root.isLightTheme ? "#ffffff" : Qt.rgba(0.06, 0.08, 0.12, 0.95)
+                    clip: true
+
+                    // Vertical divider between Globe and In-View Panel
+                    Rectangle {
+                      anchors.left: parent.left
+                      anchors.top: parent.top
+                      anchors.bottom: parent.bottom
+                      width: 1
+                      color: root.outline
+                    }
+
+                    Column {
+                      anchors.fill: parent
+
+                      // Header
+                      Rectangle {
+                        width: parent.width
+                        height: Style.space(30)
+                        color: root.isLightTheme ? "#e2e8f0" : root.track
+
+                        Rectangle {
+                          anchors.bottom: parent.bottom
+                          anchors.left: parent.left
+                          anchors.right: parent.right
+                          height: 1
+                          color: root.outline
+                        }
+
+                        Item {
+                          anchors.fill: parent
+                          anchors.leftMargin: Style.space(8)
+                          anchors.rightMargin: Style.space(8)
+
+                          Row {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Style.space(6)
+
+                            Text {
+                              textFormat: Text.PlainText;
+                              text: "\uf06e"
+                              color: root.accent
+                              font.family: root.fontFamily
+                              font.pixelSize: Style.font.caption
+                              anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                              textFormat: Text.PlainText;
+                              text: "IN VIEW"
+                              color: root.foreground
+                              font.family: root.fontFamily
+                              font.pixelSize: Style.font.caption - 1
+                              font.bold: true
+                              anchors.verticalCenter: parent.verticalCenter
+                            }
+                          }
+
+                          Rectangle {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: Style.space(16)
+                            width: inViewCountText.implicitWidth + Style.space(8)
+                            radius: height / 2
+                            color: fleetGlobe.visibleSites && fleetGlobe.visibleSites.length > 0
+                              ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)
+                              : root.track
+                            border.width: 1
+                            border.color: fleetGlobe.visibleSites && fleetGlobe.visibleSites.length > 0
+                              ? root.accent
+                              : root.outline
+
+                            Text {
+                              textFormat: Text.PlainText;
+                              id: inViewCountText
+                              anchors.centerIn: parent
+                              text: String(fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0)
+                              color: fleetGlobe.visibleSites && fleetGlobe.visibleSites.length > 0 ? root.accent : root.dim
+                              font.family: root.fontFamily
+                              font.pixelSize: Style.font.caption - 2
+                              font.bold: true
+                            }
+                          }
+                        }
+                      }
+
+                      // Scrollable list or Empty state
+                      Item {
+                        width: parent.width
+                        height: parent.height - Style.space(30)
+
+                        // Empty State: Shown when no sites visible
+                        Column {
+                          visible: !fleetGlobe.visibleSites || fleetGlobe.visibleSites.length === 0
+                          anchors.centerIn: parent
+                          spacing: Style.space(5)
+                          width: parent.width - Style.space(16)
+
+                          Text {
+                            textFormat: Text.PlainText;
+                            text: "\uf070"
+                            color: root.dim
+                            font.family: root.fontFamily
+                            font.pixelSize: Style.space(20)
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                          }
+
+                          Text {
+                            textFormat: Text.PlainText;
+                            text: "No sites in view"
+                            color: root.dim
+                            font.family: root.fontFamily
+                            font.pixelSize: Style.font.caption
+                            font.bold: true
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                          }
+
+                          Text {
+                            textFormat: Text.PlainText;
+                            text: "Rotate globe to view sites"
+                            color: root.dim
+                            font.family: root.fontFamily
+                            font.pixelSize: Style.font.caption - 2
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                          }
+                        }
+
+                        // Scrollable List
+                        Flickable {
+                          id: visibleScroll
+                          visible: fleetGlobe.visibleSites && fleetGlobe.visibleSites.length > 0
+                          anchors.fill: parent
+                          contentWidth: width
+                          contentHeight: visibleCardsCol.implicitHeight + Style.space(8)
+                          clip: true
+                          boundsBehavior: Flickable.StopAtBounds
+                          interactive: contentHeight > height
+
+                          Column {
+                            id: visibleCardsCol
+                            width: visibleScroll.width - Style.space(12)
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.top: parent.top
+                            anchors.topMargin: Style.space(6)
+                            spacing: Style.space(5)
+
+                            Repeater {
+                              model: fleetGlobe.visibleSites || []
+                              delegate: Rectangle {
+                                id: cardDelegate
+                                required property var modelData
+                                required property int index
+
+                                width: visibleCardsCol.width
+                                implicitHeight: cardInnerCol.implicitHeight + Style.space(10)
+                                radius: 4
+                                color: cardMouse.containsMouse
+                                  ? (root.isLightTheme ? "#f1f5f9" : root.cardHover)
+                                  : (root.isLightTheme ? "#f8fafc" : Qt.rgba(root.track.r, root.track.g, root.track.b, 0.45))
+                                border.width: 1
+                                border.color: cardMouse.containsMouse
+                                  ? root.accent
+                                  : (fleetGlobe.selectedSite && fleetGlobe.selectedSite.id === modelData.id ? root.accent : root.outline)
+
+                                MouseArea {
+                                  id: cardMouse
+                                  anchors.fill: parent
+                                  hoverEnabled: true
+                                  cursorShape: Qt.PointingHandCursor
+                                  onClicked: root.openSite(cardDelegate.modelData)
+                                  onEntered: fleetGlobe.selectedSite = cardDelegate.modelData
+                                  onExited: {
+                                    if (fleetGlobe.selectedSite && fleetGlobe.selectedSite.id === cardDelegate.modelData.id) {
+                                      fleetGlobe.selectedSite = null
+                                    }
+                                  }
+                                }
+
+                                Column {
+                                  id: cardInnerCol
+                                  anchors.left: parent.left
+                                  anchors.right: parent.right
+                                  anchors.top: parent.top
+                                  anchors.margins: Style.space(6)
+                                  spacing: Style.space(3)
+
+                                  // Row 1: Status Dot + Site Name + Focus Icon
+                                  Row {
+                                    width: parent.width
+                                    spacing: Style.space(5)
+
+                                    Rectangle {
+                                      width: Style.space(7)
+                                      height: Style.space(7)
+                                      radius: width / 2
+                                      color: modelData.status === "down" ? root.urgent : (modelData.status === "backup" ? root.backup : root.healthy)
+                                      anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                      textFormat: Text.PlainText;
+                                      text: Model.safe(modelData.name, "Site")
+                                      color: root.foreground
+                                      font.family: root.fontFamily
+                                      font.pixelSize: Style.font.caption
+                                      font.bold: true
+                                      elide: Text.ElideRight
+                                      width: parent.width - Style.space(32)
+                                      anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                      textFormat: Text.PlainText;
+                                      text: ""
+                                      color: focusPinMouse.containsMouse ? root.accent : root.dim
+                                      font.family: root.fontFamily
+                                      font.pixelSize: Style.font.caption - 1
+                                      anchors.verticalCenter: parent.verticalCenter
+                                      MouseArea {
+                                        id: focusPinMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: fleetGlobe.focusSite(cardDelegate.modelData)
+                                      }
+                                    }
+                                  }
+
+                                  // Row 2: Gateway model / ISP
+                                  Row {
+                                    width: parent.width
+                                    visible: !!(modelData.gatewayModel || modelData.isp)
+                                    Text {
+                                      textFormat: Text.PlainText;
+                                      text: modelData.gatewayModel ? modelData.gatewayModel : (modelData.isp ? modelData.isp : "")
+                                      color: root.dim
+                                      font.family: root.fontFamily
+                                      font.pixelSize: Style.font.caption - 2
+                                      elide: Text.ElideRight
+                                      width: parent.width
+                                    }
+                                  }
+
+                                  // Row 3: Telemetry chips
+                                  Row {
+                                    width: parent.width
+                                    spacing: Style.space(8)
+
+                                    Row {
+                                      spacing: Style.space(3)
+                                      Text {
+                                        textFormat: Text.PlainText;
+                                        text: ""
+                                        color: root.dim
+                                        font.family: root.fontFamily
+                                        font.pixelSize: Style.font.caption - 2
+                                        anchors.verticalCenter: parent.verticalCenter
+                                      }
+                                      Text {
+                                        textFormat: Text.PlainText;
+                                        text: String(modelData.clientCount !== undefined ? modelData.clientCount : 0)
+                                        color: root.foreground
+                                        font.family: root.fontFamily
+                                        font.pixelSize: Style.font.caption - 2
+                                        font.bold: true
+                                        anchors.verticalCenter: parent.verticalCenter
+                                      }
+                                    }
+
+                                    Row {
+                                      spacing: Style.space(3)
+                                      Text {
+                                        textFormat: Text.PlainText;
+                                        text: ""
+                                        color: root.dim
+                                        font.family: root.fontFamily
+                                        font.pixelSize: Style.font.caption - 2
+                                        anchors.verticalCenter: parent.verticalCenter
+                                      }
+                                      Text {
+                                        textFormat: Text.PlainText;
+                                        text: String(modelData.deviceCount !== undefined ? modelData.deviceCount : 0)
+                                        color: root.foreground
+                                        font.family: root.fontFamily
+                                        font.pixelSize: Style.font.caption - 2
+                                        anchors.verticalCenter: parent.verticalCenter
+                                      }
+                                    }
+
+                                    Rectangle {
+                                      visible: modelData.status !== "up"
+                                      height: Style.space(13)
+                                      width: itemStatusText.implicitWidth + Style.space(6)
+                                      radius: 2
+                                      color: modelData.status === "down" ? root.urgent : root.backup
+                                      anchors.verticalCenter: parent.verticalCenter
+                                      Text {
+                                        textFormat: Text.PlainText;
+                                        id: itemStatusText
+                                        anchors.centerIn: parent
+                                        text: modelData.status ? modelData.status.toUpperCase() : ""
+                                        color: "#ffffff"
+                                        font.family: root.fontFamily
+                                        font.pixelSize: Style.font.caption - 3
+                                        font.bold: true
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -1322,7 +1659,7 @@ Panel {
                       anchors.verticalCenter: parent.verticalCenter
                     }
                     Text { textFormat: Text.PlainText;
-                      text: (root.data && root.data.sites ? root.data.sites.length : 0) + " sites online  ·  Drag to rotate  ·  Scroll to zoom  ·  Click node to inspect"
+                      text: (fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0) + " of " + (root.data && root.data.sites ? root.data.sites.length : 0) + " sites in view  ·  Drag to rotate  ·  Scroll to zoom  ·  Click node to inspect"
                       color: root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 1
@@ -1993,6 +2330,12 @@ Panel {
     function tab(index: int): void {
       root.activeTab = Math.max(0, Math.min(2, index))
       root.open()
+    }
+    function rotate(longitude: real): void {
+      fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(longitude)
+    }
+    function visibleSitesCount(): int {
+      return fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0
     }
     function status(): string {
       return JSON.stringify({

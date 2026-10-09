@@ -36,6 +36,7 @@ Item {
   property var preparedGrid: []
   property var preparedEvents: []
   property var hitEvents: []
+  property var visibleSites: []
 
   signal siteActivated(var site)
   signal interactionStarted()
@@ -320,6 +321,67 @@ Item {
     }
   }
 
+  function updateVisibleSitesFromRows(rows) {
+    var nextSites = []
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i] && rows[i].event && rows[i].event.site) {
+        nextSites.push(rows[i].event.site)
+      }
+    }
+    var changed = false
+    if (!root.visibleSites || root.visibleSites.length !== nextSites.length) {
+      changed = true
+    } else {
+      for (var k = 0; k < nextSites.length; k++) {
+        if (!root.visibleSites[k] || root.visibleSites[k].id !== nextSites[k].id) {
+          changed = true
+          break
+        }
+      }
+    }
+    if (changed) {
+      root.visibleSites = nextSites
+    }
+  }
+
+  function updateVisibleSites() {
+    if (!preparedEvents || preparedEvents.length === 0) {
+      if (root.visibleSites && root.visibleSites.length !== 0) root.visibleSites = []
+      return
+    }
+    var latitude = centreLatitude * Math.PI / 180
+    var longitude = centreLongitude * Math.PI / 180
+    var sinLatitude = Math.sin(latitude)
+    var cosLatitude = Math.cos(latitude)
+    var sinLongitude = Math.sin(longitude)
+    var cosLongitude = Math.cos(longitude)
+    var globeRadius = radius()
+    var w = (globeCanvas && globeCanvas.width > 0) ? globeCanvas.width : width
+    var h = (globeCanvas && globeCanvas.height > 0) ? globeCanvas.height : height
+    var visibleRows = []
+
+    for (var i = 0; i < preparedEvents.length; i++) {
+      var row = preparedEvents[i]
+      var horizontal = row.worldX * cosLongitude + row.worldY * sinLongitude
+      var xProjection = row.worldY * cosLongitude - row.worldX * sinLongitude
+      var yProjection = cosLatitude * row.worldZ - sinLatitude * horizontal
+      var depth = sinLatitude * row.worldZ + cosLatitude * horizontal
+      var screenX = w / 2 + xProjection * globeRadius
+      var screenY = h / 2 - yProjection * globeRadius
+      var margin = row.radius + 10
+      var isVisible = depth >= 0
+      if (w > 0 && h > 0) {
+        isVisible = isVisible
+          && screenX >= -margin && screenX <= w + margin
+          && screenY >= -margin && screenY <= h + margin
+      }
+      if (isVisible) {
+        visibleRows.push(row)
+      }
+    }
+    updateVisibleSitesFromRows(visibleRows)
+  }
+
   function paintEvents(ctx) {
     var latitude = centreLatitude * Math.PI / 180
     var longitude = centreLongitude * Math.PI / 180
@@ -354,6 +416,7 @@ Item {
     }
     if (selectedRow) paintMarker(ctx, selectedRow, true)
     hitEvents = visibleRows
+    updateVisibleSitesFromRows(visibleRows)
   }
 
   function paintGlobe(ctx) {
@@ -431,15 +494,16 @@ Item {
     if (sites && sites.length > 0 && centreLatitude === -25 && centreLongitude === 120) {
       focusSite(sites[0])
     }
+    updateVisibleSites()
     globeCanvas.requestPaint()
   }
 
   onSelectedSiteChanged: globeCanvas.requestPaint()
-  onCentreLatitudeChanged: globeCanvas.requestPaint()
-  onCentreLongitudeChanged: globeCanvas.requestPaint()
-  onGlobeScaleChanged: globeCanvas.requestPaint()
-  onWidthChanged: globeCanvas.requestPaint()
-  onHeightChanged: globeCanvas.requestPaint()
+  onCentreLatitudeChanged: { updateVisibleSites(); globeCanvas.requestPaint() }
+  onCentreLongitudeChanged: { updateVisibleSites(); globeCanvas.requestPaint() }
+  onGlobeScaleChanged: { updateVisibleSites(); globeCanvas.requestPaint() }
+  onWidthChanged: { updateVisibleSites(); globeCanvas.requestPaint() }
+  onHeightChanged: { updateVisibleSites(); globeCanvas.requestPaint() }
 
   FileView {
     id: countriesFile
@@ -477,6 +541,7 @@ Item {
     preparedGrid = prepareGridGeometry()
     preparedCountries = prepareCountryGeometry()
     preparedEvents = prepareSiteGeometry()
+    updateVisibleSites()
     globeCanvas.requestPaint()
   }
 
