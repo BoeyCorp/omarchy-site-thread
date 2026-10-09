@@ -55,9 +55,15 @@ Panel {
 
   function openSettings() { settingsMode = true }
   function closeSettings() { settingsMode = false }
-  function openAnalytics() { analyticsOpen = true }
+  function openAnalytics() {
+    root.close()
+    analyticsOpen = true
+  }
   function closeAnalytics() { analyticsOpen = false }
-  function toggleAnalytics() { analyticsOpen = !analyticsOpen }
+  function toggleAnalytics() {
+    if (!analyticsOpen) root.close()
+    analyticsOpen = !analyticsOpen
+  }
 
   function getBadgeText() {
     if (root.badgeMode === "off") return ""
@@ -2795,11 +2801,14 @@ Panel {
   Loader {
     id: analyticsWindowLoader
     active: root.analyticsOpen
-    source: "windows/AnalyticsWindow.qml"
+    source: Qt.resolvedUrl("windows/AnalyticsWindow.qml")
     onLoaded: {
       if (item) {
-        item.data = Qt.binding(function() { return root.data })
-        item.visible = true
+        item.fleetData = Qt.binding(function() { return root.data })
+        item.visible = Qt.binding(function() { return root.analyticsOpen })
+        item.closed.connect(function() {
+          root.analyticsOpen = false
+        })
       }
     }
   }

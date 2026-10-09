@@ -14,7 +14,7 @@ FloatingWindow {
   implicitWidth: 1040
   implicitHeight: 700
 
-  property var data: null
+  property var fleetData: null
   property color foreground: (Color.popups && Color.popups.foreground) ? Color.popups.foreground : (Color.foreground || "#D8DEE9")
   property color background: (Color.popups && Color.popups.background) ? Color.popups.background : (Color.background || "#1E1E2E")
   property color accent: Color.accent || "#89B4FA"
@@ -47,6 +47,7 @@ FloatingWindow {
     Keys.onPressed: function(event) {
       if (event.key === Qt.Key_Escape) {
         root.visible = false
+        root.closed()
         event.accepted = true
       }
     }
@@ -110,7 +111,10 @@ FloatingWindow {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.visible = false
+            onClicked: {
+              root.visible = false
+              root.closed()
+            }
           }
         }
       }
@@ -132,8 +136,8 @@ FloatingWindow {
 
         StatBlock {
           label: "FLEET CLIENTS"
-          value: String(root.data && root.data.network ? root.data.network.clientCount : 26)
-          subvalue: String(root.data && root.data.network ? root.data.network.wifiClients : 14) + " WiFi · " + String(root.data && root.data.network ? root.data.network.wiredClients : 12) + " Wired"
+          value: String(root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 26)
+          subvalue: String(root.fleetData && root.fleetData.network ? root.fleetData.network.wifiClients : 14) + " WiFi · " + String(root.fleetData && root.fleetData.network ? root.fleetData.network.wiredClients : 12) + " Wired"
           valColor: root.accent
           fontFamily: root.fontFamily
           iconText: ""
@@ -141,7 +145,7 @@ FloatingWindow {
 
         StatBlock {
           label: "HARDWARE FLEET"
-          value: String(root.data && root.data.network ? root.data.network.deviceCount : 11)
+          value: String(root.fleetData && root.fleetData.network ? root.fleetData.network.deviceCount : 11)
           subvalue: "0 Offline · 0 Updates"
           valColor: root.foreground
           fontFamily: root.fontFamily
@@ -150,7 +154,7 @@ FloatingWindow {
 
         StatBlock {
           label: "SITES OPERATIONAL"
-          value: String(root.data && root.data.sites ? root.data.sites.length : 2) + "/" + String(root.data && root.data.sites ? root.data.sites.length : 2)
+          value: String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 2) + "/" + String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 2)
           subvalue: "All gateways online"
           valColor: root.healthy
           subColor: root.healthy
@@ -342,7 +346,7 @@ FloatingWindow {
                 spacing: Style.space(8)
 
                 Repeater {
-                  model: root.data && root.data.sites ? root.data.sites : []
+                  model: root.fleetData && root.fleetData.sites ? root.fleetData.sites : []
                   delegate: Rectangle {
                     required property var modelData
                     Layout.fillWidth: true
