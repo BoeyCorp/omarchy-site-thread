@@ -516,6 +516,15 @@ Panel {
     y: 0
     height: parent ? parent.height : implicitHeight
     bar: root.bar
+    iconComponent: Component {
+      Item {
+        UnifiIcon {
+          anchors.centerIn: parent
+          size: Style.space(12)
+          color: button.active && button.useActiveColor ? button.activeColor : button.foreground
+        }
+      }
+    }
     text: Model.severityIcon(root.barSeverity)
     foreground: root.foreground
     activeColor: root.barSeverity === "critical" ? root.urgent : (root.barSeverity === "warning" ? root.backup : root.foreground)
@@ -590,11 +599,9 @@ Panel {
             size: Style.space(28)
             onClicked: root.backToSites()
           }
-          Text { textFormat: Text.PlainText;
-            text: "\uf233"
+          UnifiIcon {
+            size: Style.space(18)
             color: root.accent
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.title
             anchors.verticalCenter: parent.verticalCenter
           }
           Column {
