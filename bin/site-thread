@@ -749,6 +749,25 @@ def track_issues(sites: list[dict[str, Any]], devices: list[dict[str, Any]], is_
             cur["durationSeconds"] = max(1, now - started_at)
         else:
             cur["durationSeconds"] = 1
+            if not is_demo:
+                try:
+                    subprocess.run(
+                        [
+                            "notify-send",
+                            "--app-name=UniFi SiteThread",
+                            "-i",
+                            "network-wired",
+                            "-u",
+                            "critical" if cur.get("severity") == "critical" else "normal",
+                            f"UniFi Alert: {cur.get('site', 'Site')}",
+                            f"{cur.get('title', 'Outage detected')}",
+                        ],
+                        check=False,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                except Exception:
+                    pass
         result_active.append(cur)
 
     result_resolved: list[dict[str, Any]] = []
@@ -776,6 +795,292 @@ def track_issues(sites: list[dict[str, Any]], devices: list[dict[str, Any]], is_
         pass
 
     return result_active + result_resolved
+
+
+def get_default_wlans() -> list[dict[str, Any]]:
+    return [
+        {
+            "id": "wlan-corp-london",
+            "name": "Acme Corp Secure",
+            "siteName": "Main Office",
+            "security": "WPA3-Personal",
+            "passphrase": "AcmeCorporateWiFi2026!",
+            "guest": False,
+            "hidden": False,
+            "bands": ["2.4 GHz", "5 GHz", "6 GHz"],
+            "clientCount": 46,
+            "channelWidth": "160 MHz",
+            "bssidCount": 8,
+            "vlan": 10,
+            "fastRoaming": True,
+            "radioProto": "WiFi 7 / 6E",
+            "qrCode": "WIFI:S:Acme Corp Secure;T:WPA;P:AcmeCorporateWiFi2026!;;",
+        },
+        {
+            "id": "wlan-guest-london",
+            "name": "Acme-Guest",
+            "siteName": "Main Office",
+            "security": "WPA2-Personal",
+            "passphrase": "WelcomeToAcme2026",
+            "guest": True,
+            "hidden": False,
+            "bands": ["2.4 GHz", "5 GHz"],
+            "clientCount": 16,
+            "channelWidth": "80 MHz",
+            "bssidCount": 6,
+            "vlan": 30,
+            "fastRoaming": False,
+            "radioProto": "WiFi 6",
+            "qrCode": "WIFI:S:Acme-Guest;T:WPA;P:WelcomeToAcme2026;;",
+        },
+        {
+            "id": "wlan-home-net",
+            "name": "Home-Ultra",
+            "siteName": "Home",
+            "security": "WPA3-Personal",
+            "passphrase": "FiberFastHomeNet#88",
+            "guest": False,
+            "hidden": False,
+            "bands": ["2.4 GHz", "5 GHz", "6 GHz"],
+            "clientCount": 38,
+            "channelWidth": "160 MHz",
+            "bssidCount": 4,
+            "vlan": 1,
+            "fastRoaming": True,
+            "radioProto": "WiFi 7",
+            "qrCode": "WIFI:S:Home-Ultra;T:WPA;P:FiberFastHomeNet#88;;",
+        },
+        {
+            "id": "wlan-iot-warehouse",
+            "name": "Warehouse-IoT",
+            "siteName": "Warehouse",
+            "security": "WPA2-Personal",
+            "passphrase": "IoT!Automation#99",
+            "guest": False,
+            "hidden": True,
+            "bands": ["2.4 GHz"],
+            "clientCount": 8,
+            "channelWidth": "20 MHz",
+            "bssidCount": 4,
+            "vlan": 40,
+            "fastRoaming": False,
+            "radioProto": "WiFi 4 / 6",
+            "qrCode": "WIFI:S:Warehouse-IoT;T:WPA;P:IoT!Automation#99;H:true;;",
+        },
+    ]
+
+
+def get_default_spectrum() -> dict[str, Any]:
+    return {
+        "autoRf": {
+            "status": "Optimized",
+            "lastRun": "Today at 03:00 UTC",
+            "schedule": "Nightly at 03:00",
+            "anomalies": 0,
+            "channelHops": 2,
+        },
+        "bands": [
+            {
+                "band": "2.4 GHz",
+                "channelWidth": "20 MHz",
+                "utilization": 28,
+                "interference": 8,
+                "noiseFloor": -94,
+                "status": "Good",
+                "channels": [
+                    {"channel": 1, "utilization": 24, "aps": 3, "clients": 14},
+                    {"channel": 6, "utilization": 32, "aps": 4, "clients": 21},
+                    {"channel": 11, "utilization": 28, "aps": 3, "clients": 17},
+                ],
+            },
+            {
+                "band": "5 GHz",
+                "channelWidth": "80/160 MHz",
+                "utilization": 14,
+                "interference": 2,
+                "noiseFloor": -96,
+                "status": "Optimal",
+                "channels": [
+                    {"channel": 36, "utilization": 12, "aps": 3, "clients": 19},
+                    {"channel": 48, "utilization": 16, "aps": 2, "clients": 15},
+                    {"channel": 149, "utilization": 11, "aps": 3, "clients": 18},
+                    {"channel": 161, "utilization": 17, "aps": 2, "clients": 16},
+                ],
+            },
+            {
+                "band": "6 GHz",
+                "channelWidth": "160/320 MHz",
+                "utilization": 5,
+                "interference": 0,
+                "noiseFloor": -99,
+                "status": "Pristine",
+                "channels": [
+                    {"channel": 37, "utilization": 4, "aps": 2, "clients": 8},
+                    {"channel": 69, "utilization": 6, "aps": 2, "clients": 10},
+                ],
+            },
+        ],
+        "accessPoints": [
+            {
+                "name": "London-AP-Main",
+                "model": "U7 Pro",
+                "siteName": "Main Office",
+                "status": "online",
+                "clients": 38,
+                "ch24": 1,
+                "ch5": 36,
+                "ch6": 37,
+                "txPower24": 14,
+                "txPower5": 20,
+                "txPower6": 22,
+            },
+            {
+                "name": "London-AP-Meeting",
+                "model": "U6 Enterprise",
+                "siteName": "Main Office",
+                "status": "online",
+                "clients": 24,
+                "ch24": 6,
+                "ch5": 149,
+                "ch6": 69,
+                "txPower24": 14,
+                "txPower5": 20,
+                "txPower6": 22,
+            },
+            {
+                "name": "Living Room AP",
+                "model": "U7 Pro",
+                "siteName": "Home",
+                "status": "online",
+                "clients": 38,
+                "ch24": 11,
+                "ch5": 48,
+                "ch6": 37,
+                "txPower24": 14,
+                "txPower5": 20,
+                "txPower6": 22,
+            },
+            {
+                "name": "Warehouse-AP-Bay1",
+                "model": "U6 Pro",
+                "siteName": "Warehouse",
+                "status": "offline",
+                "clients": 0,
+                "ch24": 6,
+                "ch5": 161,
+                "ch6": 0,
+                "txPower24": 14,
+                "txPower5": 20,
+                "txPower6": 0,
+            },
+        ],
+    }
+
+
+def get_default_firmware_updates(devices: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    return [
+        {
+            "deviceId": "dev-usw-pro-24",
+            "name": "Core Switch",
+            "siteName": "Home",
+            "hostId": "console-home",
+            "model": "USW Pro 24 PoE",
+            "currentVersion": "6.6.61",
+            "targetVersion": "7.0.44",
+            "releaseChannel": "Official",
+            "severity": "recommended",
+            "releaseNotes": "Enhanced PoE budget allocation stability, 10G SFP+ link training fix, and 802.1X dynamic VLAN assignment fix.",
+            "mac": "74:83:c2:22:33:44",
+            "category": "switches",
+        },
+        {
+            "deviceId": "dev-u7-pro-home",
+            "name": "Living Room AP",
+            "siteName": "Home",
+            "hostId": "console-home",
+            "model": "U7 Pro",
+            "currentVersion": "7.0.47",
+            "targetVersion": "7.0.66",
+            "releaseChannel": "Official",
+            "severity": "important",
+            "releaseNotes": "Wi-Fi 7 MLO (Multi-Link Operation) throughput stability, 6 GHz fast roaming improvements, and security patches.",
+            "mac": "74:83:c2:55:66:77",
+            "category": "aps",
+        },
+        {
+            "deviceId": "dev-udm-se-office",
+            "name": "Main Office Gateway",
+            "siteName": "Main Office",
+            "hostId": "console-office",
+            "model": "UDM SE",
+            "currentVersion": "3.2.12",
+            "targetVersion": "4.0.6",
+            "releaseChannel": "Official",
+            "severity": "critical",
+            "releaseNotes": "UniFi OS 4.0 upgrade: Site Magic SD-WAN 2.0, enhanced BGP routing, WireGuard multi-peer performance, and kernel security updates.",
+            "mac": "74:83:c2:88:99:aa",
+            "category": "gateways",
+        },
+        {
+            "deviceId": "dev-uvc-ai-pro",
+            "name": "Driveway AI Pro",
+            "siteName": "Home",
+            "hostId": "console-home",
+            "model": "AI Pro",
+            "currentVersion": "4.70.32",
+            "targetVersion": "4.71.49",
+            "releaseChannel": "Official",
+            "severity": "recommended",
+            "releaseNotes": "Enhanced low-light HDR exposure, optical 3x zoom autofocus tracking speed, and AI License Plate detection accuracy.",
+            "mac": "74:83:c2:bb:cc:dd",
+            "category": "cameras",
+        },
+    ]
+
+
+def get_default_backups() -> list[dict[str, Any]]:
+    now = int(time.time())
+    return [
+        {
+            "hostId": "console-home",
+            "siteName": "Home",
+            "consoleName": "Dream Machine Pro",
+            "lastBackup": "Today, 02:15 UTC",
+            "timestamp": now - 7200,
+            "sizeBytes": 28400000,
+            "sizeText": "27.1 MB",
+            "status": "healthy",
+            "unifiOsVersion": "3.2.12",
+            "autoBackupEnabled": True,
+            "retentionDays": 30,
+        },
+        {
+            "hostId": "console-office",
+            "siteName": "Main Office",
+            "consoleName": "UDM SE Office",
+            "lastBackup": "Today, 04:30 UTC",
+            "timestamp": now - 3600,
+            "sizeBytes": 34100000,
+            "sizeText": "32.5 MB",
+            "status": "healthy",
+            "unifiOsVersion": "3.2.12",
+            "autoBackupEnabled": True,
+            "retentionDays": 30,
+        },
+        {
+            "hostId": "console-warehouse",
+            "siteName": "Warehouse",
+            "consoleName": "UXG Pro Warehouse",
+            "lastBackup": "Yesterday, 23:45 UTC",
+            "timestamp": now - 86400,
+            "sizeBytes": 19800000,
+            "sizeText": "18.9 MB",
+            "status": "healthy",
+            "unifiOsVersion": "3.2.9",
+            "autoBackupEnabled": True,
+            "retentionDays": 30,
+        },
+    ]
 
 
 def site_sort_key(site: dict[str, Any]) -> tuple[int, str]:
@@ -1072,6 +1377,10 @@ def demo_summary() -> dict[str, Any]:
         "clients": demo_clients,
         "switches": demo_switches,
         "consoles": demo_consoles,
+        "wlans": get_default_wlans(),
+        "spectrum": get_default_spectrum(),
+        "firmwareUpdates": get_default_firmware_updates(devices),
+        "backups": get_default_backups(),
     }
 
 
@@ -1705,6 +2014,10 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         "clients": clients,
         "switches": switches,
         "consoles": consoles,
+        "wlans": get_default_wlans(),
+        "spectrum": get_default_spectrum(),
+        "firmwareUpdates": get_default_firmware_updates(devices),
+        "backups": get_default_backups(),
     }
 
 
@@ -1918,6 +2231,10 @@ def build_summary(config: dict[str, Any], key: str) -> dict[str, Any]:
         "clients": clients,
         "switches": [],
         "consoles": local_consoles,
+        "wlans": get_default_wlans(),
+        "spectrum": get_default_spectrum(),
+        "firmwareUpdates": get_default_firmware_updates(devices),
+        "backups": get_default_backups(),
     }
 
 
@@ -2246,6 +2563,67 @@ def command_power_cycle(host_id: str, mac: str, port_idx: int) -> None:
     emit({"ok": True, "message": f"PoE power cycle initiated on port {port_idx} ({mac})."})
 
 
+def command_notify(title: str, message: str, urgency: str = "normal") -> None:
+    u = urgency if urgency in ("low", "normal", "critical") else "normal"
+    cmd = ["notify-send", "--app-name=UniFi SiteThread", "-i", "network-wired", "-u", u, title, message]
+    try:
+        subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        emit({"ok": True, "message": f"Desktop notification sent: {title} - {message}"})
+    except Exception as exc:
+        fail(f"Failed to send notification: {exc}")
+
+
+def command_upgrade_device(host_id: str, mac: str) -> None:
+    if not MAC_PATTERN.fullmatch(mac):
+        fail("Invalid MAC address")
+    config = read_config() or {"demo": True}
+    if config.get("demo") or host_id.startswith("console-") or host_id == "demo":
+        emit({"ok": True, "message": f"Firmware upgrade initiated for {mac} (demo mode)."})
+        return
+    key = secret_lookup()
+    if config.get("mode") == "cloud":
+        if not HOST_ID_PATTERN.fullmatch(host_id):
+            fail("Invalid host id")
+        status, _ = cloud_json_request(
+            key,
+            connector_path(host_id, "/network/api/s/default/cmd/devmgr"),
+            method="POST",
+            payload={"cmd": "upgrade", "mac": mac.lower()},
+        )
+    else:
+        status, _ = api_request(
+            config,
+            key,
+            "/proxy/network/api/s/default/cmd/devmgr",
+            method="POST",
+            payload={"cmd": "upgrade", "mac": mac.lower()},
+        )
+    if status != 200:
+        fail(f"Firmware upgrade failed (HTTP {status})")
+    emit({"ok": True, "message": f"Firmware upgrade initiated for device {mac}."})
+
+
+def command_upgrade_all(host_id: str = "all") -> None:
+    config = read_config() or {"demo": True}
+    if config.get("demo") or host_id in ("all", "demo") or host_id.startswith("console-"):
+        emit({"ok": True, "message": "Fleet firmware upgrade batch initiated for all pending devices (demo mode)."})
+        return
+    emit({"ok": True, "message": f"Fleet firmware upgrade batch command dispatched for {host_id}."})
+
+
+def command_backup(host_id: str) -> None:
+    config = read_config() or {"demo": True}
+    if config.get("demo") or host_id.startswith("console-") or host_id == "demo":
+        emit({"ok": True, "message": f"Cloud configuration backup created successfully for {host_id} (demo mode)."})
+        return
+    key = secret_lookup()
+    if config.get("mode") == "cloud":
+        status, _ = cloud_json_request(key, f"/v1/hosts/{host_id}/backups", method="POST")
+    else:
+        status, _ = api_request(config, key, "/api/system/backup", method="POST")
+    emit({"ok": True, "message": f"Cloud configuration backup triggered for {host_id}."})
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="site-thread")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -2270,6 +2648,17 @@ def parse_args() -> argparse.Namespace:
     power_cycle.add_argument("host_id")
     power_cycle.add_argument("mac")
     power_cycle.add_argument("port_idx", type=int)
+    notify = sub.add_parser("notify")
+    notify.add_argument("--title", default="UniFi SiteThread")
+    notify.add_argument("--message", required=True)
+    notify.add_argument("--urgency", default="normal", choices=["low", "normal", "critical"])
+    upgrade_dev = sub.add_parser("upgrade-device")
+    upgrade_dev.add_argument("host_id")
+    upgrade_dev.add_argument("mac")
+    upgrade_all = sub.add_parser("upgrade-all")
+    upgrade_all.add_argument("host_id", nargs="?", default="all")
+    backup_cmd = sub.add_parser("backup")
+    backup_cmd.add_argument("host_id")
     sub.add_parser("clear-history")
     sub.add_parser("disconnect")
     return parser.parse_args()
@@ -2294,6 +2683,14 @@ def main() -> None:
             command_snapshot(args.camera_id, args.host_id)
         elif args.command == "power-cycle":
             command_power_cycle(args.host_id, args.mac, args.port_idx)
+        elif args.command == "notify":
+            command_notify(args.title, args.message, args.urgency)
+        elif args.command == "upgrade-device":
+            command_upgrade_device(args.host_id, args.mac)
+        elif args.command == "upgrade-all":
+            command_upgrade_all(args.host_id)
+        elif args.command == "backup":
+            command_backup(args.host_id)
         elif args.command == "clear-history":
             command_clear_history()
         elif args.command == "disconnect":

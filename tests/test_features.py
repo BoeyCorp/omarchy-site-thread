@@ -547,6 +547,161 @@ class AttentionSectionLayoutTests(unittest.TestCase):
         self.assertIn("onClicked: root.activeTab = 2", self.panel_qml)
 
 
+class WiFiAndRfSpectrumTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+
+    def test_demo_summary_has_wlans_and_spectrum(self) -> None:
+        summary = SITE_THREAD.demo_summary()
+        self.assertIn("wlans", summary)
+        self.assertIn("spectrum", summary)
+        wlans = summary["wlans"]
+        spectrum = summary["spectrum"]
+        self.assertGreaterEqual(len(wlans), 3)
+        for wlan in wlans:
+            self.assertIn("id", wlan)
+            self.assertIn("name", wlan)
+            self.assertIn("security", wlan)
+            self.assertIn("bands", wlan)
+            self.assertIn("vlan", wlan)
+            self.assertIn("clientCount", wlan)
+            self.assertIn("passphrase", wlan)
+            self.assertIn("qrCode", wlan)
+            self.assertTrue(wlan["qrCode"].startswith("WIFI:S:"))
+
+        self.assertIn("bands", spectrum)
+        bands_list = spectrum["bands"]
+        self.assertGreaterEqual(len(bands_list), 3)
+        bands = [s.get("band") for s in bands_list]
+        self.assertIn("2.4 GHz", bands)
+        self.assertIn("5 GHz", bands)
+        self.assertIn("6 GHz", bands)
+        for band_info in bands_list:
+            self.assertIn("utilization", band_info)
+            self.assertIn("noiseFloor", band_info)
+            self.assertIn("interference", band_info)
+            self.assertIn("channels", band_info)
+
+    def test_analytics_window_wifi_rf_spectrum_tab_and_state(self) -> None:
+        self.assertIn('"WiFi & RF Spectrum ("', self.analytics_qml)
+        self.assertIn("id: tab5View", self.analytics_qml)
+        self.assertIn("property var fleetWlans:", self.analytics_qml)
+        self.assertIn("property var fleetSpectrum:", self.analytics_qml)
+        self.assertIn("property string wlanSearch:", self.analytics_qml)
+        self.assertIn("property string wlanSiteFilter:", self.analytics_qml)
+        self.assertIn("property var selectedWlanForQr:", self.analytics_qml)
+        self.assertIn("property bool showQrModal:", self.analytics_qml)
+        self.assertIn("id: qrCanvas", self.analytics_qml)
+        self.assertIn("WiFi password", self.analytics_qml)
+
+
+class LinuxDesktopIntegrationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.settings_qml = (ROOT / "SettingsView.qml").read_text(encoding="utf-8")
+
+    def test_panel_has_notifications_and_settings(self) -> None:
+        self.assertIn("property bool enableNotifications:", self.panel_qml)
+        self.assertIn("function sendDesktopNotification(title, message, urgency)", self.panel_qml)
+        self.assertIn("function testNotification()", self.panel_qml)
+        self.assertIn('Quickshell.execDetached(["notify-send", "--app-name=UniFi SiteThread"', self.panel_qml)
+        self.assertIn("function notify(title: string, message: string, urgency: string): void", self.panel_qml)
+
+    def test_panel_updates_badge_mode(self) -> None:
+        self.assertIn('else if (root.badgeMode === "updates")', self.panel_qml)
+        self.assertIn("root.data.network.updateCount", self.panel_qml)
+
+    def test_settings_view_has_notification_toggle_and_test_button(self) -> None:
+        self.assertIn("signal testNotifyRequested()", self.settings_qml)
+        self.assertIn("LINUX DESKTOP & NOTIFICATIONS", self.settings_qml)
+        self.assertIn("Notifications: Enabled", self.settings_qml)
+        self.assertIn("Send Test Notification", self.settings_qml)
+        self.assertIn('"updates"', self.settings_qml)
+
+    def test_site_thread_notify_command(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+        out = io.StringIO()
+        with redirect_stdout(out):
+            with self.assertRaises(SystemExit) as cm:
+                SITE_THREAD.command_notify("Test Alert", "Unit test alert body", "normal")
+            self.assertEqual(cm.exception.code, 0)
+        res = json.loads(out.getvalue())
+        self.assertTrue(res.get("ok"))
+        self.assertIn("Desktop notification sent", res.get("message", ""))
+
+
+class FirmwareLifecycleManagementTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+
+    def test_demo_summary_has_firmware_updates_and_backups(self) -> None:
+        summary = SITE_THREAD.demo_summary()
+        self.assertIn("firmwareUpdates", summary)
+        self.assertIn("backups", summary)
+        updates = summary["firmwareUpdates"]
+        backups = summary["backups"]
+        self.assertGreaterEqual(len(updates), 2)
+        for u in updates:
+            self.assertIn("deviceId", u)
+            self.assertIn("name", u)
+            self.assertIn("model", u)
+            self.assertIn("currentVersion", u)
+            self.assertIn("targetVersion", u)
+            self.assertIn("severity", u)
+            self.assertIn("releaseNotes", u)
+
+        self.assertGreaterEqual(len(backups), 2)
+        for b in backups:
+            self.assertIn("siteName", b)
+            self.assertIn("hostId", b)
+            self.assertIn("lastBackup", b)
+            self.assertIn("status", b)
+
+    def test_bin_site_thread_upgrade_and_backup_commands(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+
+        out = io.StringIO()
+        with redirect_stdout(out):
+            with self.assertRaises(SystemExit) as cm:
+                SITE_THREAD.command_upgrade_device("console-1", "00:11:22:33:44:55")
+            self.assertEqual(cm.exception.code, 0)
+        res = json.loads(out.getvalue())
+        self.assertTrue(res.get("ok"))
+        self.assertIn("Firmware upgrade initiated", res.get("message", ""))
+
+        out = io.StringIO()
+        with redirect_stdout(out):
+            with self.assertRaises(SystemExit) as cm:
+                SITE_THREAD.command_upgrade_all("all")
+            self.assertEqual(cm.exception.code, 0)
+        res = json.loads(out.getvalue())
+        self.assertTrue(res.get("ok"))
+        self.assertIn("Fleet firmware upgrade batch initiated", res.get("message", ""))
+
+        out = io.StringIO()
+        with redirect_stdout(out):
+            with self.assertRaises(SystemExit) as cm:
+                SITE_THREAD.command_backup("console-1")
+            self.assertEqual(cm.exception.code, 0)
+        res = json.loads(out.getvalue())
+        self.assertTrue(res.get("ok"))
+        self.assertIn("backup created successfully", res.get("message", ""))
+
+    def test_analytics_window_firmware_tab_and_processes(self) -> None:
+        self.assertIn('"Firmware & Backups ("', self.analytics_qml)
+        self.assertIn("id: tab6View", self.analytics_qml)
+        self.assertIn("property var fleetUpdates:", self.analytics_qml)
+        self.assertIn("property var fleetBackups:", self.analytics_qml)
+        self.assertIn("id: upgradeDevProc", self.analytics_qml)
+        self.assertIn("id: upgradeAllProc", self.analytics_qml)
+        self.assertIn("id: backupProc", self.analytics_qml)
+        self.assertIn("property bool bulkUpdateConfirm:", self.analytics_qml)
+        self.assertIn("Update All Devices", self.analytics_qml)
+        self.assertIn("Create Backup Now", self.analytics_qml)
+
+
 if __name__ == "__main__":
     unittest.main()
 

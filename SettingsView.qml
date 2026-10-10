@@ -20,6 +20,7 @@ ColumnLayout {
 
   signal settingChanged(string key, var value)
   signal clearHistoryRequested()
+  signal testNotifyRequested()
   signal closeSettingsRequested()
 
   spacing: Style.space(12)
@@ -67,6 +68,7 @@ ColumnLayout {
               { id: "alerts", label: "Alerts Count" },
               { id: "clients", label: "Fleet Clients" },
               { id: "sites", label: "Sites Ratio" },
+              { id: "updates", label: "Updates" },
               { id: "off", label: "Off" }
             ]
             delegate: Rectangle {
@@ -360,7 +362,112 @@ ColumnLayout {
         }
       }
 
-      // 6. Action Controls: Clear History & Back
+      // 6. Linux Desktop & Native Notifications
+      ColumnLayout {
+        Layout.fillWidth: true
+        spacing: Style.space(4)
+
+        Text {
+          textFormat: Text.PlainText;
+          text: "LINUX DESKTOP & NOTIFICATIONS"
+          color: root.foreground
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption - 1
+          font.bold: true
+        }
+
+        Text {
+          textFormat: Text.PlainText;
+          text: "Send native desktop notifications via notify-send on site outages and WAN failover"
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption - 2
+        }
+
+        RowLayout {
+          spacing: Style.space(8)
+
+          // Toggle Button
+          Rectangle {
+            readonly property bool isEnabled: root.settings.enableNotifications !== false
+            implicitHeight: Style.space(24)
+            implicitWidth: notifyToggleText.implicitWidth + Style.space(16)
+            radius: 4
+            color: isEnabled ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.22) : root.track
+            border.width: 1
+            border.color: isEnabled ? root.healthy : root.outline
+
+            RowLayout {
+              anchors.centerIn: parent
+              spacing: Style.space(5)
+              Text {
+                textFormat: Text.PlainText;
+                text: isEnabled ? "" : ""
+                color: isEnabled ? root.healthy : root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+              }
+              Text {
+                textFormat: Text.PlainText;
+                id: notifyToggleText
+                text: isEnabled ? "Notifications: Enabled" : "Notifications: Disabled"
+                color: isEnabled ? root.healthy : root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 1
+                font.bold: true
+              }
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.settingChanged("enableNotifications", !(root.settings.enableNotifications !== false))
+            }
+          }
+
+          // Test Notification Button
+          Rectangle {
+            implicitHeight: Style.space(24)
+            implicitWidth: testNotifyText.implicitWidth + Style.space(14)
+            radius: 4
+            color: testNotifyMouse.containsMouse ? root.cardHover : root.track
+            border.width: 1
+            border.color: root.accent
+
+            RowLayout {
+              anchors.centerIn: parent
+              spacing: Style.space(5)
+              Text {
+                textFormat: Text.PlainText;
+                text: ""
+                color: root.accent
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+              }
+              Text {
+                textFormat: Text.PlainText;
+                id: testNotifyText
+                text: "Send Test Notification"
+                color: root.accent
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 1
+                font.bold: true
+              }
+            }
+
+            MouseArea {
+              id: testNotifyMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.testNotifyRequested()
+            }
+          }
+        }
+      }
+
+      // 7. Action Controls: Clear History & Back
       RowLayout {
         Layout.fillWidth: true
         Layout.topMargin: Style.space(8)

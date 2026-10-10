@@ -53,6 +53,7 @@ Panel {
   property bool enableMultiDot: setting("enableMultiDot", true)
   property string badgeMode: setting("badgeMode", "alerts")
   property string preferredTerminal: setting("terminalCommand", "xdg-terminal-exec")
+  property bool enableNotifications: setting("enableNotifications", true)
 
   property int analyticsTab: 0
 
@@ -61,7 +62,8 @@ Panel {
   function openAnalytics(tabIndex) {
     root.close()
     if (tabIndex !== undefined) {
-      root.analyticsTab = Math.max(0, Math.min(4, tabIndex))
+      // Extended from Math.min(4, tabIndex) to support tabs 0..6
+      root.analyticsTab = Math.max(0, Math.min(6, tabIndex))
     }
     analyticsOpen = true
     if (analyticsWindowLoader.item && tabIndex !== undefined) {
@@ -109,8 +111,22 @@ Panel {
       return String(root.data && root.data.network && root.data.network.clientCount ? root.data.network.clientCount : "")
     } else if (root.badgeMode === "sites") {
       return (root.data && root.data.sites) ? (root.data.sites.length + "/" + root.data.sites.length) : ""
+    } else if (root.badgeMode === "updates") {
+      return String(root.data && root.data.network && root.data.network.updateCount ? root.data.network.updateCount : "")
     }
     return root.alertCount > 0 ? String(root.alertCount) : ""
+  }
+
+  function sendDesktopNotification(title, message, urgency) {
+    if (!root.enableNotifications) return
+    var u = urgency || "normal"
+    var t = title || "UniFi SiteThread"
+    var m = message || ""
+    Quickshell.execDetached(["notify-send", "--app-name=UniFi SiteThread", "-i", "network-wired", "-u", u, t, m])
+  }
+
+  function testNotification() {
+    sendDesktopNotification("UniFi SiteThread Alert", "Desktop notifications are working! WAN Failover & Site Outage alerts enabled.", "normal")
   }
 
   function getTerminalArgs(cmdArgs, workspacePath) {
@@ -173,6 +189,7 @@ Panel {
     else if (name === "badgeMode") root.badgeMode = value
     else if (name === "terminalCommand") root.preferredTerminal = value
     else if (name === "autoRotate") root.autoRotate = value
+    else if (name === "enableNotifications") root.enableNotifications = value
 
     var next = Object.assign({}, root.settings || {})
     next[name] = value
@@ -1392,7 +1409,8 @@ Panel {
               badgeMode: root.badgeMode,
               refreshSeconds: root.refreshSeconds,
               terminalCommand: root.preferredTerminal,
-              autoRotate: root.autoRotate
+              autoRotate: root.autoRotate,
+              enableNotifications: root.enableNotifications
             })
             foreground: root.foreground
             dim: root.dim
@@ -1409,6 +1427,9 @@ Panel {
             }
             onClearHistoryRequested: {
               root.clearResolvedIssues()
+            }
+            onTestNotifyRequested: {
+              root.testNotification()
             }
             onCloseSettingsRequested: {
               root.closeSettings()
@@ -3508,6 +3529,12 @@ Panel {
     function prefetchSites(): void { root.prefetchSites() }
     function goToMainPage(): void { root.goToMainPage() }
     function handleBarClick(button: int): void { root.handleBarClick(button) }
+    function notify(title: string, message: string, urgency: string): void {
+      root.sendDesktopNotification(title, message, urgency)
+    }
+    function testNotification(): void {
+      root.testNotification()
+    }
     function status(): string {
       return JSON.stringify({
         opened: root.opened,
