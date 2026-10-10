@@ -2270,7 +2270,7 @@ Panel {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.openAnalyticsWindow()
+                    onClicked: root.openAnalytics()
                   }
                 }
               }

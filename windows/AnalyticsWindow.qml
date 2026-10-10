@@ -387,14 +387,11 @@ FloatingWindow {
             badgeText: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.status === "connected") ? "MESH ACTIVE" : "DEGRADED"
             badgeColor: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.status === "connected") ? root.healthy : root.backup
             Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(136)
+            Layout.preferredHeight: Style.space(140)
 
             Column {
+              Layout.fillWidth: true
               width: parent.width
-              anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.top: parent.top
-              anchors.margins: Style.space(8)
               spacing: Style.space(8)
 
               // Inter-Site Bridge Visualizer
