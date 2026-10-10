@@ -523,6 +523,30 @@ class ActionButtonToolTipTests(unittest.TestCase):
         self.assertIn('text: "Ping device (" + modelData.ip + ")"', self.topology_qml)
 
 
+class AttentionSectionLayoutTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+
+    def test_attention_required_card_uses_row_layout_with_clean_fit(self) -> None:
+        self.assertIn("id: activeIssueRow", self.panel_qml)
+        import re
+        self.assertTrue(re.search(r"RowLayout\s*\{\s*id:\s*activeIssueRow", self.panel_qml))
+        self.assertIn("Layout.fillWidth: true", self.panel_qml)
+        self.assertIn("Layout.minimumWidth: 0", self.panel_qml)
+        self.assertIn("elide: Text.ElideRight", self.panel_qml)
+
+    def test_active_pill_has_explicit_preferred_sizing(self) -> None:
+        self.assertIn("id: activeIssuePill", self.panel_qml)
+        self.assertIn("implicitWidth: activePillLabel.implicitWidth + Style.space(12)", self.panel_qml)
+        self.assertIn("Layout.preferredWidth: activePillLabel.implicitWidth + Style.space(12)", self.panel_qml)
+        self.assertIn('text: "ACTIVE"', self.panel_qml)
+
+    def test_active_issue_card_has_hover_and_navigation(self) -> None:
+        self.assertIn("id: activeIssueMouse", self.panel_qml)
+        self.assertIn("color: activeIssueMouse.containsMouse ? root.cardHover : root.card", self.panel_qml)
+        self.assertIn("onClicked: root.activeTab = 2", self.panel_qml)
+
+
 if __name__ == "__main__":
     unittest.main()
 

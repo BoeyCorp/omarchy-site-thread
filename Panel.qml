@@ -2252,39 +2252,86 @@ Panel {
                   required property var modelData
                   width: content.width
                   implicitHeight: activeIssueRow.implicitHeight + Style.space(12)
-                  color: root.card
+                  color: activeIssueMouse.containsMouse ? root.cardHover : root.card
                   radius: Style.cornerRadius
                   borderSpec: Border.flat(modelData.severity === "critical" ? root.urgent : root.backup, 1)
 
-                  Row {
+                  RowLayout {
                     id: activeIssueRow
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.margins: Style.space(8)
-                    spacing: Style.space(9)
+                    spacing: Style.space(8)
 
-                    Text { textFormat: Text.PlainText; text: "\uf071"; color: modelData.severity === "critical" ? root.urgent : root.backup; font.family: root.fontFamily; font.pixelSize: Style.font.body; anchors.verticalCenter: parent.verticalCenter }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: "\uf071"
+                      color: modelData.severity === "critical" ? root.urgent : root.backup
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.body
+                      Layout.alignment: Qt.AlignVCenter
+                    }
 
-                    Column {
-                      width: parent.width - activeIssuePill.implicitWidth - Style.space(45)
-                      Text { textFormat: Text.PlainText; text: Model.safe(modelData.title); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
-                      Text { textFormat: Text.PlainText; text: Model.safe(modelData.site) + (modelData.model ? " · " + Model.safe(modelData.model) : "") + " · " + (modelData.durationSeconds ? ("Down for " + Model.formatDuration(modelData.durationSeconds)) : "Active"); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+                    ColumnLayout {
+                      Layout.fillWidth: true
+                      Layout.minimumWidth: 0
+                      spacing: 1
+                      Layout.alignment: Qt.AlignVCenter
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: Model.safe(modelData.title)
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.bodySmall
+                        font.bold: true
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: Model.safe(modelData.site) + (modelData.model ? " · " + Model.safe(modelData.model) : "") + " · " + (modelData.durationSeconds ? ("Down for " + Model.formatDuration(modelData.durationSeconds)) : "Active")
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
                     }
 
                     Rectangle {
                       id: activeIssuePill
                       radius: 3
-                      height: Style.space(18)
-                      width: activePillLabel.implicitWidth + Style.space(10)
+                      implicitHeight: Style.space(18)
+                      implicitWidth: activePillLabel.implicitWidth + Style.space(12)
+                      Layout.preferredHeight: Style.space(18)
+                      Layout.preferredWidth: activePillLabel.implicitWidth + Style.space(12)
                       color: modelData.severity === "critical" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.18) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.18)
                       border.width: 1
                       border.color: modelData.severity === "critical" ? root.urgent : root.backup
-                      anchors.verticalCenter: parent.verticalCenter
-                      Text { textFormat: Text.PlainText; id: activePillLabel; anchors.centerIn: parent; text: "ACTIVE"; color: modelData.severity === "critical" ? root.urgent : root.backup; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                      Layout.alignment: Qt.AlignVCenter
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        id: activePillLabel
+                        anchors.centerIn: parent
+                        text: "ACTIVE"
+                        color: modelData.severity === "critical" ? root.urgent : root.backup
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                        font.bold: true
+                      }
                     }
                   }
-                  MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 2 }
+                  MouseArea {
+                    id: activeIssueMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.activeTab = 2
+                  }
                 }
               }
             }
