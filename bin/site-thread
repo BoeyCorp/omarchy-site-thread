@@ -920,6 +920,131 @@ def demo_summary() -> dict[str, Any]:
             ]
         }
     ]
+    demo_consoles = [
+        {
+            "hostId": "console-home",
+            "name": "Home Gateway",
+            "siteName": "Home",
+            "model": "UniFi Dream Machine Pro",
+            "shortModel": "UDMPRO",
+            "mac": "68:d7:9a:11:00:01",
+            "ip": "10.0.0.1",
+            "firmwareVersion": "5.1.132",
+            "isOnline": True,
+            "directConnectDomain": "udm-pro-home.id.ui.direct",
+            "directConnectUrl": "https://udm-pro-home.id.ui.direct",
+            "directConnectStatus": "Active (P2P WebRTC Direct)",
+            "webCloudUrl": "https://unifi.ui.com/consoles/console-home",
+            "localUrl": "https://10.0.0.1",
+            "activeAppCount": 4,
+            "applications": [
+                {
+                    "id": "network", "name": "UniFi Network", "version": "10.6.106", "state": "active",
+                    "isRunning": True, "isInstalled": True, "updatable": False, "updateAvailable": "",
+                    "port": 8081, "icon": "network",
+                    "directUrl": "https://udm-pro-home.id.ui.direct/network/", "localUrl": "https://10.0.0.1/network/",
+                    "cloudUrl": "https://unifi.ui.com/consoles/console-home/network/"
+                },
+                {
+                    "id": "protect", "name": "UniFi Protect", "version": "5.1.28", "state": "active",
+                    "isRunning": True, "isInstalled": True, "updatable": False, "updateAvailable": "",
+                    "port": 7443, "icon": "video",
+                    "directUrl": "https://udm-pro-home.id.ui.direct/protect/", "localUrl": "https://10.0.0.1/protect/",
+                    "cloudUrl": "https://unifi.ui.com/consoles/console-home/protect/"
+                },
+                {
+                    "id": "innerspace", "name": "UniFi InnerSpace", "version": "1.4.1", "state": "active",
+                    "isRunning": True, "isInstalled": True, "updatable": False, "updateAvailable": "",
+                    "port": 17080, "icon": "cube",
+                    "directUrl": "https://udm-pro-home.id.ui.direct/innerspace/", "localUrl": "https://10.0.0.1/innerspace/",
+                    "cloudUrl": "https://unifi.ui.com/consoles/console-home/innerspace/"
+                },
+                {
+                    "id": "users", "name": "UniFi Identity / Users", "version": "1.13.11", "state": "active",
+                    "isRunning": True, "isInstalled": True, "updatable": False, "updateAvailable": "",
+                    "port": 0, "icon": "users",
+                    "directUrl": "https://udm-pro-home.id.ui.direct/users/", "localUrl": "https://10.0.0.1/users/",
+                    "cloudUrl": "https://unifi.ui.com/consoles/console-home/users/"
+                }
+            ],
+            "uidbImages": {"default": "59593adaffca0b519b4ec5ca1a4f3d68"}
+        },
+        {
+            "hostId": "console-office",
+            "name": "Main Office Gateway",
+            "siteName": "Main Office",
+            "model": "UniFi Dream Machine Special Edition",
+            "shortModel": "UDMSE",
+            "mac": "a8:9c:6c:06:23:cc",
+            "ip": "192.168.10.1",
+            "firmwareVersion": "5.1.132",
+            "isOnline": True,
+            "directConnectDomain": "udm-se-office.id.ui.direct",
+            "directConnectUrl": "https://udm-se-office.id.ui.direct",
+            "directConnectStatus": "Active (P2P WebRTC Direct)",
+            "webCloudUrl": "https://unifi.ui.com/consoles/console-office",
+            "localUrl": "https://192.168.10.1",
+            "activeAppCount": 4,
+            "applications": [
+                {
+                    "id": "network", "name": "UniFi Network", "version": "10.6.106", "state": "active",
+                    "isRunning": True, "isInstalled": True, "updatable": False, "updateAvailable": "",
+                    "port": 8081, "icon": "network",
+                    "directUrl": "https://udm-se-office.id.ui.direct/network/", "localUrl": "https://192.168.10.1/network/",
+                    "cloudUrl": "https://unifi.ui.com/consoles/console-office/network/"
+                },
+                {
+                    "id": "talk", "name": "UniFi Talk", "version": "3.4.12", "state": "active",
+                    "isRunning": True, "isInstalled": True, "updatable": False, "updateAvailable": "",
+                    "port": 0, "icon": "phone",
+                    "directUrl": "https://udm-se-office.id.ui.direct/talk/", "localUrl": "https://192.168.10.1/talk/",
+                    "cloudUrl": "https://unifi.ui.com/consoles/console-office/talk/"
+                },
+                {
+                    "id": "access", "name": "UniFi Access", "version": "2.2.14", "state": "active",
+                    "isRunning": True, "isInstalled": True, "updatable": False, "updateAvailable": "",
+                    "port": 0, "icon": "id-badge",
+                    "directUrl": "https://udm-se-office.id.ui.direct/access/", "localUrl": "https://192.168.10.1/access/",
+                    "cloudUrl": "https://unifi.ui.com/consoles/console-office/access/"
+                },
+                {
+                    "id": "innerspace", "name": "UniFi InnerSpace", "version": "1.4.1", "state": "active",
+                    "isRunning": True, "isInstalled": True, "updatable": False, "updateAvailable": "",
+                    "port": 17080, "icon": "cube",
+                    "directUrl": "https://udm-se-office.id.ui.direct/innerspace/", "localUrl": "https://192.168.10.1/innerspace/",
+                    "cloudUrl": "https://unifi.ui.com/consoles/console-office/innerspace/"
+                }
+            ],
+            "uidbImages": {"default": "deba1d58ee3b3b3d69cbe23f0afc75c2"}
+        },
+        {
+            "hostId": "console-warehouse",
+            "name": "Warehouse Gateway",
+            "siteName": "Warehouse",
+            "model": "UniFi Next-Gen Gateway Pro",
+            "shortModel": "UXGPRO",
+            "mac": "f0:9f:c2:11:22:33",
+            "ip": "10.20.0.1",
+            "firmwareVersion": "4.0.20",
+            "isOnline": False,
+            "directConnectDomain": "uxg-pro-wh.id.ui.direct",
+            "directConnectUrl": "https://uxg-pro-wh.id.ui.direct",
+            "directConnectStatus": "Console Offline",
+            "webCloudUrl": "https://unifi.ui.com/consoles/console-warehouse",
+            "localUrl": "https://10.20.0.1",
+            "activeAppCount": 0,
+            "applications": [
+                {
+                    "id": "network", "name": "UniFi Network", "version": "10.6.106", "state": "stopped",
+                    "isRunning": False, "isInstalled": True, "updatable": False, "updateAvailable": "",
+                    "port": 8081, "icon": "network",
+                    "directUrl": "https://uxg-pro-wh.id.ui.direct/network/", "localUrl": "https://10.20.0.1/network/",
+                    "cloudUrl": "https://unifi.ui.com/consoles/console-warehouse/network/"
+                }
+            ],
+            "uidbImages": {"default": "bb601a25dc15f8c552bb6ded529f7f60"}
+        }
+    ]
     return {
         "ok": True, "connected": True, "demo": True, "mode": "cloud", "host": "unifi.ui.com", "site": "3 sites", "sites": sites,
         "severity": "critical", "message": "1 site unreachable · 1 on backup WAN",
@@ -934,6 +1059,7 @@ def demo_summary() -> dict[str, Any]:
         "outages": demo_outages,
         "clients": demo_clients,
         "switches": demo_switches,
+        "consoles": demo_consoles,
     }
 
 
@@ -1022,14 +1148,136 @@ def format_uptime(seconds: int) -> str:
     return f"{minutes}m"
 
 
+def compact_console(host: dict[str, Any], site_name: str = "") -> dict[str, Any]:
+    hid = model_string(first_value(host, "id", "hostId"), max_length=256)
+    rep = host.get("reportedState") if isinstance(host.get("reportedState"), dict) else {}
+    hw = rep.get("hardware") if isinstance(rep.get("hardware"), dict) else {}
+    h_name = model_string(rep.get("name") or host.get("name") or site_name or hw.get("name") or "UniFi Console")
+    model_name = model_string(hw.get("name") or hw.get("shortname") or "UniFi Console")
+    direct_domain = model_string(rep.get("directConnectDomain") or host.get("directConnectDomain", ""))
+    direct_url = f"https://{direct_domain}" if direct_domain else ""
+    web_url = f"https://unifi.ui.com/consoles/{hid}" if hid else "https://unifi.ui.com"
+    local_ip = model_string(rep.get("ip") or (rep.get("ipAddrs") and rep.get("ipAddrs")[0]) or host.get("ipAddress") or "")
+    local_url = f"https://{local_ip}" if local_ip else ""
+    firmware = model_string(rep.get("version") or hw.get("firmwareVersion") or "")
+    mac = model_string(hw.get("mac") or rep.get("mac") or "")
+    is_online = host_is_online(host)
+
+    app_display_names = {
+        "network": "UniFi Network",
+        "protect": "UniFi Protect",
+        "innerspace": "UniFi InnerSpace",
+        "drive": "UniFi Drive",
+        "access": "UniFi Access",
+        "talk": "UniFi Talk",
+        "connect": "UniFi Connect",
+        "users": "UniFi Identity / Users",
+        "id": "UniFi Identity",
+    }
+    app_icons = {
+        "network": "network",
+        "protect": "video",
+        "innerspace": "cube",
+        "drive": "hard-drive",
+        "access": "id-badge",
+        "talk": "phone",
+        "connect": "tv",
+        "users": "users",
+        "id": "users",
+    }
+
+    apps_list: list[dict[str, Any]] = []
+    raw_controllers = rep.get("controllers") if isinstance(rep.get("controllers"), list) else []
+    raw_apps = rep.get("apps") if isinstance(rep.get("apps"), list) else []
+
+    seen_app_ids = set()
+    for c in raw_controllers:
+        if not isinstance(c, dict):
+            continue
+        app_id = model_string(c.get("name", "")).lower()
+        if not app_id or app_id in seen_app_ids:
+            continue
+        seen_app_ids.add(app_id)
+        ver = model_string(c.get("version") or c.get("uiVersion") or "")
+        is_active = (c.get("state") == "active" or c.get("isRunning") is True or bool(ver)) and c.get("state") != "inactive"
+        is_installed = bool(c.get("isInstalled", True)) or is_active
+        upd_avail = model_string(c.get("updateAvailable", "")) if c.get("updateAvailable") else ""
+        apps_list.append({
+            "id": app_id,
+            "name": app_display_names.get(app_id, f"UniFi {app_id.capitalize()}"),
+            "version": ver if ver else ("Installed" if is_installed else "Available"),
+            "state": "active" if is_active else ("inactive" if not is_installed else "stopped"),
+            "isRunning": is_active,
+            "isInstalled": is_installed,
+            "updatable": bool(c.get("updatable", False)),
+            "updateAvailable": upd_avail,
+            "port": int(c.get("port") or 0),
+            "icon": app_icons.get(app_id, "cube"),
+            "directUrl": f"https://{direct_domain}/{app_id}/" if direct_domain else "",
+            "localUrl": f"https://{local_ip}/{app_id}/" if local_ip else "",
+            "cloudUrl": f"https://unifi.ui.com/consoles/{hid}/{app_id}/" if hid else "",
+        })
+
+    for a in raw_apps:
+        if not isinstance(a, dict):
+            continue
+        app_id = model_string(a.get("name", "")).lower()
+        if not app_id or app_id in seen_app_ids:
+            continue
+        seen_app_ids.add(app_id)
+        ver = model_string(a.get("version") or a.get("uiVersion") or "")
+        apps_list.append({
+            "id": app_id,
+            "name": app_display_names.get(app_id, f"UniFi {app_id.capitalize()}"),
+            "version": ver or "Installed",
+            "state": "active",
+            "isRunning": True,
+            "isInstalled": True,
+            "updatable": False,
+            "updateAvailable": "",
+            "port": 0,
+            "icon": app_icons.get(app_id, "cube"),
+            "directUrl": f"https://{direct_domain}/{app_id}/" if direct_domain else "",
+            "localUrl": f"https://{local_ip}/{app_id}/" if local_ip else "",
+            "cloudUrl": f"https://unifi.ui.com/consoles/{hid}/{app_id}/" if hid else "",
+        })
+
+    uidb = rep.get("uidb") if isinstance(rep.get("uidb"), dict) else {}
+    images = uidb.get("images") if isinstance(uidb.get("images"), dict) else {}
+
+    return {
+        "hostId": hid,
+        "name": h_name,
+        "siteName": site_name or h_name,
+        "model": model_name,
+        "shortModel": model_string(hw.get("shortname", "")),
+        "mac": mac,
+        "ip": local_ip,
+        "firmwareVersion": firmware,
+        "isOnline": is_online,
+        "directConnectDomain": direct_domain,
+        "directConnectUrl": direct_url,
+        "directConnectStatus": "Active (P2P WebRTC Direct)" if (direct_domain and is_online) else ("Unavailable" if not direct_domain else "Console Offline"),
+        "webCloudUrl": web_url,
+        "localUrl": local_url,
+        "activeAppCount": sum(1 for a in apps_list if a["isRunning"]),
+        "applications": apps_list,
+        "uidbImages": images,
+    }
+
+
 def extract_telemetry_details(
     key: str, raw_hosts: list[dict[str, Any]], sites: list[dict[str, Any]]
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     wans: list[dict[str, Any]] = []
     outages: list[dict[str, Any]] = []
     site_map: dict[str, str] = {s.get("hostId", ""): s.get("name", "Site") for s in sites}
     gw_models: dict[str, str] = {s.get("hostId", ""): s.get("gatewayModel", "") for s in sites}
     isps: dict[str, str] = {s.get("hostId", ""): s.get("isp", "") for s in sites}
+    consoles: list[dict[str, Any]] = [
+        compact_console(host, site_map.get(model_string(first_value(host, "id", "hostId"), max_length=256), ""))
+        for host in raw_hosts
+    ]
 
     for host in raw_hosts:
         hid = model_string(first_value(host, "id", "hostId"), max_length=256)
@@ -1276,7 +1524,7 @@ def extract_telemetry_details(
                 "ports": ports,
             })
 
-    return wans, outages, clients, switches
+    return wans, outages, clients, switches, consoles
 
 
 def build_cloud_summary(key: str) -> dict[str, Any]:
@@ -1412,9 +1660,9 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
     issues = track_issues(sites, devices, is_demo=False)
     sdwan = get_sdwan_telemetry(key)
     try:
-        wans, outages, clients, switches = extract_telemetry_details(key, raw_hosts, sites)
+        wans, outages, clients, switches, consoles = extract_telemetry_details(key, raw_hosts, sites)
     except Exception:
-        wans, outages, clients, switches = [], [], [], []
+        wans, outages, clients, switches, consoles = [], [], [], [], []
 
     return {
         "ok": True,
@@ -1444,6 +1692,7 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         "outages": outages,
         "clients": clients,
         "switches": switches,
+        "consoles": consoles,
     }
 
 
@@ -1505,6 +1754,15 @@ def build_cloud_site(key: str, host_id: str, site_id: str) -> dict[str, Any]:
     offline_devices = sum(not item["online"] for item in devices)
     offline_cameras = sum(not item["online"] for item in cameras)
     updates = sum(item["update"] for item in devices)
+
+    console_data: dict[str, Any] = {}
+    try:
+        host_status, host_payload = cloud_json_request(key, f"/v1/hosts/{host_id}")
+        if host_status == 200 and isinstance(host_payload, dict) and isinstance(host_payload.get("data"), dict):
+            console_data = compact_console(host_payload["data"], model_string(first_value(chosen, "name", "displayName", default="UniFi site")))
+    except Exception:
+        pass
+
     return {
         "ok": True,
         "connected": True,
@@ -1530,6 +1788,7 @@ def build_cloud_site(key: str, host_id: str, site_id: str) -> dict[str, Any]:
             "cameraCount": len(cameras),
             "offlineCount": offline_cameras,
         },
+        "console": console_data,
     }
 
 
@@ -1567,6 +1826,57 @@ def build_summary(config: dict[str, Any], key: str) -> dict[str, Any]:
     else:
         severity, message = "healthy", "All systems operational"
 
+    local_host = config.get("hostname") or "unifi.local"
+    local_consoles = [{
+        "hostId": "local-gateway",
+        "name": model_string(site.get("name") or "Local Gateway"),
+        "siteName": model_string(site.get("name") or "Default"),
+        "model": "UniFi OS Console",
+        "shortModel": "Gateway",
+        "mac": "",
+        "ip": local_host,
+        "firmwareVersion": "",
+        "isOnline": True,
+        "directConnectDomain": "",
+        "directConnectUrl": f"https://{local_host}",
+        "directConnectStatus": "Local Direct HTTPS",
+        "webCloudUrl": "https://unifi.ui.com",
+        "localUrl": f"https://{local_host}",
+        "activeAppCount": 1 + int(protect_status == 200),
+        "applications": [
+            {
+                "id": "network",
+                "name": "UniFi Network",
+                "version": "Connected",
+                "state": "active",
+                "isRunning": True,
+                "isInstalled": True,
+                "updatable": False,
+                "updateAvailable": "",
+                "port": 443,
+                "icon": "network",
+                "directUrl": f"https://{local_host}/network/",
+                "localUrl": f"https://{local_host}/network/",
+                "cloudUrl": "",
+            }
+        ] + ([{
+            "id": "protect",
+            "name": "UniFi Protect",
+            "version": "Connected",
+            "state": "active",
+            "isRunning": True,
+            "isInstalled": True,
+            "updatable": False,
+            "updateAvailable": "",
+            "port": 443,
+            "icon": "video",
+            "directUrl": f"https://{local_host}/protect/",
+            "localUrl": f"https://{local_host}/protect/",
+            "cloudUrl": "",
+        }] if protect_status == 200 else []),
+        "uidbImages": {},
+    }]
+
     return {
         "ok": True,
         "connected": True,
@@ -1590,6 +1900,12 @@ def build_summary(config: dict[str, Any], key: str) -> dict[str, Any]:
             "offlineCount": offline_cameras,
         },
         "issues": track_issues([], devices, is_demo=False),
+        "sdwan": {"available": False, "status": "none"},
+        "wans": [],
+        "outages": [],
+        "clients": clients,
+        "switches": [],
+        "consoles": local_consoles,
     }
 
 

@@ -60,7 +60,7 @@ Panel {
   function openAnalytics(tabIndex) {
     root.close()
     if (tabIndex !== undefined) {
-      root.analyticsTab = Math.max(0, Math.min(3, tabIndex))
+      root.analyticsTab = Math.max(0, Math.min(4, tabIndex))
     }
     analyticsOpen = true
     if (analyticsWindowLoader.item && tabIndex !== undefined) {
@@ -226,6 +226,22 @@ Panel {
       }
     }
     return out
+  }
+
+  function getSiteConsole(hostId) {
+    if (root.siteData && root.siteData.console && root.siteData.console.hostId) {
+      return root.siteData.console
+    }
+    if (root.data && Array.isArray(root.data.consoles)) {
+      var hid = String(hostId || (root.selectedSite ? root.selectedSite.hostId : "") || "")
+      var sName = root.selectedSite ? String(root.selectedSite.name || "") : ""
+      for (var i = 0; i < root.data.consoles.length; i++) {
+        var c = root.data.consoles[i]
+        if (hid && String(c.hostId || "") === hid) return c
+        if (sName && String(c.siteName || "") === sName) return c
+      }
+    }
+    return null
   }
 
   property var data: ({ connected: false })
@@ -1099,6 +1115,41 @@ Panel {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.openConsole()
+                  }
+                }
+
+                // Direct Connect Button
+                Rectangle {
+                  id: directConnectSiteBtn
+                  visible: root.connected && !root.settingsMode && root.inSite && (root.getSiteConsole(root.selectedSite ? root.selectedSite.hostId : "") !== null)
+                  radius: 3
+                  color: directConnectMouse.containsMouse ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2) : root.track
+                  border.width: 1
+                  border.color: directConnectMouse.containsMouse ? root.accent : root.outline
+                  Layout.preferredHeight: Style.space(24)
+                  Layout.preferredWidth: Style.space(24)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    anchors.centerIn: parent
+                    text: ""
+                    color: directConnectMouse.containsMouse ? root.accent : root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+
+                  MouseArea {
+                    id: directConnectMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      var c = root.getSiteConsole(root.selectedSite ? root.selectedSite.hostId : "")
+                      if (c) {
+                        var target = c.directConnectUrl || (c.directConnectDomain ? ("https://" + c.directConnectDomain) : "") || c.localUrl || c.webCloudUrl
+                        if (target) Quickshell.execDetached(["xdg-open", target])
+                      }
+                    }
                   }
                 }
 
@@ -2780,6 +2831,122 @@ Panel {
                   color: root.dim
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption
+                }
+              }
+            }
+          }
+
+          // Direct Connect Quick-Launch Bar
+          BorderSurface {
+            id: directConnectBanner
+            visible: {
+              var c = root.getSiteConsole(root.selectedSite ? root.selectedSite.hostId : "")
+              return c !== null && Boolean(c.directConnectDomain || c.directConnectUrl)
+            }
+            width: parent.width
+            implicitHeight: Style.space(34)
+            color: directBarMouse.containsMouse ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.12) : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.04)
+            radius: Style.cornerRadius
+            borderSpec: Border.flat(directBarMouse.containsMouse ? root.accent : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.10), 1)
+
+            RowLayout {
+              anchors.fill: parent
+              anchors.leftMargin: Style.space(10)
+              anchors.rightMargin: Style.space(10)
+              spacing: Style.space(6)
+
+              Text {
+                textFormat: Text.PlainText;
+                text: ""
+                color: root.accent
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+              }
+
+              Text {
+                textFormat: Text.PlainText;
+                text: "Direct P2P:"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                font.bold: true
+              }
+
+              Text {
+                textFormat: Text.PlainText;
+                property var sc: root.getSiteConsole(root.selectedSite ? root.selectedSite.hostId : "")
+                text: sc && sc.directConnectDomain ? sc.directConnectDomain : ""
+                color: root.accent
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 1
+                elide: Text.ElideMiddle
+                Layout.fillWidth: true
+              }
+
+              Rectangle {
+                radius: 3
+                color: directBtnMouse.containsMouse ? root.accent : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)
+                implicitHeight: Style.space(22)
+                implicitWidth: directBtnTxt.implicitWidth + Style.space(12)
+                Text {
+                  id: directBtnTxt
+                  textFormat: Text.PlainText;
+                  anchors.centerIn: parent
+                  text: "Launch ↗"
+                  color: directBtnMouse.containsMouse ? root.card : root.accent
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 1
+                  font.bold: true
+                }
+                MouseArea {
+                  id: directBtnMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    var c = root.getSiteConsole(root.selectedSite ? root.selectedSite.hostId : "")
+                    if (c && (c.directConnectUrl || c.directConnectDomain)) {
+                      Quickshell.execDetached(["xdg-open", c.directConnectUrl || ("https://" + c.directConnectDomain)])
+                    }
+                  }
+                }
+              }
+
+              Rectangle {
+                radius: 3
+                color: directHubMouse.containsMouse ? root.cardHover : root.track
+                implicitHeight: Style.space(22)
+                implicitWidth: directHubTxt.implicitWidth + Style.space(10)
+                Text {
+                  id: directHubTxt
+                  textFormat: Text.PlainText;
+                  anchors.centerIn: parent
+                  text: "Apps Hub "
+                  color: directHubMouse.containsMouse ? root.accent : root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 1
+                }
+                MouseArea {
+                  id: directHubMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    root.openAnalytics(4)
+                  }
+                }
+              }
+            }
+
+            MouseArea {
+              id: directBarMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                var c = root.getSiteConsole(root.selectedSite ? root.selectedSite.hostId : "")
+                if (c && (c.directConnectUrl || c.directConnectDomain)) {
+                  Quickshell.execDetached(["xdg-open", c.directConnectUrl || ("https://" + c.directConnectDomain)])
                 }
               }
             }

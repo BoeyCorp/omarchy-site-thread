@@ -133,6 +133,31 @@ class FeatureTelemetryTests(unittest.TestCase):
         self.assertGreaterEqual(len(ports), 8)
         self.assertTrue(any(p.get("poePower", 0) > 0 for p in ports))
 
+    def test_demo_summary_has_consoles_and_direct_connect(self) -> None:
+        summary = SITE_THREAD.demo_summary()
+        self.assertIn("consoles", summary)
+        consoles = summary["consoles"]
+        self.assertGreaterEqual(len(consoles), 3)
+
+        for c in consoles:
+            self.assertIn("hostId", c)
+            self.assertIn("name", c)
+            self.assertIn("model", c)
+            self.assertIn("firmwareVersion", c)
+            self.assertIn("directConnectDomain", c)
+            self.assertTrue(c["directConnectDomain"].endswith(".id.ui.direct"))
+            self.assertIn("directConnectUrl", c)
+            self.assertTrue(c["directConnectUrl"].startswith("https://"))
+            self.assertIn("applications", c)
+            apps = c["applications"]
+            self.assertGreaterEqual(len(apps), 1)
+            for app in apps:
+                self.assertIn("id", app)
+                self.assertIn("name", app)
+                self.assertIn("version", app)
+                self.assertIn("directUrl", app)
+                self.assertTrue(app["directUrl"].startswith("https://"))
+
 
 class BarInteractionTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -159,6 +184,27 @@ class BarInteractionTests(unittest.TestCase):
         self.assertIn("function handleBarClick(button: int): void", self.panel_qml)
         self.assertIn("activeTab: root.activeTab", self.panel_qml)
         self.assertIn("inSite: root.inSite", self.panel_qml)
+
+
+class ConsoleDirectConnectIntegrationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+
+    def test_panel_supports_analytics_tab_4(self) -> None:
+        self.assertIn("Math.min(4, tabIndex)", self.panel_qml)
+
+    def test_panel_has_direct_connect_button_and_banner(self) -> None:
+        self.assertIn("id: directConnectSiteBtn", self.panel_qml)
+        self.assertIn("id: directConnectBanner", self.panel_qml)
+        self.assertIn("function getSiteConsole(hostId)", self.panel_qml)
+
+    def test_analytics_window_has_tab_4_unifi_os(self) -> None:
+        self.assertIn("UniFi OS & Direct Connect", self.analytics_qml)
+        self.assertIn("property var fleetConsoles:", self.analytics_qml)
+        self.assertIn("function copyToClipboard(text, label)", self.analytics_qml)
+        self.assertIn("function openExternalUrl(url)", self.analytics_qml)
+        self.assertIn("id: tab4View", self.analytics_qml)
 
 
 if __name__ == "__main__":
