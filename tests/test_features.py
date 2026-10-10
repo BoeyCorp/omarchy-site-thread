@@ -292,7 +292,36 @@ class GlobeSdwanFeatureTests(unittest.TestCase):
             self.assertIn("connected", conn)
 
 
+class GlobeZoomFeatureTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.globe_qml = (ROOT / "Globe.qml").read_text(encoding="utf-8")
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+
+    def test_globe_scale_range_allows_deep_zoom(self) -> None:
+        self.assertIn("property real maximumScale: 160.0", self.globe_qml)
+        self.assertIn("property real minimumScale: 0.5", self.globe_qml)
+
+    def test_globe_exposes_zoom_methods(self) -> None:
+        self.assertIn("function zoomIn()", self.globe_qml)
+        self.assertIn("function zoomOut()", self.globe_qml)
+        self.assertIn("function resetZoom()", self.globe_qml)
+
+    def test_globe_mouse_area_has_wheel_and_double_click_zoom(self) -> None:
+        self.assertIn("onWheel: function(wheel)", self.globe_qml)
+        self.assertIn("onDoubleClicked: function(mouse)", self.globe_qml)
+        self.assertIn("root.zoomIn()", self.globe_qml)
+
+    def test_panel_has_zoom_buttons_and_ipc_methods(self) -> None:
+        self.assertIn("id: zoomInMouse", self.panel_qml)
+        self.assertIn("id: zoomOutMouse", self.panel_qml)
+        self.assertIn("function zoomIn(): void", self.panel_qml)
+        self.assertIn("function zoomOut(): void", self.panel_qml)
+        self.assertIn("function setGlobeScale(scale: real): void", self.panel_qml)
+        self.assertIn("function globeScaleValue(): real", self.panel_qml)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 

@@ -14,8 +14,8 @@ Item {
   property real centreLatitude: -25
   property real centreLongitude: 120
   property real globeScale: 1.0
-  property real minimumScale: 0.75
-  property real maximumScale: 16.0
+  property real minimumScale: 0.5
+  property real maximumScale: 160.0
   property real longitudeSensitivity: 0.22
   property real latitudeSensitivity: 0.18
   property bool autoRotate: false
@@ -65,6 +65,21 @@ Item {
 
   function radius() {
     return Math.min(width, height) * 0.44 * globeScale
+  }
+
+  function zoomIn() {
+    interactionStarted()
+    globeScale = GlobeModel.clamp(globeScale * 1.35, minimumScale, maximumScale)
+  }
+
+  function zoomOut() {
+    interactionStarted()
+    globeScale = GlobeModel.clamp(globeScale / 1.35, minimumScale, maximumScale)
+  }
+
+  function resetZoom() {
+    interactionStarted()
+    globeScale = 1.0
   }
 
   function withAlpha(color, alpha) {
@@ -843,9 +858,13 @@ Item {
     onWheel: function(wheel) {
       root.interactionStarted()
       root.globeScale = GlobeModel.clamp(
-        root.globeScale * Math.exp(wheel.angleDelta.y / 720),
+        root.globeScale * Math.exp(wheel.angleDelta.y / 540),
         root.minimumScale, root.maximumScale)
       wheel.accepted = true
+    }
+
+    onDoubleClicked: function(mouse) {
+      root.zoomIn()
     }
   }
 

@@ -1811,6 +1811,38 @@ Panel {
                       }
                     }
 
+                    // Zoom In
+                    Rectangle {
+                      width: Style.space(22)
+                      height: Style.space(22)
+                      radius: 3
+                      color: zoomInMouse.containsMouse ? root.cardHover : root.track
+                      Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: "＋"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                      MouseArea {
+                        id: zoomInMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: fleetGlobe.zoomIn()
+                      }
+                    }
+
+                    // Zoom Out
+                    Rectangle {
+                      width: Style.space(22)
+                      height: Style.space(22)
+                      radius: 3
+                      color: zoomOutMouse.containsMouse ? root.cardHover : root.track
+                      Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: "－"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                      MouseArea {
+                        id: zoomOutMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: fleetGlobe.zoomOut()
+                      }
+                    }
+
                     // Auto-rotate toggle
                     Rectangle {
                       width: autoRotText.implicitWidth + Style.space(10)
@@ -3080,6 +3112,10 @@ Panel {
     function rotate(longitude: real): void {
       fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(longitude)
     }
+    function zoomIn(): void { fleetGlobe.zoomIn() }
+    function zoomOut(): void { fleetGlobe.zoomOut() }
+    function setGlobeScale(scale: real): void { fleetGlobe.globeScale = scale }
+    function globeScaleValue(): real { return fleetGlobe.globeScale }
     function visibleSitesCount(): int {
       return fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0
     }
