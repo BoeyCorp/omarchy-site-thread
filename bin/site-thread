@@ -486,6 +486,7 @@ def is_online(item: dict[str, Any]) -> bool:
 
 
 def compact_device(item: dict[str, Any]) -> dict[str, Any]:
+    uplink_obj = item.get("uplink") if isinstance(item.get("uplink"), dict) else {}
     return {
         "id": model_string(first_value(item, "id", "_id", "mac"), max_length=256),
         "name": model_string(first_value(item, "name", "displayName", "model", "shortname", default="UniFi device")),
@@ -493,6 +494,11 @@ def compact_device(item: dict[str, Any]) -> dict[str, Any]:
         "ip": model_string(first_value(item, "ipAddress", "ip", "lanIp"), max_length=64),
         "online": is_online(item),
         "update": bool(first_value(item, "firmwareUpgradable", "upgradable", "upgradeable", default=False)),
+        "parentName": model_string(first_value(item, "parentName", default=uplink_obj.get("uplink_device_name", ""))),
+        "parentMac": model_string(first_value(item, "parentMac", default=uplink_obj.get("uplink_mac", ""))),
+        "parentPort": int(first_value(item, "parentPort", default=uplink_obj.get("uplink_remote_port") or uplink_obj.get("port_idx") or 0)),
+        "uplinkSpeed": int(first_value(item, "uplinkSpeed", default=uplink_obj.get("speed") or 0)),
+        "uplinkMedia": model_string(first_value(item, "uplinkMedia", default=uplink_obj.get("media", ""))),
     }
 
 
@@ -765,9 +771,9 @@ def site_sort_key(site: dict[str, Any]) -> tuple[int, str]:
 def demo_summary() -> dict[str, Any]:
     now = int(time.time())
     devices = [
-        {"id": "gw", "name": "Dream Machine Pro", "model": "UDM Pro", "ip": "10.0.0.1", "online": True, "update": False, "site": "Home"},
-        {"id": "sw", "name": "Core Switch", "model": "USW Pro 24 PoE", "ip": "10.0.0.2", "online": True, "update": True, "site": "Main Office"},
-        {"id": "ap", "name": "Living Room AP", "model": "U7 Pro", "ip": "10.0.0.3", "online": True, "update": False, "site": "Home"},
+        {"id": "gw", "name": "Dream Machine Pro", "model": "UDM Pro", "ip": "10.0.0.1", "online": True, "update": False, "site": "Home", "parentName": "", "parentPort": 0, "uplinkSpeed": 0, "uplinkMedia": ""},
+        {"id": "sw", "name": "Core Switch", "model": "USW Pro 24 PoE", "ip": "10.0.0.2", "online": True, "update": True, "site": "Home", "parentName": "Dream Machine Pro", "parentPort": 1, "uplinkSpeed": 10000, "uplinkMedia": "SFP+"},
+        {"id": "ap", "name": "Living Room AP", "model": "U7 Pro", "ip": "10.0.0.3", "online": True, "update": False, "site": "Home", "parentName": "Core Switch", "parentPort": 8, "uplinkSpeed": 2500, "uplinkMedia": "GE"},
     ]
     cameras = [
         {"id": "frontdoor", "name": "Front Door", "model": "G4 Doorbell Pro", "online": True, "recording": True},
@@ -796,6 +802,29 @@ def demo_summary() -> dict[str, Any]:
     ]
     sites.sort(key=site_sort_key)
     issues = track_issues(sites, devices, is_demo=True)
+    sdwan = {
+        "available": True,
+        "id": "demo-mesh-1",
+        "name": "Global-Mesh SD-WAN",
+        "type": "Site Magic SD-WAN",
+        "status": "connected",
+        "ping": 18,
+        "siteCount": 2,
+        "sites": [
+            {"name": "Home", "subnet": "10.0.0.0/24", "networkName": "Default"},
+            {"name": "Main Office", "subnet": "192.168.10.0/24", "networkName": "Corporate"}
+        ],
+        "connections": [
+            {
+                "siteA": "Home",
+                "subnetA": "10.0.0.0/24",
+                "siteB": "Main Office",
+                "subnetB": "192.168.10.0/24",
+                "connected": True,
+                "ping": 18
+            }
+        ]
+    }
     return {
         "ok": True, "connected": True, "demo": True, "mode": "cloud", "host": "unifi.ui.com", "site": "3 sites", "sites": sites,
         "severity": "critical", "message": "1 site unreachable · 1 on backup WAN",
@@ -805,7 +834,80 @@ def demo_summary() -> dict[str, Any]:
         },
         "protect": {"available": True, "cameras": cameras, "cameraCount": 3, "offlineCount": 0},
         "issues": issues,
+        "sdwan": sdwan,
     }
+
+
+def get_sdwan_telemetry(key: str) -> dict[str, Any]:
+    try:
+        status, payload = cloud_json_request(key, "/v1/sd-wan-configs")
+        if status != 200 or not isinstance(payload, dict):
+            return {"available": False, "status": "none"}
+        configs = payload.get("data", [])
+        if not isinstance(configs, list) or not configs:
+            return {"available": False, "status": "none"}
+
+        cfg = configs[0]
+        cfg_id = model_string(cfg.get("id", ""), max_length=128)
+        cfg_name = model_string(cfg.get("name", "Site Magic SD-WAN"))
+        cfg_type = model_string(cfg.get("type", "s2s-vpn"))
+
+        detail_status, detail = cloud_json_request(key, f"/v1/sd-wan-configs/{cfg_id}")
+        st_status, st_payload = cloud_json_request(key, f"/v1/sd-wan-configs/{cfg_id}/status")
+
+        sites_list: list[dict[str, Any]] = []
+        if detail_status == 200 and isinstance(detail, dict) and isinstance(detail.get("data"), dict):
+            hosts = detail["data"].get("hosts", [])
+            for h in hosts:
+                h_name = model_string(h.get("hostName", "Site"))
+                for s in h.get("sites", []):
+                    for net in s.get("networks", []):
+                        sites_list.append({
+                            "name": h_name,
+                            "subnet": model_string(net.get("subnet", "")),
+                            "networkName": model_string(net.get("networkName", "")),
+                        })
+
+        connections: list[dict[str, Any]] = []
+        is_connected = True
+        ping_ms = 0
+        if st_status == 200 and isinstance(st_payload, dict) and isinstance(st_payload.get("data"), dict):
+            conns = st_payload["data"].get("status", {}).get("connections", [])
+            for c in conns:
+                pair_sites = c.get("sites", [])
+                if len(pair_sites) >= 2:
+                    st1 = pair_sites[0].get("status", {})
+                    st2 = pair_sites[1].get("status", {})
+                    conn_ok = bool(st1.get("connected") and st2.get("connected"))
+                    if not conn_ok:
+                        is_connected = False
+                    ping_ms = max(int(st1.get("ping", 0)), int(st2.get("ping", 0)))
+                    s1_name = sites_list[0]["name"] if len(sites_list) > 0 else "Site A"
+                    s1_sub = sites_list[0]["subnet"] if len(sites_list) > 0 else ""
+                    s2_name = sites_list[1]["name"] if len(sites_list) > 1 else "Site B"
+                    s2_sub = sites_list[1]["subnet"] if len(sites_list) > 1 else ""
+                    connections.append({
+                        "siteA": s1_name,
+                        "subnetA": s1_sub,
+                        "siteB": s2_name,
+                        "subnetB": s2_sub,
+                        "connected": conn_ok,
+                        "ping": ping_ms,
+                    })
+
+        return {
+            "available": True,
+            "id": cfg_id,
+            "name": cfg_name,
+            "type": cfg_type,
+            "status": "connected" if is_connected else "degraded",
+            "ping": ping_ms,
+            "siteCount": len(sites_list),
+            "sites": sites_list,
+            "connections": connections,
+        }
+    except Exception:
+        return {"available": False, "status": "none"}
 
 
 def build_cloud_summary(key: str) -> dict[str, Any]:
@@ -939,6 +1041,7 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
     total_wired = sum(s.get("wiredClients", 0) for s in sites)
     total_gateways = sum(bool(s.get("gatewayModel")) for s in sites)
     issues = track_issues(sites, devices, is_demo=False)
+    sdwan = get_sdwan_telemetry(key)
 
     return {
         "ok": True,
@@ -963,6 +1066,7 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         },
         "protect": {"available": bool(cameras), "cameras": cameras, "cameraCount": len(cameras), "offlineCount": sum(not item["online"] for item in cameras)},
         "issues": issues,
+        "sdwan": sdwan,
     }
 
 
@@ -990,7 +1094,30 @@ def build_cloud_site(key: str, host_id: str, site_id: str) -> dict[str, Any]:
     client_status, client_payload = cloud_json_request(
         key, connector_path(host_id, f"/network/integration/v1/sites/{local_site_id}/clients")
     )
-    devices = [compact_device(item) for item in rows(device_payload)] if device_status == 200 else []
+    stat_status, stat_payload = cloud_json_request(
+        key, connector_path(host_id, "/network/api/s/default/stat/device")
+    )
+    uplinks: dict[str, dict[str, Any]] = {}
+    if stat_status == 200 and isinstance(stat_payload, dict):
+        for item in stat_payload.get("data", []):
+            if isinstance(item, dict):
+                mac = str(item.get("mac", "")).lower().replace(":", "")
+                up = item.get("uplink") if isinstance(item.get("uplink"), dict) else {}
+                uplinks[mac] = {
+                    "parentName": up.get("uplink_device_name", ""),
+                    "parentMac": up.get("uplink_mac", ""),
+                    "parentPort": int(up.get("uplink_remote_port") or up.get("port_idx") or 0),
+                    "uplinkSpeed": int(up.get("speed") or 0),
+                    "uplinkMedia": str(up.get("media") or ""),
+                }
+
+    raw_devices = rows(device_payload) if device_status == 200 else []
+    devices = []
+    for item in raw_devices:
+        mac = str(first_value(item, "macAddress", "mac", default="")).lower().replace(":", "")
+        up_data = uplinks.get(mac, {})
+        enriched = dict(item) | up_data
+        devices.append(compact_device(enriched))
     clients = rows(client_payload) if client_status == 200 else []
 
     protect_status, protect_payload = cloud_json_request(

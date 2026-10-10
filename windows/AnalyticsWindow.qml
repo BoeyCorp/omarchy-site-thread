@@ -376,6 +376,127 @@ FloatingWindow {
           Layout.preferredWidth: 4
           spacing: Style.space(10)
 
+          // Site Magic SD-WAN Card
+          SectionCard {
+            visible: Boolean(root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.available)
+            title: "SITE MAGIC SD-WAN"
+            subtitle: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.name ? root.fleetData.sdwan.name : "Catalyse-Mesh") + " · Zero-Trust Inter-Site Mesh"
+            iconText: ""
+            titleColor: root.foreground
+            fontFamily: root.fontFamily
+            badgeText: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.status === "connected") ? "MESH ACTIVE" : "DEGRADED"
+            badgeColor: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.status === "connected") ? root.healthy : root.backup
+            Layout.fillWidth: true
+            Layout.preferredHeight: Style.space(136)
+
+            Column {
+              width: parent.width
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.margins: Style.space(8)
+              spacing: Style.space(8)
+
+              // Inter-Site Bridge Visualizer
+              Rectangle {
+                width: parent.width
+                height: Style.space(52)
+                radius: 4
+                color: root.track
+                border.width: 1
+                border.color: root.outline
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
+
+                  // Site A Node
+                  ColumnLayout {
+                    spacing: 2
+                    RowLayout {
+                      spacing: 4
+                      Rectangle { width: 6; height: 6; radius: 3; color: root.healthy }
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].siteA : "Catalyse Office"
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                        font.bold: true
+                      }
+                    }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].subnetA : "192.168.15.0/24"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 3
+                    }
+                  }
+
+                  // Center Tunnel Bridge
+                  ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+                    RowLayout {
+                      Layout.alignment: Qt.AlignHCenter
+                      spacing: 4
+                      Text { textFormat: Text.PlainText; text: "⇄"; color: root.accent; font.family: root.fontFamily; font.pixelSize: 10 }
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.ping !== undefined ? (root.fleetData.sdwan.ping < 1 ? "<1 ms" : root.fleetData.sdwan.ping + " ms") : "<1 ms")
+                        color: root.accent
+                        font.family: root.fontFamily
+                        font.pixelSize: 9
+                        font.bold: true
+                      }
+                      Text { textFormat: Text.PlainText; text: "⇄"; color: root.accent; font.family: root.fontFamily; font.pixelSize: 10 }
+                    }
+                    Rectangle {
+                      Layout.fillWidth: true
+                      height: 2
+                      color: root.accent
+                    }
+                  }
+
+                  // Site B Node
+                  ColumnLayout {
+                    spacing: 2
+                    Layout.alignment: Qt.AlignRight
+                    RowLayout {
+                      spacing: 4
+                      Rectangle { width: 6; height: 6; radius: 3; color: root.healthy }
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].siteB : "Lough Stanley Home"
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                        font.bold: true
+                      }
+                    }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].subnetB : "192.168.22.0/24"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 3
+                    }
+                  }
+                }
+              }
+
+              Text {
+                textFormat: Text.PlainText;
+                text: "Cross-subnet mesh routing active · WireGuard encrypted transport"
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+              }
+            }
+          }
+
           SectionCard {
             title: "MANAGED SITE MATRIX"
             subtitle: "Active gateways, public IPs, and ISPs"

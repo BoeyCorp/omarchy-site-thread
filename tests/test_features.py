@@ -38,6 +38,17 @@ class FeatureTelemetryTests(unittest.TestCase):
         self.assertIn("gatewaysCount", network)
         self.assertGreaterEqual(network["gatewaysCount"], 1)
 
+    def test_demo_summary_has_sdwan_and_uplinks(self) -> None:
+        summary = SITE_THREAD.demo_summary()
+        self.assertIn("sdwan", summary)
+        sdwan = summary["sdwan"]
+        self.assertTrue(sdwan.get("available"))
+        self.assertEqual(sdwan.get("status"), "connected")
+        self.assertGreaterEqual(len(sdwan.get("connections", [])), 1)
+
+        devices = summary.get("network", {}).get("devices", [])
+        self.assertTrue(any(d.get("parentName") for d in devices))
+
     def test_demo_summary_has_active_and_resolved_issues(self) -> None:
         summary = SITE_THREAD.demo_summary()
         issues = summary.get("issues", [])

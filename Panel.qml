@@ -2181,6 +2181,101 @@ Panel {
 
             PanelSectionHeader { width: parent.width; text: root.cloudMode ? "ALL SITES (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "NETWORK DEVICES"; foreground: root.foreground; fontFamily: root.fontFamily }
 
+            // Site Magic SD-WAN Mesh Banner
+            BorderSurface {
+              visible: Boolean(root.data && root.data.sdwan && root.data.sdwan.available)
+              width: parent.width
+              implicitHeight: sdwanRow.implicitHeight + Style.space(16)
+              color: root.track
+              radius: Style.cornerRadius
+              borderSpec: Border.flat(root.accent, 1)
+
+              Row {
+                id: sdwanRow
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: Style.space(10)
+                spacing: Style.space(10)
+
+                Rectangle {
+                  width: Style.space(9)
+                  height: width
+                  radius: width / 2
+                  color: (root.data && root.data.sdwan && root.data.sdwan.status === "connected") ? root.healthy : root.backup
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Column {
+                  width: parent.width - Style.space(130)
+                  spacing: Style.space(2)
+
+                  Row {
+                    spacing: Style.space(6)
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: "Site Magic SD-WAN: " + (root.data && root.data.sdwan && root.data.sdwan.name ? root.data.sdwan.name : "Catalyse-Mesh")
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                    }
+                    Rectangle {
+                      height: 14
+                      width: sdwanStatusText.implicitWidth + 8
+                      radius: 2
+                      color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
+                      Text {
+                        textFormat: Text.PlainText;
+                        id: sdwanStatusText
+                        anchors.centerIn: parent
+                        text: (root.data && root.data.sdwan && root.data.sdwan.status === "connected") ? "ACTIVE" : "DEGRADED"
+                        color: root.healthy
+                        font.family: root.fontFamily
+                        font.pixelSize: 8
+                        font.bold: true
+                      }
+                    }
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: (root.data && root.data.sdwan && root.data.sdwan.connections && root.data.sdwan.connections.length > 0)
+                      ? (root.data.sdwan.connections[0].siteA + " (" + root.data.sdwan.connections[0].subnetA + ") ⇄ " + root.data.sdwan.connections[0].siteB + " (" + root.data.sdwan.connections[0].subnetB + ") · Latency " + (root.data.sdwan.ping < 1 ? "<1ms" : root.data.sdwan.ping + "ms"))
+                      : "Inter-site mesh active · Cross-subnet routing enabled"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 2
+                  }
+                }
+
+                Item { width: 1; height: 1 }
+
+                Rectangle {
+                  height: Style.space(22)
+                  width: sdwanBtnText.implicitWidth + Style.space(12)
+                  radius: 3
+                  color: sdwanBtnMouse.containsMouse ? root.accent : root.card
+                  border.width: 1
+                  border.color: root.accent
+                  anchors.verticalCenter: parent.verticalCenter
+                  Row {
+                    anchors.centerIn: parent
+                    spacing: Style.space(4)
+                    Text { textFormat: Text.PlainText; text: ""; color: sdwanBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 10 }
+                    Text { textFormat: Text.PlainText; id: sdwanBtnText; text: "Mesh"; color: sdwanBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
+                  }
+                  MouseArea {
+                    id: sdwanBtnMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.openAnalyticsWindow()
+                  }
+                }
+              }
+            }
+
             Repeater {
               model: root.cloudMode
                 ? (root.data.sites || [])
