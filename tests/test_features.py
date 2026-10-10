@@ -354,6 +354,10 @@ class GlobeZoomFeatureTests(unittest.TestCase):
         self.assertIn("function setGlobeScale(scale: real): void", self.panel_qml)
         self.assertIn("function globeScaleValue(): real", self.panel_qml)
 
+    def test_globe_drag_sensitivity_is_fast(self) -> None:
+        self.assertIn("property real longitudeSensitivity: 0.65", self.globe_qml)
+        self.assertIn("property real latitudeSensitivity: 0.55", self.globe_qml)
+
 
 class SiteCachingAndPrefetchTests(unittest.TestCase):
     def setUp(self) -> None:

@@ -16,8 +16,8 @@ Item {
   property real globeScale: 1.0
   property real minimumScale: 0.5
   property real maximumScale: 160.0
-  property real longitudeSensitivity: 0.22
-  property real latitudeSensitivity: 0.18
+  property real longitudeSensitivity: 0.65
+  property real latitudeSensitivity: 0.55
   property bool autoRotate: false
   property bool animateTraffic: true
   property real flowProgress: 0.0
