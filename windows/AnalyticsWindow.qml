@@ -326,171 +326,204 @@ FloatingWindow {
         }
       }
 
-      // Tab Bar & Toast Banner (Top of page)
+      // Tab Bar (4 evenly-spaced tabs spanning the window width)
       RowLayout {
         Layout.fillWidth: true
-        spacing: Style.space(8)
+        spacing: Style.space(10)
 
-        RowLayout {
-          spacing: Style.space(6)
-
-          // Tab 0: Overview
-          Rectangle {
-            height: Style.space(32)
-            width: tab0Row.implicitWidth + Style.space(20)
-            radius: 6
-            color: root.currentTab === 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab0Mouse.containsMouse ? root.cardHover : root.track)
-            border.width: 1
-            border.color: root.currentTab === 0 ? root.accent : root.outline
-
-            RowLayout {
-              id: tab0Row
-              anchors.centerIn: parent
-              spacing: 6
-              Text { textFormat: Text.PlainText; text: ""; color: root.currentTab === 0 ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-              Text { textFormat: Text.PlainText; text: "Overview & Mesh"; color: root.currentTab === 0 ? root.foreground : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: root.currentTab === 0 }
-            }
-
-            MouseArea {
-              id: tab0Mouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: { root.currentTab = 0 }
-            }
-          }
-
-          // Tab 1: Client Telemetry
-          Rectangle {
-            height: Style.space(32)
-            width: tab1Row.implicitWidth + Style.space(20)
-            radius: 6
-            color: root.currentTab === 1 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab1Mouse.containsMouse ? root.cardHover : root.track)
-            border.width: 1
-            border.color: root.currentTab === 1 ? root.accent : root.outline
-
-            RowLayout {
-              id: tab1Row
-              anchors.centerIn: parent
-              spacing: 6
-              Text { textFormat: Text.PlainText; text: ""; color: root.currentTab === 1 ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-              Text {
-                textFormat: Text.PlainText;
-                text: "Client Telemetry (" + (root.fleetData && root.fleetData.clients ? root.fleetData.clients.length : (root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 0)) + ")"
-                color: root.currentTab === 1 ? root.foreground : root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-                font.bold: root.currentTab === 1
-              }
-            }
-
-            MouseArea {
-              id: tab1Mouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: { root.currentTab = 1 }
-            }
-          }
-
-          // Tab 2: WAN & Outages
-          Rectangle {
-            height: Style.space(32)
-            width: tab2Row.implicitWidth + Style.space(20)
-            radius: 6
-            color: root.currentTab === 2 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab2Mouse.containsMouse ? root.cardHover : root.track)
-            border.width: 1
-            border.color: root.currentTab === 2 ? root.accent : root.outline
-
-            RowLayout {
-              id: tab2Row
-              anchors.centerIn: parent
-              spacing: 6
-              Text { textFormat: Text.PlainText; text: ""; color: root.currentTab === 2 ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-              Text {
-                textFormat: Text.PlainText;
-                text: "WAN & Outages (" + (root.fleetData && root.fleetData.wans ? root.fleetData.wans.length : 0) + ")"
-                color: root.currentTab === 2 ? root.foreground : root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-                font.bold: root.currentTab === 2
-              }
-            }
-
-            MouseArea {
-              id: tab2Mouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: { root.currentTab = 2 }
-            }
-          }
-
-          // Tab 3: Switch Ports & PoE
-          Rectangle {
-            height: Style.space(32)
-            width: tab3Row.implicitWidth + Style.space(20)
-            radius: 6
-            color: root.currentTab === 3 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab3Mouse.containsMouse ? root.cardHover : root.track)
-            border.width: 1
-            border.color: root.currentTab === 3 ? root.accent : root.outline
-
-            RowLayout {
-              id: tab3Row
-              anchors.centerIn: parent
-              spacing: 6
-              Text { textFormat: Text.PlainText; text: ""; color: root.currentTab === 3 ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-              Text {
-                textFormat: Text.PlainText;
-                text: "Switch Ports & PoE (" + (root.availableSwitches ? root.availableSwitches.length : 0) + ")"
-                color: root.currentTab === 3 ? root.foreground : root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-                font.bold: root.currentTab === 3
-              }
-            }
-
-            MouseArea {
-              id: tab3Mouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: { root.currentTab = 3 }
-            }
-          }
-        }
-
-        Item { Layout.fillWidth: true }
-
-        // Status Toast
+        // Tab 0: Overview & Mesh
         Rectangle {
-          visible: root.statusToast !== ""
-          height: Style.space(28)
-          width: toastText.implicitWidth + Style.space(24)
-          radius: 14
-          color: root.toastType === "error" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.25) : (root.toastType === "success" ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.25) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.25))
+          Layout.fillWidth: true
+          Layout.preferredWidth: 1
+          Layout.minimumWidth: 0
+          Layout.preferredHeight: Style.space(34)
+          radius: 6
+          color: root.currentTab === 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab0Mouse.containsMouse ? root.cardHover : root.track)
           border.width: 1
-          border.color: root.toastType === "error" ? root.urgent : (root.toastType === "success" ? root.healthy : root.accent)
+          border.color: root.currentTab === 0 ? root.accent : root.outline
 
           RowLayout {
             anchors.centerIn: parent
-            spacing: 6
+            spacing: Style.space(6)
             Text {
               textFormat: Text.PlainText;
-              text: root.toastType === "error" ? "" : (root.toastType === "success" ? "" : "")
-              color: root.toastType === "error" ? root.urgent : (root.toastType === "success" ? root.healthy : root.accent)
+              text: ""
+              color: root.currentTab === 0 ? root.accent : root.dim
               font.family: root.fontFamily
-              font.pixelSize: 10
+              font.pixelSize: Style.font.caption
             }
             Text {
-              id: toastText
               textFormat: Text.PlainText;
-              text: root.statusToast
-              color: root.foreground
+              text: "Overview & Mesh"
+              color: root.currentTab === 0 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption - 1
-              font.bold: true
+              font.pixelSize: Style.font.caption
+              font.bold: root.currentTab === 0
+              elide: Text.ElideRight
             }
+          }
+
+          MouseArea {
+            id: tab0Mouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: { root.currentTab = 0 }
+          }
+        }
+
+        // Tab 1: Client Telemetry
+        Rectangle {
+          Layout.fillWidth: true
+          Layout.preferredWidth: 1
+          Layout.minimumWidth: 0
+          Layout.preferredHeight: Style.space(34)
+          radius: 6
+          color: root.currentTab === 1 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab1Mouse.containsMouse ? root.cardHover : root.track)
+          border.width: 1
+          border.color: root.currentTab === 1 ? root.accent : root.outline
+
+          RowLayout {
+            anchors.centerIn: parent
+            spacing: Style.space(6)
+            Text {
+              textFormat: Text.PlainText;
+              text: ""
+              color: root.currentTab === 1 ? root.accent : root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+            }
+            Text {
+              textFormat: Text.PlainText;
+              text: "Client Telemetry (" + (root.fleetData && root.fleetData.clients ? root.fleetData.clients.length : (root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 0)) + ")"
+              color: root.currentTab === 1 ? root.foreground : root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: root.currentTab === 1
+              elide: Text.ElideRight
+            }
+          }
+
+          MouseArea {
+            id: tab1Mouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: { root.currentTab = 1 }
+          }
+        }
+
+        // Tab 2: WAN & Outages
+        Rectangle {
+          Layout.fillWidth: true
+          Layout.preferredWidth: 1
+          Layout.minimumWidth: 0
+          Layout.preferredHeight: Style.space(34)
+          radius: 6
+          color: root.currentTab === 2 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab2Mouse.containsMouse ? root.cardHover : root.track)
+          border.width: 1
+          border.color: root.currentTab === 2 ? root.accent : root.outline
+
+          RowLayout {
+            anchors.centerIn: parent
+            spacing: Style.space(6)
+            Text {
+              textFormat: Text.PlainText;
+              text: ""
+              color: root.currentTab === 2 ? root.accent : root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+            }
+            Text {
+              textFormat: Text.PlainText;
+              text: "WAN & Outages (" + (root.fleetData && root.fleetData.wans ? root.fleetData.wans.length : 0) + ")"
+              color: root.currentTab === 2 ? root.foreground : root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: root.currentTab === 2
+              elide: Text.ElideRight
+            }
+          }
+
+          MouseArea {
+            id: tab2Mouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: { root.currentTab = 2 }
+          }
+        }
+
+        // Tab 3: Switch Ports & PoE
+        Rectangle {
+          Layout.fillWidth: true
+          Layout.preferredWidth: 1
+          Layout.minimumWidth: 0
+          Layout.preferredHeight: Style.space(34)
+          radius: 6
+          color: root.currentTab === 3 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab3Mouse.containsMouse ? root.cardHover : root.track)
+          border.width: 1
+          border.color: root.currentTab === 3 ? root.accent : root.outline
+
+          RowLayout {
+            anchors.centerIn: parent
+            spacing: Style.space(6)
+            Text {
+              textFormat: Text.PlainText;
+              text: ""
+              color: root.currentTab === 3 ? root.accent : root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+            }
+            Text {
+              textFormat: Text.PlainText;
+              text: "Switch Ports & PoE (" + (root.availableSwitches ? root.availableSwitches.length : 0) + ")"
+              color: root.currentTab === 3 ? root.foreground : root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: root.currentTab === 3
+              elide: Text.ElideRight
+            }
+          }
+
+          MouseArea {
+            id: tab3Mouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: { root.currentTab = 3 }
+          }
+        }
+      }
+
+      // Status Toast (Inline banner when active)
+      Rectangle {
+        Layout.fillWidth: true
+        visible: root.statusToast !== ""
+        height: root.statusToast !== "" ? Style.space(30) : 0
+        radius: 6
+        color: root.toastType === "error" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.22) : (root.toastType === "success" ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.22) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.22))
+        border.width: 1
+        border.color: root.toastType === "error" ? root.urgent : (root.toastType === "success" ? root.healthy : root.accent)
+
+        RowLayout {
+          anchors.centerIn: parent
+          spacing: 8
+          Text {
+            textFormat: Text.PlainText;
+            text: root.toastType === "error" ? "" : (root.toastType === "success" ? "" : "")
+            color: root.toastType === "error" ? root.urgent : (root.toastType === "success" ? root.healthy : root.accent)
+            font.family: root.fontFamily
+            font.pixelSize: 11
+          }
+          Text {
+            id: toastText
+            textFormat: Text.PlainText;
+            text: root.statusToast
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption - 1
+            font.bold: true
           }
         }
       }
@@ -1189,7 +1222,7 @@ FloatingWindow {
                     required property var modelData
                     readonly property bool isSelected: root.isSiteSelected(modelData)
                     width: siteMatrixCol.width
-                    height: siteCol.childrenRect.height + Style.space(18)
+                    height: siteCol.childrenRect.height + Style.space(12)
                     radius: 4
                     color: isSelected
                       ? (root.isLightTheme ? "#e8effe" : "#1a2540")
@@ -1214,8 +1247,8 @@ FloatingWindow {
                       anchors.left: parent.left
                       anchors.right: parent.right
                       anchors.top: parent.top
-                      anchors.margins: Style.space(8)
-                      spacing: Style.space(5)
+                      anchors.margins: Style.space(6)
+                      spacing: Style.space(3)
 
                       Row {
                         width: parent.width
@@ -1236,7 +1269,7 @@ FloatingWindow {
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption
                           font.bold: true
-                          width: parent.width - 160
+                          width: parent.width - 150
                           elide: Text.ElideRight
                           anchors.verticalCenter: parent.verticalCenter
                         }
@@ -1285,28 +1318,20 @@ FloatingWindow {
                       Text {
                         textFormat: Text.PlainText;
                         width: parent.width
-                        text: (modelData.gatewayModel || "Gateway") + " · Public IP: " + (modelData.gatewayIp || "DHCP")
+                        text: (modelData.gatewayModel || "Gateway") + " · IP: " + (modelData.gatewayIp || "DHCP") + " · ISP: " + (modelData.isp || "Unknown ISP")
                         color: root.dim
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 2
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        width: parent.width
-                        text: "ISP: " + (modelData.isp || "Unknown ISP") + " · Timezone: " + (modelData.timezone || "UTC")
-                        color: root.accent
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 2
+                        elide: Text.ElideRight
                       }
 
                       Row {
                         width: parent.width
-                        spacing: Style.space(12)
+                        spacing: Style.space(10)
 
                         Text {
                           textFormat: Text.PlainText;
-                          text: " " + (modelData.clientCount || 0) + " clients (" + (modelData.wifiClients || 0) + "W / " + (modelData.wiredClients || 0) + "E)"
+                          text: " " + (modelData.clientCount || 0) + " clients"
                           color: root.foreground
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2
@@ -1367,40 +1392,44 @@ FloatingWindow {
           })
         }
 
-        // Search & Filter Header Card
+        // Client Table Card with Integrated Search & Filters
         SectionCard {
           Layout.fillWidth: true
-          title: "CLIENT SEARCH & MEDIUM FILTER"
-          subtitle: "Live client database query and interface filtering"
-          iconText: ""
+          Layout.fillHeight: true
+          title: "FLEET CLIENT ROSTER & UPLINK TOPOLOGY"
+          subtitle: "WiFi signal metrics (dBm), radio protocols (WiFi 6/7), uplink associations, and transfer stats"
+          iconText: ""
           titleColor: root.foreground
           fontFamily: root.fontFamily
+          badgeText: String(tab1View.filteredClients.length) + " / " + String(tab1View.rawClients.length) + " CLIENTS"
+          badgeColor: root.accent
 
+          // Compact Search & Filter Toolbar
           RowLayout {
             Layout.fillWidth: true
-            spacing: Style.space(10)
+            spacing: Style.space(8)
 
             // Search Input Box
             Rectangle {
               Layout.fillWidth: true
-              height: Style.space(32)
-              radius: 6
+              height: Style.space(28)
+              radius: 5
               color: root.track
               border.width: 1
               border.color: root.outline
 
               RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: Style.space(10)
-                anchors.rightMargin: Style.space(10)
-                spacing: Style.space(8)
+                anchors.leftMargin: Style.space(8)
+                anchors.rightMargin: Style.space(8)
+                spacing: Style.space(6)
 
                 Text {
                   textFormat: Text.PlainText;
                   text: ""
                   color: root.dim
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
+                  font.pixelSize: Style.font.caption - 1
                 }
 
                 TextInput {
@@ -1408,7 +1437,7 @@ FloatingWindow {
                   Layout.fillWidth: true
                   color: root.foreground
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
+                  font.pixelSize: Style.font.caption - 1
                   selectByMouse: true
                   onTextChanged: { root.clientSearch = text }
 
@@ -1418,7 +1447,7 @@ FloatingWindow {
                     text: "Search clients by name, IP, MAC address, ESSID, or uplink AP..."
                     color: root.dim
                     font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
+                    font.pixelSize: Style.font.caption - 1
                   }
                 }
 
@@ -1446,9 +1475,9 @@ FloatingWindow {
                 model: ["All", "WiFi", "Wired"]
                 delegate: Rectangle {
                   required property string modelData
-                  height: Style.space(30)
-                  width: medFilterText.implicitWidth + Style.space(16)
-                  radius: 5
+                  height: Style.space(28)
+                  width: medFilterText.implicitWidth + Style.space(14)
+                  radius: 4
                   color: root.clientMediumFilter === modelData ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2) : root.track
                   border.width: 1
                   border.color: root.clientMediumFilter === modelData ? root.accent : root.outline
@@ -1460,7 +1489,7 @@ FloatingWindow {
                     text: modelData === "All" ? "All Mediums" : (modelData === "WiFi" ? " WiFi Only" : "󰈀 Wired Only")
                     color: root.clientMediumFilter === modelData ? root.accent : root.dim
                     font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption - 1
+                    font.pixelSize: Style.font.caption - 2
                     font.bold: root.clientMediumFilter === modelData
                   }
 
@@ -1472,51 +1501,19 @@ FloatingWindow {
                 }
               }
             }
-
-            // Client Count Badge
-            Rectangle {
-              height: Style.space(30)
-              width: countBadgeText.implicitWidth + Style.space(16)
-              radius: 5
-              color: root.track
-              border.width: 1
-              border.color: root.outline
-
-              Text {
-                id: countBadgeText
-                textFormat: Text.PlainText;
-                anchors.centerIn: parent
-                text: String(tab1View.filteredClients.length) + " / " + String(tab1View.rawClients.length) + " Active"
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption - 1
-                font.bold: true
-              }
-            }
           }
-        }
-
-        // Client Table Card
-        SectionCard {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          title: "FLEET CLIENT ROSTER & UPLINK TOPOLOGY"
-          subtitle: "WiFi signal metrics (dBm), radio protocols (WiFi 6/7), uplink associations, and transfer stats"
-          iconText: ""
-          titleColor: root.foreground
-          fontFamily: root.fontFamily
 
           Flickable {
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: width
-            contentHeight: clientListCol.childrenRect.height + Style.space(20)
+            contentHeight: clientListCol.childrenRect.height + Style.space(16)
             clip: true
 
             Column {
               id: clientListCol
               width: parent.width
-              spacing: Style.space(8)
+              spacing: Style.space(6)
 
               Text {
                 textFormat: Text.PlainText;
@@ -1530,30 +1527,115 @@ FloatingWindow {
                 topPadding: Style.space(30)
               }
 
+              // High-density table column headers
+              Rectangle {
+                width: clientListCol.width
+                height: Style.space(22)
+                color: "transparent"
+                visible: Boolean(tab1View.filteredClients.length > 0)
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.leftMargin: Style.space(12)
+                  anchors.rightMargin: Style.space(12)
+                  spacing: Style.space(10)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 32
+                    text: "TYPE"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 140
+                    Layout.preferredWidth: 190
+                    text: "CLIENT / IP & MAC"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 140
+                    Layout.preferredWidth: 180
+                    text: "UPLINK ASSOCIATION"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 130
+                    text: "SIGNAL / PROTOCOL"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 140
+                    text: "TRAFFIC & UPTIME"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 58
+                    text: "ACTION"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                    horizontalAlignment: Text.AlignRight
+                  }
+                }
+              }
+
+              // High-density tabular client rows
               Repeater {
                 model: tab1View.filteredClients
                 delegate: Rectangle {
                   required property var modelData
                   width: clientListCol.width
-                  height: clientCardRow.implicitHeight + Style.space(18)
-                  radius: 6
-                  color: root.track
+                  height: Style.space(40)
+                  radius: 5
+                  color: clientRowMouse.containsMouse ? root.cardHover : root.track
                   border.width: 1
-                  border.color: root.outline
+                  border.color: clientRowMouse.containsMouse ? root.accent : root.outline
+
+                  MouseArea {
+                    id: clientRowMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                  }
 
                   RowLayout {
-                    id: clientCardRow
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: Style.space(10)
-                    spacing: Style.space(12)
+                    anchors.fill: parent
+                    anchors.leftMargin: Style.space(12)
+                    anchors.rightMargin: Style.space(12)
+                    spacing: Style.space(10)
 
-                    // Client Icon
+                    // Col 1: Type icon pill
                     Rectangle {
-                      Layout.preferredWidth: Style.space(38)
-                      Layout.preferredHeight: Style.space(38)
-                      radius: 8
+                      Layout.preferredWidth: 28
+                      Layout.preferredHeight: 24
+                      radius: 4
                       color: modelData.isWired ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.15) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15)
                       border.width: 1
                       border.color: modelData.isWired ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.3) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.3)
@@ -1564,43 +1646,38 @@ FloatingWindow {
                         text: modelData.isWired ? "󰈀" : ""
                         color: modelData.isWired ? root.backup : root.accent
                         font.family: root.fontFamily
-                        font.pixelSize: 16
+                        font.pixelSize: 11
                       }
                     }
 
-                    // Client Identity & Addresses
+                    // Col 2: Client Identity & IP/MAC
                     ColumnLayout {
-                      Layout.preferredWidth: 220
-                      spacing: 2
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        text: modelData.name || modelData.hostname || "Client Device"
-                        color: root.foreground
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption
-                        font.bold: true
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        text: (modelData.ip || "No IP") + " · " + (modelData.mac || "")
-                        color: root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 2
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                      }
+                      Layout.fillWidth: true
+                      Layout.minimumWidth: 140
+                      Layout.preferredWidth: 190
+                      spacing: 1
 
                       RowLayout {
-                        spacing: 4
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          text: modelData.name || modelData.hostname || "Client Device"
+                          color: root.foreground
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption
+                          font.bold: true
+                          elide: Text.ElideRight
+                          Layout.fillWidth: true
+                        }
+
                         Rectangle {
                           height: 14
                           width: siteTagText.implicitWidth + 8
                           radius: 3
                           color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15)
+
                           Text {
                             id: siteTagText
                             textFormat: Text.PlainText;
@@ -1612,106 +1689,88 @@ FloatingWindow {
                             font.bold: true
                           }
                         }
-                        Text {
-                          textFormat: Text.PlainText;
-                          visible: Boolean(modelData.essid)
-                          text: "SSID: " + modelData.essid
-                          color: root.dim
-                          font.family: root.fontFamily
-                          font.pixelSize: 8
-                        }
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: (modelData.ip || "No IP") + " · " + (modelData.mac || "")
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
                       }
                     }
 
-                    // Uplink Association & Topology
+                    // Col 3: Uplink Association
                     ColumnLayout {
                       Layout.fillWidth: true
-                      spacing: 2
+                      Layout.minimumWidth: 140
+                      Layout.preferredWidth: 180
+                      spacing: 1
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: (modelData.uplinkName || (modelData.isWired ? "Switch" : "AP")) + " · " + (modelData.uplinkPort || "Port")
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                        font.bold: true
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.isWired ? "Wired Ethernet Link" : (modelData.essid ? ("SSID: " + modelData.essid) : "Wireless Uplink")
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 3
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+                    }
+
+                    // Col 4: Signal Strength & Protocol
+                    ColumnLayout {
+                      Layout.preferredWidth: 130
+                      spacing: 1
 
                       RowLayout {
-                        spacing: 6
-                        Text {
-                          textFormat: Text.PlainText;
-                          text: "Uplink:"
-                          color: root.dim
-                          font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption - 2
+                        spacing: 5
+
+                        Rectangle {
+                          width: 6
+                          height: 6
+                          radius: 3
+                          color: modelData.isWired ? root.healthy : (modelData.signal > -65 ? root.healthy : (modelData.signal > -75 ? root.backup : root.urgent))
                         }
+
                         Text {
                           textFormat: Text.PlainText;
-                          text: (modelData.uplinkName || (modelData.isWired ? "Switch" : "Access Point")) + " (" + (modelData.uplinkPort || "Port") + ")"
-                          color: root.foreground
+                          text: modelData.isWired ? "Link 1000 Mbps" : (String(modelData.signal) + " dBm")
+                          color: modelData.isWired ? root.foreground : (modelData.signal > -65 ? root.healthy : (modelData.signal > -75 ? root.backup : root.urgent))
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 1
                           font.bold: true
                         }
                       }
 
-                      RowLayout {
-                        spacing: 6
-                        Rectangle {
-                          height: 16
-                          width: protoTagText.implicitWidth + 8
-                          radius: 3
-                          color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15)
-                          Text {
-                            id: protoTagText
-                            textFormat: Text.PlainText;
-                            anchors.centerIn: parent
-                            text: modelData.radioProto || (modelData.isWired ? "GbE" : "WiFi")
-                            color: root.healthy
-                            font.family: root.fontFamily
-                            font.pixelSize: 8
-                            font.bold: true
-                          }
-                        }
-
-                        Text {
-                          textFormat: Text.PlainText;
-                          text: modelData.isWired ? "Wired Ethernet Connection" : (modelData.band + " · Ch " + modelData.channel)
-                          color: root.dim
-                          font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption - 2
-                        }
-                      }
-                    }
-
-                    // Signal Strength / Link Quality
-                    ColumnLayout {
-                      Layout.preferredWidth: 140
-                      spacing: 3
-
-                      RowLayout {
-                        spacing: 6
-                        Rectangle {
-                          width: 8
-                          height: 8
-                          radius: 4
-                          color: modelData.isWired ? root.healthy : (modelData.signal > -65 ? root.healthy : (modelData.signal > -75 ? root.backup : root.urgent))
-                        }
-                        Text {
-                          textFormat: Text.PlainText;
-                          text: modelData.isWired ? "Link 1000 Mbps" : (String(modelData.signal) + " dBm")
-                          color: modelData.isWired ? root.foreground : (modelData.signal > -65 ? root.healthy : (modelData.signal > -75 ? root.backup : root.urgent))
-                          font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption
-                          font.bold: true
-                        }
-                      }
-
                       Text {
                         textFormat: Text.PlainText;
-                        text: modelData.isWired ? "Gigabit Full Duplex" : (modelData.signal > -60 ? "Excellent Signal" : (modelData.signal > -70 ? "Good Signal" : "Fair Signal"))
+                        text: modelData.radioProto || (modelData.isWired ? "GbE Full Duplex" : (modelData.band + " · Ch " + modelData.channel))
                         color: root.dim
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 3
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
                       }
                     }
 
-                    // Throughput & Uptime
+                    // Col 5: Transfer Stats & Uptime
                     ColumnLayout {
-                      Layout.preferredWidth: 150
-                      spacing: 2
+                      Layout.preferredWidth: 140
+                      spacing: 1
 
                       Text {
                         textFormat: Text.PlainText;
@@ -1719,6 +1778,8 @@ FloatingWindow {
                         color: root.foreground
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 2
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
                       }
 
                       Text {
@@ -1730,10 +1791,10 @@ FloatingWindow {
                       }
                     }
 
-                    // Quick Action: Ping
+                    // Col 6: Quick Action Ping
                     Rectangle {
-                      Layout.preferredWidth: Style.space(64)
-                      Layout.preferredHeight: Style.space(26)
+                      Layout.preferredWidth: 58
+                      Layout.preferredHeight: 22
                       radius: 4
                       color: pingMouse.containsMouse ? root.cardHover : root.track
                       border.width: 1
@@ -1741,20 +1802,22 @@ FloatingWindow {
 
                       RowLayout {
                         anchors.centerIn: parent
-                        spacing: 4
+                        spacing: 3
+
                         Text {
                           textFormat: Text.PlainText;
                           text: ""
                           color: root.accent
                           font.family: root.fontFamily
-                          font.pixelSize: 9
+                          font.pixelSize: 8
                         }
+
                         Text {
                           textFormat: Text.PlainText;
                           text: "Ping"
                           color: root.foreground
                           font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption - 2
+                          font.pixelSize: 8
                           font.bold: true
                         }
                       }
@@ -1911,11 +1974,17 @@ FloatingWindow {
                 delegate: Rectangle {
                   required property var modelData
                   width: wanCol.width
-                  height: Style.space(46)
-                  radius: 6
+                  height: Style.space(40)
+                  radius: 5
                   color: wanRowMouse.containsMouse ? root.cardHover : root.track
                   border.width: 1
                   border.color: modelData.plugged ? (modelData.type.indexOf("Primary") !== -1 ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.35) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.35)) : root.outline
+
+                  MouseArea {
+                    id: wanRowMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                  }
 
                   RowLayout {
                     anchors.fill: parent
@@ -2129,12 +2198,6 @@ FloatingWindow {
                         }
                       }
                     }
-                  }
-
-                  MouseArea {
-                    id: wanRowMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
                   }
                 }
               }
@@ -2352,7 +2415,7 @@ FloatingWindow {
 
           ColumnLayout {
             Layout.fillWidth: true
-            spacing: Style.space(8)
+            spacing: Style.space(6)
 
             // Switch selector buttons row
             RowLayout {
@@ -2373,9 +2436,9 @@ FloatingWindow {
                 delegate: Rectangle {
                   required property var modelData
                   required property int index
-                  height: Style.space(30)
-                  width: swBtnText.implicitWidth + Style.space(20)
-                  radius: 5
+                  height: Style.space(26)
+                  width: swBtnText.implicitWidth + Style.space(16)
+                  radius: 4
                   color: root.selectedSwitchIndex === index ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.22) : root.track
                   border.width: 1
                   border.color: root.selectedSwitchIndex === index ? root.accent : root.outline
@@ -2409,9 +2472,9 @@ FloatingWindow {
                   model: ["All", "PoE", "Active"]
                   delegate: Rectangle {
                     required property string modelData
-                    height: Style.space(28)
-                    width: pFilterText.implicitWidth + Style.space(14)
-                    radius: 4
+                    height: Style.space(24)
+                    width: pFilterText.implicitWidth + Style.space(12)
+                    radius: 3
                     color: root.portFilter === modelData ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2) : root.track
                     border.width: 1
                     border.color: root.portFilter === modelData ? root.accent : root.outline
@@ -2440,17 +2503,17 @@ FloatingWindow {
             // Switch Overview & PoE budget bar
             RowLayout {
               Layout.fillWidth: true
-              spacing: Style.space(16)
+              spacing: Style.space(14)
               visible: Boolean(root.currentSwitch)
 
               ColumnLayout {
-                spacing: 2
+                spacing: 1
                 Text {
                   textFormat: Text.PlainText;
                   text: (root.currentSwitch ? root.currentSwitch.name : "") + " · " + (root.currentSwitch ? root.currentSwitch.model : "")
                   color: root.foreground
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
+                  font.pixelSize: Style.font.caption - 1
                   font.bold: true
                 }
                 Text {
@@ -2466,14 +2529,14 @@ FloatingWindow {
 
               // PoE Power Consumption Meter
               ColumnLayout {
-                Layout.preferredWidth: 260
-                spacing: 3
+                Layout.preferredWidth: 240
+                spacing: 2
 
                 RowLayout {
                   Layout.fillWidth: true
                   Text {
                     textFormat: Text.PlainText;
-                    text: "PoE Power Consumption:"
+                    text: "PoE Power:"
                     color: root.dim
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 2
@@ -2491,13 +2554,13 @@ FloatingWindow {
 
                 Rectangle {
                   Layout.fillWidth: true
-                  height: 6
-                  radius: 3
+                  height: 5
+                  radius: 2.5
                   color: root.track
 
                   Rectangle {
                     height: parent.height
-                    radius: 3
+                    radius: 2.5
                     width: Math.min(parent.width, Math.max(4, parent.width * ((root.currentSwitch && root.currentSwitch.maxPower > 0) ? (root.currentSwitch.totalPower / root.currentSwitch.maxPower) : 0.05)))
                     color: root.accent
                   }
@@ -2521,7 +2584,7 @@ FloatingWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: width
-            contentHeight: portListCol.childrenRect.height + Style.space(20)
+            contentHeight: portListCol.childrenRect.height + Style.space(16)
             clip: true
 
             Column {
@@ -2541,71 +2604,162 @@ FloatingWindow {
                 topPadding: Style.space(20)
               }
 
+              // High-density table column headers
+              Rectangle {
+                width: portListCol.width
+                height: Style.space(22)
+                color: "transparent"
+                visible: tab3View.portsList.length > 0
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.leftMargin: Style.space(12)
+                  anchors.rightMargin: Style.space(12)
+                  spacing: Style.space(10)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 44
+                    text: "PORT"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 140
+                    text: "STATUS & SPEED"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 140
+                    Layout.preferredWidth: 180
+                    text: "CONNECTED ENDPOINT"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 180
+                    text: "POE TELEMETRY"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 70
+                    text: "ACTION"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                    horizontalAlignment: Text.AlignRight
+                  }
+                }
+              }
+
               Repeater {
                 model: tab3View.portsList
                 delegate: Rectangle {
                   required property var modelData
                   width: portListCol.width
-                  height: Style.space(48)
+                  height: Style.space(40)
                   radius: 5
-                  color: root.track
+                  color: portRowMouse.containsMouse ? root.cardHover : root.track
                   border.width: 1
-                  border.color: modelData.up ? (modelData.poePower > 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.3) : root.outline) : root.outline
+                  border.color: portRowMouse.containsMouse ? root.accent : (modelData.up ? (modelData.poePower > 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.3) : root.outline) : root.outline)
+
+                  MouseArea {
+                    id: portRowMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                  }
 
                   RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Style.space(8)
-                    spacing: Style.space(12)
+                    anchors.leftMargin: Style.space(12)
+                    anchors.rightMargin: Style.space(12)
+                    spacing: Style.space(10)
 
-                    // Port Badge
+                    // Col 1: Port Badge
                     Rectangle {
-                      Layout.preferredWidth: Style.space(34)
-                      Layout.preferredHeight: Style.space(32)
+                      Layout.preferredWidth: 44
+                      Layout.preferredHeight: 22
                       radius: 4
-                      color: modelData.up ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2) : Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.15)
+                      color: modelData.up ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.18) : Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.12)
                       border.width: 1
                       border.color: modelData.up ? root.healthy : root.outline
 
                       Text {
                         textFormat: Text.PlainText;
                         anchors.centerIn: parent
-                        text: String(modelData.portIdx)
+                        text: "P" + String(modelData.portIdx)
                         color: modelData.up ? root.healthy : root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption
-                        font.bold: true
-                      }
-                    }
-
-                    // Port Name & Speed
-                    ColumnLayout {
-                      Layout.preferredWidth: 150
-                      spacing: 1
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        text: modelData.name || ("Port " + modelData.portIdx)
-                        color: root.foreground
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 1
                         font.bold: true
                       }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        text: modelData.up ? (modelData.speedText + " Full Duplex") : "Disconnected"
-                        color: modelData.up ? root.healthy : root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 3
-                      }
                     }
 
-                    // Connected Device
+                    // Col 2: Status & Speed
                     ColumnLayout {
-                      Layout.fillWidth: true
+                      Layout.preferredWidth: 140
                       spacing: 1
 
                       RowLayout {
+                        spacing: 4
+                        Rectangle {
+                          width: 6
+                          height: 6
+                          radius: 3
+                          color: modelData.up ? root.healthy : root.dim
+                        }
+                        Text {
+                          textFormat: Text.PlainText;
+                          text: modelData.name || ("Port " + modelData.portIdx)
+                          color: root.foreground
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption - 1
+                          font.bold: true
+                          elide: Text.ElideRight
+                          Layout.fillWidth: true
+                        }
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.up ? (modelData.speedText + " Full Duplex") : "Link Down"
+                        color: modelData.up ? root.healthy : root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 3
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+                    }
+
+                    // Col 3: Connected Endpoint
+                    ColumnLayout {
+                      Layout.fillWidth: true
+                      Layout.minimumWidth: 140
+                      Layout.preferredWidth: 180
+                      spacing: 1
+
+                      RowLayout {
+                        Layout.fillWidth: true
                         spacing: 4
                         Text {
                           textFormat: Text.PlainText;
@@ -2628,20 +2782,22 @@ FloatingWindow {
 
                       Text {
                         textFormat: Text.PlainText;
-                        text: modelData.up ? "Link state active" : "Port idle / link down"
+                        text: modelData.up ? "Active link negotiation" : "Port idle / link down"
                         color: root.dim
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 3
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
                       }
                     }
 
-                    // PoE Output Telemetry
+                    // Col 4: PoE Telemetry
                     ColumnLayout {
                       Layout.preferredWidth: 180
                       spacing: 1
 
                       RowLayout {
-                        spacing: 6
+                        spacing: 5
                         Rectangle {
                           width: 6
                           height: 6
@@ -2664,44 +2820,63 @@ FloatingWindow {
                         color: root.dim
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 3
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
                       }
                     }
 
-                    // 1-Click Power Cycle PoE Button
+                    // Col 5: Action (Cycle PoE)
                     Rectangle {
-                      Layout.preferredWidth: Style.space(90)
-                      Layout.preferredHeight: Style.space(28)
+                      Layout.preferredWidth: 70
+                      Layout.preferredHeight: 22
                       radius: 4
-                      visible: modelData.poeMode !== "off" || modelData.poePower > 0
-                      color: cycleBtnMouse.containsMouse ? root.cardHover : root.track
+                      color: (modelData.poeMode !== "off" || modelData.poePower > 0)
+                        ? (cycleBtnMouse.containsMouse ? root.cardHover : root.track)
+                        : "transparent"
+                      opacity: (modelData.poeMode !== "off" || modelData.poePower > 0) ? 1.0 : 0.35
                       border.width: 1
-                      border.color: cycleBtnMouse.containsMouse ? root.backup : root.outline
+                      border.color: (modelData.poeMode !== "off" || modelData.poePower > 0)
+                        ? (cycleBtnMouse.containsMouse ? root.backup : root.outline)
+                        : "transparent"
 
                       RowLayout {
                         anchors.centerIn: parent
                         spacing: 4
+                        visible: modelData.poeMode !== "off" || modelData.poePower > 0
+
                         Text {
                           textFormat: Text.PlainText;
                           text: ""
                           color: root.backup
                           font.family: root.fontFamily
-                          font.pixelSize: 10
+                          font.pixelSize: 8
                         }
                         Text {
                           textFormat: Text.PlainText;
-                          text: "Cycle PoE"
+                          text: "Cycle"
                           color: root.foreground
                           font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption - 2
+                          font.pixelSize: 8
                           font.bold: true
                         }
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        anchors.centerIn: parent
+                        visible: !(modelData.poeMode !== "off" || modelData.poePower > 0)
+                        text: "—"
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: 8
                       }
 
                       MouseArea {
                         id: cycleBtnMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: (modelData.poeMode !== "off" || modelData.poePower > 0) ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        enabled: modelData.poeMode !== "off" || modelData.poePower > 0
                         onClicked: {
                           if (root.currentSwitch) {
                             root.cyclePort(root.currentSwitch.hostId, root.currentSwitch.mac, modelData.portIdx, modelData.name || ("Port " + modelData.portIdx))
