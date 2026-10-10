@@ -53,11 +53,19 @@ Panel {
   property string badgeMode: setting("badgeMode", "alerts")
   property string preferredTerminal: setting("terminalCommand", "xdg-terminal-exec")
 
+  property int analyticsTab: 0
+
   function openSettings() { settingsMode = true }
   function closeSettings() { settingsMode = false }
-  function openAnalytics() {
+  function openAnalytics(tabIndex) {
     root.close()
+    if (tabIndex !== undefined) {
+      root.analyticsTab = Math.max(0, Math.min(3, tabIndex))
+    }
     analyticsOpen = true
+    if (analyticsWindowLoader.item && tabIndex !== undefined) {
+      analyticsWindowLoader.item.currentTab = root.analyticsTab
+    }
   }
   function closeAnalytics() { analyticsOpen = false }
   function toggleAnalytics() {
@@ -2900,6 +2908,7 @@ Panel {
     onLoaded: {
       if (item) {
         item.fleetData = Qt.binding(function() { return root.data })
+        item.currentTab = root.analyticsTab
         item.visible = Qt.binding(function() { return root.analyticsOpen })
         item.closed.connect(function() {
           root.analyticsOpen = false
@@ -2927,7 +2936,8 @@ Panel {
     function toggle(): void { root.toggle() }
     function openSettings(): void { root.open(); root.openSettings() }
     function closeSettings(): void { root.closeSettings() }
-    function openAnalytics(): void { root.openAnalytics() }
+    function openAnalytics(): void { root.openAnalytics(0) }
+    function openAnalyticsTab(index: int): void { root.openAnalytics(index) }
     function closeAnalytics(): void { root.closeAnalytics() }
     function toggleAnalytics(): void { root.toggleAnalytics() }
     function tab(index: int): void {

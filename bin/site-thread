@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 import base64
+from concurrent.futures import ThreadPoolExecutor
+import datetime
 import hashlib
 import json
 import math
@@ -37,6 +39,7 @@ RUNTIME_DIR = Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/{APP}-{os.getuid()}"
 KEY_PATTERN = re.compile(r"^[A-Za-z0-9._~+/=-]{8,4096}$")
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 HOST_ID_PATTERN = re.compile(r"^[A-Za-z0-9:_-]{1,256}$")
+MAC_PATTERN = re.compile(r"^[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$")
 MAX_STDOUT_BYTES = 1024 * 1024
 MAX_STDERR_BYTES = 64 * 1024
 MAX_SNAPSHOT_BYTES = 16 * 1024 * 1024
@@ -347,7 +350,7 @@ def secret_clear() -> None:
         run(["secret-tool", "clear", "application", application, "profile", PROFILE], timeout=10)
 
 
-def api_request(config: dict[str, Any], key: str, path: str, *, output: Path | None = None) -> tuple[int, str]:
+def api_request(config: dict[str, Any], key: str, path: str, *, output: Path | None = None, method: str = "GET", payload: Any = None) -> tuple[int, str]:
     if not KEY_PATTERN.fullmatch(key):
         raise FabricError("The stored API key is malformed")
     url = config["baseUrl"] + path
@@ -357,8 +360,12 @@ def api_request(config: dict[str, Any], key: str, path: str, *, output: Path | N
     ]
     if output is not None:
         args.extend(["--max-filesize", str(MAX_SNAPSHOT_BYTES), "-o", str(output)])
+    input_text = f'header = "X-API-KEY: {key}"\n'
+    if payload is not None or method.upper() == "POST":
+        args.extend(["-X", method.upper(), "--data-raw", json.dumps(payload)])
+        input_text += 'header = "Content-Type: application/json"\n'
     args.append(url)
-    result = run(args, input_text=f'header = "X-API-KEY: {key}"\n', timeout=18)
+    result = run(args, input_text=input_text, timeout=18)
     if result.returncode != 0:
         if output is not None:
             output.unlink(missing_ok=True)
@@ -376,15 +383,20 @@ def json_request(config: dict[str, Any], key: str, path: str) -> tuple[int, Any]
     return status, decode_json(body)
 
 
-def cloud_json_request(key: str, path: str) -> tuple[int, Any]:
+def cloud_json_request(key: str, path: str, method: str = "GET", payload: Any = None) -> tuple[int, Any]:
     if not KEY_PATTERN.fullmatch(key):
         raise FabricError("The stored API key is malformed")
+    cmd = [
+        "curl", "-sS", "--fail-with-body", "--max-time", "15",
+        "--config", "-", "-w", "\n%{http_code}", "https://api.ui.com" + path,
+    ]
+    input_text = f'header = "Accept: application/json"\nheader = "X-API-KEY: {key}"\n'
+    if payload is not None or method.upper() == "POST":
+        cmd.extend(["-X", method.upper(), "--data-raw", json.dumps(payload)])
+        input_text += 'header = "Content-Type: application/json"\n'
     result = run(
-        [
-            "curl", "-sS", "--fail-with-body", "--max-time", "15",
-            "--config", "-", "-w", "\n%{http_code}", "https://api.ui.com" + path,
-        ],
-        input_text=f'header = "Accept: application/json"\nheader = "X-API-KEY: {key}"\n',
+        cmd,
+        input_text=input_text,
         timeout=20,
     )
     lines = result.stdout.rstrip("\n").split("\n")
@@ -825,6 +837,89 @@ def demo_summary() -> dict[str, Any]:
             }
         ]
     }
+    demo_clients = [
+        {
+            "name": "Admin-MacBook-Pro", "hostname": "macbook-pro", "ip": "10.0.0.45", "mac": "f4:d4:88:51:22:90",
+            "siteName": "Home", "isWired": False, "essid": "Home-Ultra", "apMac": "68:d7:9a:11:22:33", "apName": "Living Room AP",
+            "channel": 37, "band": "6 GHz", "signal": -46, "radioProto": "WiFi 7 (be)",
+            "rxRate": 2400.0, "txRate": 1800.0, "rxBytes": 8452109400, "txBytes": 2145890000,
+            "uptime": 86400 * 4 + 3600 * 2, "uptimeText": "4d 2h",
+            "uplinkName": "Living Room AP", "uplinkPort": "Ch 37", "uplinkSpeed": 2400.0,
+        },
+        {
+            "name": "Workstation-Tower", "hostname": "arch-workstation", "ip": "10.0.0.12", "mac": "00:1a:2b:3c:4d:5e",
+            "siteName": "Home", "isWired": True, "essid": "", "apMac": "", "apName": "",
+            "channel": 0, "band": "Ethernet", "signal": 0, "radioProto": "Wired (10GbE)",
+            "rxRate": 10000.0, "txRate": 10000.0, "rxBytes": 45290192800, "txBytes": 32890123900,
+            "uptime": 86400 * 18, "uptimeText": "18d 0h",
+            "uplinkName": "Core Switch", "uplinkPort": "Port 1", "uplinkSpeed": 10000.0,
+        },
+        {
+            "name": "iPhone 16 Pro", "hostname": "iphone-16", "ip": "10.0.0.88", "mac": "a2:44:b1:90:83:11",
+            "siteName": "Home", "isWired": False, "essid": "Home-Ultra", "apMac": "68:d7:9a:11:22:33", "apName": "Living Room AP",
+            "channel": 36, "band": "5 GHz", "signal": -52, "radioProto": "WiFi 6 (ax)",
+            "rxRate": 1200.0, "txRate": 860.0, "rxBytes": 3412098000, "txBytes": 982301000,
+            "uptime": 86400 * 2, "uptimeText": "2d 0h",
+            "uplinkName": "Living Room AP", "uplinkPort": "Ch 36", "uplinkSpeed": 1200.0,
+        },
+        {
+            "name": "Synology-NAS", "hostname": "diskstation", "ip": "192.168.10.50", "mac": "00:11:32:9a:bc:de",
+            "siteName": "Main Office", "isWired": True, "essid": "", "apMac": "", "apName": "",
+            "channel": 0, "band": "Ethernet", "signal": 0, "radioProto": "Wired (1GbE)",
+            "rxRate": 1000.0, "txRate": 1000.0, "rxBytes": 98234091200, "txBytes": 142309182300,
+            "uptime": 86400 * 45, "uptimeText": "45d 0h",
+            "uplinkName": "Office Switch", "uplinkPort": "Port 8", "uplinkSpeed": 1000.0,
+        },
+    ]
+    demo_wans = [
+        {
+            "siteName": "Home", "hostId": "console-home", "gatewayModel": "UDM Pro", "name": "WAN 1 (Primary)",
+            "interface": "eth9", "port": 9, "speedType": "10G SFP+", "plugged": True, "enabled": True,
+            "type": "Primary WAN", "ipv4": "121.200.45.10", "ipv6": "2404:6800:4006:812::200e", "isp": "Aussie Broadband Fiber",
+            "mac": "68:d7:9a:11:00:01", "uptime": "100%",
+        },
+        {
+            "siteName": "Main Office", "hostId": "console-office", "gatewayModel": "UDM SE", "name": "WAN 1 (Primary)",
+            "interface": "eth8", "port": 8, "speedType": "2.5GbE", "plugged": True, "enabled": True,
+            "type": "Primary WAN", "ipv4": "203.110.82.14", "ipv6": "", "isp": "Colt Business Fiber",
+            "mac": "a8:9c:6c:06:23:cc", "uptime": "99.99%",
+        },
+        {
+            "siteName": "Main Office", "hostId": "console-office", "gatewayModel": "UDM SE", "name": "WAN 2 (Backup)",
+            "interface": "eth9", "port": 9, "speedType": "1GbE", "plugged": True, "enabled": True,
+            "type": "Backup / Failover WAN", "ipv4": "198.51.100.22", "ipv6": "", "isp": "5G Backup Link",
+            "mac": "a8:9c:6c:06:23:cd", "uptime": "Standby",
+        },
+    ]
+    demo_outages = [
+        {
+            "siteName": "Main Office", "timestamp": now - 7200, "timeText": "2h ago",
+            "durationMinutes": 4, "durationText": "4m", "type": "Internet Outage",
+            "description": "Primary WAN link dropped; failed over to 5G Backup Link", "severity": "warning",
+        },
+        {
+            "siteName": "Warehouse", "timestamp": now - 86400, "timeText": "1d ago",
+            "durationMinutes": 18, "durationText": "18m", "type": "Power / Link Outage",
+            "description": "Site gateway unreachable due to upstream ISP fiber cut", "severity": "critical",
+        },
+    ]
+    demo_switches = [
+        {
+            "name": "Core Switch", "model": "USW Pro 24 PoE", "mac": "0c:ea:14:84:3e:ed", "ip": "10.0.0.2",
+            "siteName": "Home", "hostId": "console-home", "totalPorts": 24, "poePorts": 16, "activePorts": 8,
+            "totalPower": 42.5, "maxPower": 400.0,
+            "ports": [
+                {"portIdx": 1, "name": "Port 1", "up": True, "speed": 10000, "speedText": "10 GbE", "poeMode": "off", "poePower": 0.0, "poeVoltage": 0.0, "poeCurrent": 0.0, "connectedDevice": "Workstation-Tower"},
+                {"portIdx": 2, "name": "Port 2", "up": True, "speed": 1000, "speedText": "1 GbE", "poeMode": "off", "poePower": 0.0, "poeVoltage": 0.0, "poeCurrent": 0.0, "connectedDevice": "Apple TV 4K"},
+                {"portIdx": 3, "name": "Port 3", "up": False, "speed": 0, "speedText": "Disconnected", "poeMode": "auto", "poePower": 0.0, "poeVoltage": 0.0, "poeCurrent": 0.0, "connectedDevice": ""},
+                {"portIdx": 4, "name": "Port 4", "up": False, "speed": 0, "speedText": "Disconnected", "poeMode": "auto", "poePower": 0.0, "poeVoltage": 0.0, "poeCurrent": 0.0, "connectedDevice": ""},
+                {"portIdx": 5, "name": "Port 5", "up": True, "speed": 1000, "speedText": "1 GbE", "poeMode": "auto", "poePower": 8.5, "poeVoltage": 53.6, "poeCurrent": 158.0, "connectedDevice": "G4 Doorbell Pro"},
+                {"portIdx": 6, "name": "Port 6", "up": True, "speed": 1000, "speedText": "1 GbE", "poeMode": "auto", "poePower": 12.4, "poeVoltage": 53.4, "poeCurrent": 232.0, "connectedDevice": "AI Pro Camera"},
+                {"portIdx": 7, "name": "Port 7", "up": True, "speed": 1000, "speedText": "1 GbE", "poeMode": "auto", "poePower": 6.8, "poeVoltage": 53.5, "poeCurrent": 127.0, "connectedDevice": "G5 Turret"},
+                {"portIdx": 8, "name": "Port 8", "up": True, "speed": 2500, "speedText": "2.5 GbE", "poeMode": "auto", "poePower": 14.8, "poeVoltage": 53.7, "poeCurrent": 275.0, "connectedDevice": "Living Room AP"},
+            ]
+        }
+    ]
     return {
         "ok": True, "connected": True, "demo": True, "mode": "cloud", "host": "unifi.ui.com", "site": "3 sites", "sites": sites,
         "severity": "critical", "message": "1 site unreachable · 1 on backup WAN",
@@ -835,6 +930,10 @@ def demo_summary() -> dict[str, Any]:
         "protect": {"available": True, "cameras": cameras, "cameraCount": 3, "offlineCount": 0},
         "issues": issues,
         "sdwan": sdwan,
+        "wans": demo_wans,
+        "outages": demo_outages,
+        "clients": demo_clients,
+        "switches": demo_switches,
     }
 
 
@@ -908,6 +1007,276 @@ def get_sdwan_telemetry(key: str) -> dict[str, Any]:
         }
     except Exception:
         return {"available": False, "status": "none"}
+
+
+def format_uptime(seconds: int) -> str:
+    if seconds <= 0:
+        return "0s"
+    days = seconds // 86400
+    hours = (seconds % 86400) // 3600
+    minutes = (seconds % 3600) // 60
+    if days > 0:
+        return f"{days}d {hours}h"
+    if hours > 0:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
+
+
+def extract_telemetry_details(
+    key: str, raw_hosts: list[dict[str, Any]], sites: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    wans: list[dict[str, Any]] = []
+    outages: list[dict[str, Any]] = []
+    site_map: dict[str, str] = {s.get("hostId", ""): s.get("name", "Site") for s in sites}
+    gw_models: dict[str, str] = {s.get("hostId", ""): s.get("gatewayModel", "") for s in sites}
+    isps: dict[str, str] = {s.get("hostId", ""): s.get("isp", "") for s in sites}
+
+    for host in raw_hosts:
+        hid = model_string(first_value(host, "id", "hostId"), max_length=256)
+        sname = site_map.get(hid, "Site")
+        rep = host.get("reportedState") if isinstance(host.get("reportedState"), dict) else {}
+        host_wans = rep.get("wans")
+        if isinstance(host_wans, list):
+            for idx, w in enumerate(host_wans):
+                if not isinstance(w, dict):
+                    continue
+                w_type = model_string(w.get("type", "WAN"))
+                is_pri = w_type == "WAN" or idx == 0
+                wans.append({
+                    "siteName": sname,
+                    "hostId": hid,
+                    "gatewayModel": gw_models.get(hid) or "Gateway",
+                    "name": "WAN 1 (Primary)" if is_pri else f"WAN {idx + 1} (Failover)",
+                    "interface": model_string(w.get("interface", f"eth{w.get('port', 0)}")),
+                    "port": int(w.get("port", 0)),
+                    "speedType": model_string(w.get("speedType", "1GbE")),
+                    "plugged": bool(w.get("plugged", False)),
+                    "enabled": bool(w.get("enabled", True)),
+                    "type": "Primary WAN" if is_pri else "Backup / Failover WAN",
+                    "ipv4": model_string(w.get("ipv4", "")),
+                    "ipv6": model_string(w.get("ipv6", "")),
+                    "isp": isps.get(hid) or "Fiber / Broadband",
+                    "mac": model_string(w.get("mac", "")),
+                    "uptime": "100%" if w.get("plugged") else "Offline",
+                })
+
+        issues_data = rep.get("internetIssues5min")
+        if isinstance(issues_data, dict):
+            periods = issues_data.get("periods")
+            if isinstance(periods, list):
+                for p in periods:
+                    if isinstance(p, dict) and "index" in p:
+                        ts = int(p["index"]) * 300
+                        time_str = datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+                        outages.append({
+                            "siteName": sname,
+                            "timestamp": ts,
+                            "timeText": time_str,
+                            "durationMinutes": 5,
+                            "durationText": "5m",
+                            "type": "Internet Outage",
+                            "description": "Gateway internet link dropped (packet loss detected)",
+                            "severity": "critical",
+                        })
+
+    outages.sort(key=lambda o: o["timestamp"], reverse=True)
+
+    online_hosts = [h for h in raw_hosts if host_is_online(h) and first_value(h, "id", "hostId")]
+    tasks: list[tuple[str, str]] = []
+    for h in online_hosts:
+        hid = model_string(first_value(h, "id", "hostId"), max_length=256)
+        tasks.append((hid, "/network/api/s/default/stat/sta"))
+        tasks.append((hid, "/network/api/s/default/stat/device"))
+
+    def fetch_stat(item: tuple[str, str]) -> tuple[str, str, int, list[dict[str, Any]]]:
+        hid, path = item
+        try:
+            status, res = cloud_json_request(key, connector_path(hid, path))
+            data = res.get("data", []) if (status == 200 and isinstance(res, dict)) else []
+            return hid, path, status, data if isinstance(data, list) else []
+        except Exception:
+            return hid, path, 500, []
+
+    host_stas: dict[str, list[dict[str, Any]]] = {}
+    host_devs: dict[str, list[dict[str, Any]]] = {}
+
+    if tasks:
+        with ThreadPoolExecutor(max_workers=min(8, len(tasks))) as ex:
+            for hid, path, status, items in ex.map(fetch_stat, tasks):
+                if "stat/sta" in path:
+                    host_stas[hid] = items
+                else:
+                    host_devs[hid] = items
+
+    clients: list[dict[str, Any]] = []
+    switches: list[dict[str, Any]] = []
+
+    for hid, raw_sta_list in host_stas.items():
+        sname = site_map.get(hid, "Site")
+        dev_list = host_devs.get(hid, [])
+        ap_names: dict[str, str] = {
+            d.get("mac", "").lower(): d.get("name") or d.get("model") or "UniFi AP"
+            for d in dev_list if isinstance(d, dict) and d.get("mac")
+        }
+        sw_names: dict[str, str] = {
+            d.get("mac", "").lower(): d.get("name") or d.get("model") or "UniFi Switch"
+            for d in dev_list if isinstance(d, dict) and d.get("mac")
+        }
+
+        for c in raw_sta_list:
+            if not isinstance(c, dict):
+                continue
+            is_wired = bool(c.get("is_wired"))
+            c_name = model_string(first_value(c, "name", "hostname", "ip", "mac", default="Client"))
+            c_host = model_string(c.get("hostname", ""))
+            c_ip = model_string(c.get("ip", ""))
+            c_mac = model_string(c.get("mac", ""))
+            c_channel = int(c.get("channel") or 0)
+            c_signal = int(c.get("signal") or 0)
+            c_proto = model_string(c.get("radio_proto", ""))
+            if c_proto == "be":
+                proto_text = "WiFi 7 (be)"
+            elif c_proto == "ax":
+                proto_text = "WiFi 6 (ax)"
+            elif c_proto == "ac":
+                proto_text = "WiFi 5 (ac)"
+            elif c_proto == "ng":
+                proto_text = "WiFi 4 (ng)"
+            elif is_wired:
+                proto_text = f"Wired ({c.get('wired_rate_mbps', 1000)}M)"
+            else:
+                proto_text = c_proto or "Wireless"
+
+            band_text = "Ethernet" if is_wired else ("2.4 GHz" if c_channel <= 14 else ("5 GHz" if c_channel <= 177 else "6 GHz"))
+            uptime_sec = int(c.get("uptime") or 0)
+            rx_b = int(c.get("rx_bytes") or 0)
+            tx_b = int(c.get("tx_bytes") or 0)
+            rx_r = round(float(c.get("rx_rate") or 0) / 1000.0, 1) if not is_wired else float(c.get("wired_rate_mbps") or 1000)
+            tx_r = round(float(c.get("tx_rate") or 0) / 1000.0, 1) if not is_wired else float(c.get("wired_rate_mbps") or 1000)
+
+            ap_mac = model_string(c.get("ap_mac", "")).lower()
+            sw_mac = model_string(c.get("sw_mac", "")).lower()
+            uplink_name = ap_names.get(ap_mac, "Access Point") if not is_wired else sw_names.get(sw_mac, "Switch")
+            uplink_port = f"Ch {c_channel}" if not is_wired else f"Port {c.get('sw_port', 1)}"
+
+            clients.append({
+                "name": c_name,
+                "hostname": c_host,
+                "ip": c_ip,
+                "mac": c_mac,
+                "siteName": sname,
+                "isWired": is_wired,
+                "essid": model_string(c.get("essid", "")),
+                "apMac": ap_mac,
+                "apName": ap_names.get(ap_mac, ""),
+                "channel": c_channel,
+                "band": band_text,
+                "signal": c_signal,
+                "radioProto": proto_text,
+                "rxRate": rx_r,
+                "txRate": tx_r,
+                "rxBytes": rx_b,
+                "txBytes": tx_b,
+                "uptime": uptime_sec,
+                "uptimeText": format_uptime(uptime_sec),
+                "uplinkName": uplink_name,
+                "uplinkPort": uplink_port,
+                "uplinkSpeed": rx_r,
+            })
+
+    for hid, dev_list in host_devs.items():
+        sname = site_map.get(hid, "Site")
+        sta_list = host_stas.get(hid, [])
+        wired_port_clients: dict[tuple[str, int], str] = {}
+        for c in sta_list:
+            if isinstance(c, dict) and c.get("is_wired") and c.get("sw_mac") and c.get("sw_port"):
+                key_pair = (model_string(c["sw_mac"]).lower(), int(c["sw_port"]))
+                wired_port_clients[key_pair] = model_string(first_value(c, "name", "hostname", "ip", default="Client"))
+
+        downlink_devs: dict[tuple[str, int], str] = {}
+        for d in dev_list:
+            if isinstance(d, dict) and d.get("uplink"):
+                up_dict = d["uplink"]
+                if isinstance(up_dict, dict) and up_dict.get("uplink_mac") and up_dict.get("uplink_remote_port"):
+                    pair = (model_string(up_dict["uplink_mac"]).lower(), int(up_dict["uplink_remote_port"]))
+                    downlink_devs[pair] = model_string(first_value(d, "name", "model", default="Device"))
+
+        for d in dev_list:
+            if not isinstance(d, dict):
+                continue
+            port_table = d.get("port_table")
+            if not isinstance(port_table, list) or not port_table:
+                continue
+            sw_name = model_string(first_value(d, "name", "model", default="Switch"))
+            sw_model = model_string(first_value(d, "model", default="USW"))
+            sw_mac = model_string(d.get("mac", "")).lower()
+            sw_ip = model_string(d.get("ip", ""))
+
+            ports: list[dict[str, Any]] = []
+            total_pwr = 0.0
+            poe_count = 0
+            active_count = 0
+
+            for p in port_table:
+                if not isinstance(p, dict):
+                    continue
+                pidx = int(p.get("port_idx") or 0)
+                is_up = bool(p.get("up"))
+                if is_up:
+                    active_count += 1
+                spd = int(p.get("speed") or 0)
+                spd_str = f"{spd // 1000} GbE" if spd >= 1000 else (f"{spd} FE" if spd > 0 else "Disconnected")
+                poe_mode = model_string(p.get("poe_mode", "off"))
+                try:
+                    pwr = float(p.get("poe_power") or 0.0)
+                except (ValueError, TypeError):
+                    pwr = 0.0
+                try:
+                    volts = float(p.get("poe_voltage") or 0.0)
+                except (ValueError, TypeError):
+                    volts = 0.0
+                try:
+                    curr = float(p.get("poe_current") or 0.0)
+                except (ValueError, TypeError):
+                    curr = 0.0
+
+                if p.get("port_poe") or poe_mode != "off" or pwr > 0:
+                    poe_count += 1
+                    total_pwr += pwr
+
+                c_dev = downlink_devs.get((sw_mac, pidx)) or wired_port_clients.get((sw_mac, pidx)) or ""
+
+                ports.append({
+                    "portIdx": pidx,
+                    "name": model_string(p.get("name") or f"Port {pidx}"),
+                    "up": is_up,
+                    "speed": spd,
+                    "speedText": spd_str,
+                    "poeMode": poe_mode,
+                    "poePower": round(pwr, 2),
+                    "poeVoltage": round(volts, 2),
+                    "poeCurrent": round(curr, 1),
+                    "connectedDevice": c_dev,
+                })
+
+            max_pwr = float(d.get("total_max_power") or (600.0 if "48" in sw_model else (60.0 if "Ultra" in sw_name else 120.0)))
+
+            switches.append({
+                "name": sw_name,
+                "model": sw_model,
+                "mac": sw_mac,
+                "ip": sw_ip,
+                "siteName": sname,
+                "hostId": hid,
+                "totalPorts": len(ports),
+                "poePorts": poe_count,
+                "activePorts": active_count,
+                "totalPower": round(total_pwr, 2),
+                "maxPower": max_pwr,
+                "ports": ports,
+            })
+
+    return wans, outages, clients, switches
 
 
 def build_cloud_summary(key: str) -> dict[str, Any]:
@@ -1042,6 +1411,10 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
     total_gateways = sum(bool(s.get("gatewayModel")) for s in sites)
     issues = track_issues(sites, devices, is_demo=False)
     sdwan = get_sdwan_telemetry(key)
+    try:
+        wans, outages, clients, switches = extract_telemetry_details(key, raw_hosts, sites)
+    except Exception:
+        wans, outages, clients, switches = [], [], [], []
 
     return {
         "ok": True,
@@ -1067,6 +1440,10 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         "protect": {"available": bool(cameras), "cameras": cameras, "cameraCount": len(cameras), "offlineCount": sum(not item["online"] for item in cameras)},
         "issues": issues,
         "sdwan": sdwan,
+        "wans": wans,
+        "outages": outages,
+        "clients": clients,
+        "switches": switches,
     }
 
 
@@ -1343,6 +1720,39 @@ def command_disconnect() -> None:
     emit({"ok": True, "connected": False})
 
 
+def command_power_cycle(host_id: str, mac: str, port_idx: int) -> None:
+    if not MAC_PATTERN.fullmatch(mac):
+        fail("Invalid MAC address")
+    if port_idx < 1 or port_idx > 64:
+        fail("Invalid port index")
+    config = read_config()
+    if config.get("demo"):
+        emit({"ok": True, "message": f"Port {port_idx} on switch {mac} power-cycled successfully (demo)."})
+        return
+    key = secret_lookup()
+    if config.get("mode") == "cloud":
+        if not HOST_ID_PATTERN.fullmatch(host_id):
+            fail("Invalid host id")
+        status, payload = cloud_json_request(
+            key,
+            connector_path(host_id, "/network/api/s/default/cmd/devmgr"),
+            method="POST",
+            payload={"cmd": "power-cycle", "mac": mac.lower(), "port_idx": int(port_idx)},
+        )
+    else:
+        status, body = api_request(
+            config,
+            key,
+            "/proxy/network/api/s/default/cmd/devmgr",
+            method="POST",
+            payload={"cmd": "power-cycle", "mac": mac.lower(), "port_idx": int(port_idx)},
+        )
+        payload = decode_json(body) if isinstance(body, str) else {}
+    if status != 200:
+        fail(f"PoE power cycle failed (HTTP {status})")
+    emit({"ok": True, "message": f"PoE power cycle initiated on port {port_idx} ({mac})."})
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="site-thread")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -1360,6 +1770,10 @@ def parse_args() -> argparse.Namespace:
     snapshot = sub.add_parser("snapshot")
     snapshot.add_argument("camera_id")
     snapshot.add_argument("host_id", nargs="?")
+    power_cycle = sub.add_parser("power-cycle")
+    power_cycle.add_argument("host_id")
+    power_cycle.add_argument("mac")
+    power_cycle.add_argument("port_idx", type=int)
     sub.add_parser("clear-history")
     sub.add_parser("disconnect")
     return parser.parse_args()
@@ -1380,6 +1794,8 @@ def main() -> None:
             command_site(args.host_id, args.site_id)
         elif args.command == "snapshot":
             command_snapshot(args.camera_id, args.host_id)
+        elif args.command == "power-cycle":
+            command_power_cycle(args.host_id, args.mac, args.port_idx)
         elif args.command == "clear-history":
             command_clear_history()
         elif args.command == "disconnect":

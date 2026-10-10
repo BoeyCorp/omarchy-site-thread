@@ -87,6 +87,52 @@ class FeatureTelemetryTests(unittest.TestCase):
         self.assertEqual(lat, 12.3456)
         self.assertEqual(lng, 78.9012)
 
+    def test_demo_summary_has_clients_telemetry(self) -> None:
+        summary = SITE_THREAD.demo_summary()
+        self.assertIn("clients", summary)
+        clients = summary["clients"]
+        self.assertGreaterEqual(len(clients), 3)
+        for client in clients:
+            self.assertIn("name", client)
+            self.assertIn("ip", client)
+            self.assertIn("mac", client)
+            self.assertIn("uplinkName", client)
+            self.assertIn("uplinkPort", client)
+            self.assertIn("radioProto", client)
+
+    def test_demo_summary_has_wans_and_outages(self) -> None:
+        summary = SITE_THREAD.demo_summary()
+        self.assertIn("wans", summary)
+        wans = summary["wans"]
+        self.assertGreaterEqual(len(wans), 2)
+        for wan in wans:
+            self.assertIn("interface", wan)
+            self.assertIn("speedType", wan)
+            self.assertIn("ipv4", wan)
+            self.assertIn("type", wan)
+
+        self.assertIn("outages", summary)
+        outages = summary["outages"]
+        self.assertGreaterEqual(len(outages), 1)
+        for outage in outages:
+            self.assertIn("siteName", outage)
+            self.assertIn("timestamp", outage)
+            self.assertIn("durationText", outage)
+
+    def test_demo_summary_has_switches_and_poe_ports(self) -> None:
+        summary = SITE_THREAD.demo_summary()
+        self.assertIn("switches", summary)
+        switches = summary["switches"]
+        self.assertGreaterEqual(len(switches), 1)
+        sw = switches[0]
+        self.assertIn("name", sw)
+        self.assertIn("mac", sw)
+        self.assertIn("totalPower", sw)
+        self.assertIn("ports", sw)
+        ports = sw["ports"]
+        self.assertGreaterEqual(len(ports), 8)
+        self.assertTrue(any(p.get("poePower", 0) > 0 for p in ports))
+
 
 if __name__ == "__main__":
     unittest.main()
