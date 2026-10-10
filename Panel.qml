@@ -2940,6 +2940,23 @@ Panel {
     function openAnalyticsTab(index: int): void { root.openAnalytics(index) }
     function closeAnalytics(): void { root.closeAnalytics() }
     function toggleAnalytics(): void { root.toggleAnalytics() }
+    function filterAnalyticsSite(siteName: string): void {
+      if (analyticsWindowLoader.item) {
+        analyticsWindowLoader.item.toggleSiteSelection({ name: siteName, id: siteName })
+      }
+    }
+    function clearAnalyticsSiteFilter(): void {
+      if (analyticsWindowLoader.item) {
+        analyticsWindowLoader.item.clearSiteSelection()
+      }
+    }
+    function hoverAnalyticsThroughput(index: int): void {
+      if (analyticsWindowLoader.item) {
+        analyticsWindowLoader.item.chartHoverIndex = index
+        analyticsWindowLoader.item.chartHoverMouseX = 50 + index * 24
+        analyticsWindowLoader.item.chartHoverMouseY = 120
+      }
+    }
     function tab(index: int): void {
       root.activeTab = Math.max(0, Math.min(4, index))
       root.open()
