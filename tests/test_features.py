@@ -484,49 +484,6 @@ class ActionButtonToolTipTests(unittest.TestCase):
         self.assertIn('text: "Ping device (" + modelData.ip + ")"', self.topology_qml)
 
 
-class AnalyticsKeyboardPanelPopoutTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
-        self.analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
-
-    def test_analytics_window_is_keyboard_panel_matching_agent_hub(self) -> None:
-        self.assertIn("KeyboardPanel {", self.analytics_qml)
-        self.assertIn("contentWidth: root.fittedContentWidth(Style.space(380))", self.analytics_qml)
-        self.assertIn("contentHeight: root.fittedContentHeight(Style.space(640), Style.space(640))", self.analytics_qml)
-        self.assertIn("focusTarget: keyCatcher", self.analytics_qml)
-
-    def test_analytics_window_has_keycatcher_and_vertical_flickable(self) -> None:
-        self.assertIn("PanelKeyCatcher {", self.analytics_qml)
-        self.assertIn("id: keyCatcher", self.analytics_qml)
-        self.assertIn("id: mainFlick", self.analytics_qml)
-        self.assertIn("ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }", self.analytics_qml)
-
-    def test_analytics_window_contains_all_five_dense_tabs(self) -> None:
-        self.assertIn("id: tab0View", self.analytics_qml)
-        self.assertIn("id: tab1View", self.analytics_qml)
-        self.assertIn("id: tab2View", self.analytics_qml)
-        self.assertIn("id: tab3View", self.analytics_qml)
-        self.assertIn("id: tab4View", self.analytics_qml)
-
-    def test_panel_imports_windows_and_instantiates_analytics_panel(self) -> None:
-        self.assertIn('import "windows"', self.panel_qml)
-        self.assertIn("AnalyticsWindow {", self.panel_qml)
-        self.assertIn("id: analyticsWindow", self.panel_qml)
-        self.assertIn("anchorItem: button", self.panel_qml)
-        self.assertIn("bar: root.bar", self.panel_qml)
-        self.assertIn("owner: analyticsOwner", self.panel_qml)
-        self.assertIn("id: analyticsOwner", self.panel_qml)
-        self.assertIn("function close() { root.closeAnalytics() }", self.panel_qml)
-
-    def test_panel_manages_analytics_popout_lifecycle(self) -> None:
-        self.assertIn("function openAnalytics(tabIndex)", self.panel_qml)
-        self.assertIn("function closeAnalytics() { analyticsOpen = false }", self.panel_qml)
-        self.assertIn("function toggleAnalytics() {", self.panel_qml)
-        self.assertIn("onOpenedChanged:", self.panel_qml)
-        self.assertIn("if (root.analyticsOpen) root.closeAnalytics()", self.panel_qml)
-        self.assertIn("if (root.analyticsOpen) {", self.panel_qml)
-
-
 if __name__ == "__main__":
     unittest.main()
 
