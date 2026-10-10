@@ -134,5 +134,33 @@ class FeatureTelemetryTests(unittest.TestCase):
         self.assertTrue(any(p.get("poePower", 0) > 0 for p in ports))
 
 
+class BarInteractionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+
+    def test_bar_extra_mouse_area_exists_and_configured(self) -> None:
+        self.assertIn("id: barExtraMouse", self.panel_qml)
+        self.assertIn("cursorShape: Qt.PointingHandCursor", self.panel_qml)
+        self.assertIn("acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton", self.panel_qml)
+        self.assertIn("root.handleBarClick(mouse.button)", self.panel_qml)
+
+    def test_bar_button_uses_handle_bar_click(self) -> None:
+        self.assertIn("root.handleBarClick(b)", self.panel_qml)
+
+    def test_go_to_main_page_function_resets_navigation_state(self) -> None:
+        self.assertIn("function goToMainPage()", self.panel_qml)
+        self.assertIn("root.activeTab = 0", self.panel_qml)
+        self.assertIn("root.settingsMode = false", self.panel_qml)
+        self.assertIn("root.backToSites()", self.panel_qml)
+        self.assertIn("root.closeAnalytics()", self.panel_qml)
+
+    def test_ipc_handler_exposes_bar_interactions(self) -> None:
+        self.assertIn("function goToMainPage(): void", self.panel_qml)
+        self.assertIn("function handleBarClick(button: int): void", self.panel_qml)
+        self.assertIn("activeTab: root.activeTab", self.panel_qml)
+        self.assertIn("inSite: root.inSite", self.panel_qml)
+
+
 if __name__ == "__main__":
     unittest.main()
+

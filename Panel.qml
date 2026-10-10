@@ -73,6 +73,34 @@ Panel {
     analyticsOpen = !analyticsOpen
   }
 
+  function goToMainPage() {
+    if (root.analyticsOpen) root.closeAnalytics()
+    if (root.inSite) root.backToSites()
+    root.settingsMode = false
+    root.activeTab = 0
+  }
+
+  function handleBarClick(b) {
+    if (b === Qt.RightButton) {
+      if (!root.opened) root.open()
+      root.settingsMode = true
+    } else if (b === Qt.MiddleButton) {
+      if (root.inSite) root.loadSite()
+      else root.refresh()
+    } else {
+      if (root.opened) {
+        if (root.inSite || root.settingsMode || root.activeTab !== 0) {
+          root.goToMainPage()
+        } else {
+          root.close()
+        }
+      } else {
+        root.goToMainPage()
+        root.open()
+      }
+    }
+  }
+
   function getBadgeText() {
     if (root.badgeMode === "off") return ""
     if (root.badgeMode === "clients") {
@@ -689,15 +717,7 @@ Panel {
       ? "UniFi SiteThread · Connect"
       : ("UniFi SiteThread · " + Model.safe(root.data.message, "Connected") + "\nLeft-click: Dashboard • Right-click: Settings • Middle-click: Refresh")
     onPressed: function(b) {
-      if (b === Qt.RightButton) {
-        if (!root.opened) root.open()
-        root.settingsMode = true
-      } else if (b === Qt.MiddleButton) {
-        root.refresh()
-      } else {
-        if (root.opened && root.settingsMode) root.settingsMode = false
-        else root.toggle()
-      }
+      root.handleBarClick(b)
     }
   }
 
@@ -759,6 +779,29 @@ Panel {
       font.family: root.fontFamily
       font.pixelSize: Style.font.caption
       font.bold: true
+    }
+  }
+
+  MouseArea {
+    id: barExtraMouse
+    parent: root
+    visible: multiDotRow.visible || badge.visible
+    x: multiDotRow.visible ? multiDotRow.x : badge.x
+    y: 0
+    width: Math.max(0, (root.width > 0 ? root.width : root.implicitWidth) - x)
+    height: root.height > 0 ? root.height : (button.height > 0 ? button.height : button.implicitHeight)
+    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+    hoverEnabled: true
+    cursorShape: Qt.PointingHandCursor
+    onEntered: {
+      if (root.bar && button.tooltipText) root.bar.showTooltip(button, button.tooltipText)
+    }
+    onExited: {
+      if (root.bar) root.bar.hideTooltip(button)
+    }
+    onClicked: function(mouse) {
+      if (root.bar) root.bar.hideTooltip(button)
+      root.handleBarClick(mouse.button)
     }
   }
 
@@ -2967,11 +3010,15 @@ Panel {
     function visibleSitesCount(): int {
       return fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0
     }
+    function goToMainPage(): void { root.goToMainPage() }
+    function handleBarClick(button: int): void { root.handleBarClick(button) }
     function status(): string {
       return JSON.stringify({
         opened: root.opened,
         settingsMode: root.settingsMode,
         analyticsOpen: root.analyticsOpen,
+        activeTab: root.activeTab,
+        inSite: root.inSite,
         hasBar: root.bar !== null,
         rootWindow: root.QsWindow.window !== null,
         buttonWindow: button.QsWindow.window !== null,
