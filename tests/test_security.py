@@ -76,7 +76,7 @@ class JsonLimitTests(unittest.TestCase):
 
 class QmlSafetyTests(unittest.TestCase):
     def test_every_text_item_is_plain_text(self) -> None:
-        for qml_file in (ROOT / "Panel.qml", ROOT / "windows" / "AnalyticsWindow.qml"):
+        for qml_file in (ROOT / "Panel.qml", ROOT / "windows" / "AnalyticsWindow.qml", ROOT / "Globe.qml"):
             source = qml_file.read_text(encoding="utf-8")
             items = re.findall(r"\bText\s*\{.*?(?=\bText\s*\{|\Z)", source, re.S)
             self.assertTrue(items)

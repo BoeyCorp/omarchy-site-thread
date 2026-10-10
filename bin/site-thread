@@ -821,10 +821,11 @@ def demo_summary() -> dict[str, Any]:
         "type": "Site Magic SD-WAN",
         "status": "connected",
         "ping": 18,
-        "siteCount": 2,
+        "siteCount": 3,
         "sites": [
             {"name": "Home", "subnet": "10.0.0.0/24", "networkName": "Default"},
-            {"name": "Main Office", "subnet": "192.168.10.0/24", "networkName": "Corporate"}
+            {"name": "Main Office", "subnet": "192.168.10.0/24", "networkName": "Corporate"},
+            {"name": "Warehouse", "subnet": "10.20.0.0/24", "networkName": "Logistics"}
         ],
         "connections": [
             {
@@ -834,6 +835,14 @@ def demo_summary() -> dict[str, Any]:
                 "subnetB": "192.168.10.0/24",
                 "connected": True,
                 "ping": 18
+            },
+            {
+                "siteA": "Main Office",
+                "subnetA": "192.168.10.0/24",
+                "siteB": "Warehouse",
+                "subnetB": "10.20.0.0/24",
+                "connected": True,
+                "ping": 64
             }
         ]
     }

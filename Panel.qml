@@ -1840,7 +1840,10 @@ Panel {
                     id: fleetGlobe
                     anchors.fill: parent
                     sites: root.data && root.data.sites ? root.data.sites : []
+                    connections: (root.data && root.data.sdwan && root.data.sdwan.connections) ? root.data.sdwan.connections : []
+                    sdwan: root.data ? root.data.sdwan : null
                     autoRotate: root.autoRotate && root.opened && root.activeTab === 0
+                    animateTraffic: root.opened && root.activeTab === 0
                     fontFamily: root.fontFamily
                     sphereColor: root.isLightTheme ? "#e2e8f0" : "#0f1520"
                     landColor: root.isLightTheme ? "#94a3b8" : "#1e293b"
@@ -2015,7 +2018,7 @@ Panel {
                       anchors.verticalCenter: parent.verticalCenter
                     }
                     Text { textFormat: Text.PlainText;
-                      text: (fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0) + " of " + (root.data && root.data.sites ? root.data.sites.length : 0) + " sites in view  ·  Drag to rotate  ·  Scroll to zoom"
+                      text: (fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0) + " of " + (root.data && root.data.sites ? root.data.sites.length : 0) + " sites in view" + (root.data && root.data.sdwan && root.data.sdwan.available && fleetGlobe.preparedConnections && fleetGlobe.preparedConnections.length > 0 ? "  ·   " + fleetGlobe.preparedConnections.length + " SD-WAN link" + (fleetGlobe.preparedConnections.length > 1 ? "s" : "") : "") + "  ·  Drag to rotate  ·  Scroll to zoom"
                       color: root.dim
                       font.family: root.fontFamily
                       font.pixelSize: 8

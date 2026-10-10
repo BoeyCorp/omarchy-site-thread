@@ -241,6 +241,58 @@ class UiDimensionsAndDensityTests(unittest.TestCase):
         self.assertIn("id: catPillsRow", self.device_view_qml)
 
 
+class GlobeSdwanFeatureTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.globe_qml = (ROOT / "Globe.qml").read_text(encoding="utf-8")
+        self.globe_model_js = (ROOT / "GlobeModel.js").read_text(encoding="utf-8")
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+
+    def test_globe_qml_exposes_connections_and_traffic_properties(self) -> None:
+        self.assertIn("property var connections: []", self.globe_qml)
+        self.assertIn("property var sdwan: null", self.globe_qml)
+        self.assertIn("property bool animateTraffic: true", self.globe_qml)
+        self.assertIn("property real flowProgress: 0.0", self.globe_qml)
+        self.assertIn("property var preparedConnections: []", self.globe_qml)
+
+    def test_globe_qml_implements_arc_rendering_and_traffic_pulses(self) -> None:
+        self.assertIn("function prepareConnectionGeometry()", self.globe_qml)
+        self.assertIn("function paintConnections(", self.globe_qml)
+        self.assertIn("function drawTrafficPulse(", self.globe_qml)
+        self.assertIn("id: flowAnimation", self.globe_qml)
+
+    def test_panel_binds_connections_and_traffic_to_globe(self) -> None:
+        self.assertIn("id: fleetGlobe", self.panel_qml)
+        self.assertIn("connections: (root.data && root.data.sdwan && root.data.sdwan.connections) ? root.data.sdwan.connections : []", self.panel_qml)
+        self.assertIn("sdwan: root.data ? root.data.sdwan : null", self.panel_qml)
+        self.assertIn("animateTraffic: root.opened && root.activeTab === 0", self.panel_qml)
+
+    def test_globe_model_has_spherical_arc_and_color_math(self) -> None:
+        self.assertIn("function latLngToVector(", self.globe_model_js)
+        self.assertIn("function angularDistance(", self.globe_model_js)
+        self.assertIn("function interpolateArc(", self.globe_model_js)
+        self.assertIn("function generateArcWaypoints(", self.globe_model_js)
+        self.assertIn("function latencyColor(", self.globe_model_js)
+        self.assertIn("function findSite(", self.globe_model_js)
+
+    def test_demo_summary_sdwan_has_multi_site_connections_and_ping(self) -> None:
+        summary = SITE_THREAD.demo_summary()
+        self.assertIn("sdwan", summary)
+        sdwan = summary["sdwan"]
+        connections = sdwan.get("connections", [])
+        self.assertGreaterEqual(len(connections), 2)
+
+        pings = [c.get("ping", 0) for c in connections]
+        self.assertTrue(any(p < 35 for p in pings))  # healthy/fast (<35ms)
+        self.assertTrue(any(p >= 35 for p in pings))  # moderate/backup (>=35ms)
+
+        for conn in connections:
+            self.assertIn("siteA", conn)
+            self.assertIn("siteB", conn)
+            self.assertIn("ping", conn)
+            self.assertIn("connected", conn)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

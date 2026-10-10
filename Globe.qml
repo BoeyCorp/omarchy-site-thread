@@ -7,6 +7,8 @@ Item {
 
   property var countries: []
   property var sites: []
+  property var connections: []
+  property var sdwan: null
   property var selectedSite: null
 
   property real centreLatitude: -25
@@ -17,6 +19,8 @@ Item {
   property real longitudeSensitivity: 0.22
   property real latitudeSensitivity: 0.18
   property bool autoRotate: false
+  property bool animateTraffic: true
+  property real flowProgress: 0.0
 
   property color backgroundColor: "transparent"
   property color sphereColor: "#0f1520"
@@ -35,11 +39,29 @@ Item {
   property var preparedCountries: []
   property var preparedGrid: []
   property var preparedEvents: []
+  property var preparedConnections: []
   property var hitEvents: []
   property var visibleSites: []
 
   signal siteActivated(var site)
   signal interactionStarted()
+
+  NumberAnimation {
+    id: flowAnimation
+    target: root
+    property: "flowProgress"
+    from: 0.0
+    to: 1.0
+    duration: 2500
+    loops: Animation.Infinite
+    running: root.animateTraffic && root.visible && Boolean(root.preparedConnections && root.preparedConnections.length > 0)
+  }
+
+  onFlowProgressChanged: {
+    if (root.visible && root.preparedConnections && root.preparedConnections.length > 0) {
+      globeCanvas.requestPaint()
+    }
+  }
 
   function radius() {
     return Math.min(width, height) * 0.44 * globeScale
@@ -125,9 +147,62 @@ Item {
     return output
   }
 
+  function prepareConnectionGeometry() {
+    var output = []
+    var rawConns = Array.isArray(connections) && connections.length > 0
+      ? connections
+      : (sdwan && Array.isArray(sdwan.connections) ? sdwan.connections : [])
+    if (!rawConns || rawConns.length === 0) return output
+
+    var siteList = Array.isArray(sites) ? sites : []
+    for (var i = 0; i < rawConns.length; i++) {
+      var conn = rawConns[i]
+      if (!conn) continue
+      var siteA = GlobeModel.findSite(siteList, conn.siteA)
+      var siteB = GlobeModel.findSite(siteList, conn.siteB)
+      if (!siteA || !siteB) continue
+      var latA = Number(siteA.lat)
+      var lngA = Number(siteA.lng)
+      var latB = Number(siteB.lat)
+      var lngB = Number(siteB.lng)
+      if (!isFinite(latA) || !isFinite(lngA) || !isFinite(latB) || !isFinite(lngB)) continue
+
+      var vA = GlobeModel.latLngToVector(latA, lngA)
+      var vB = GlobeModel.latLngToVector(latB, lngB)
+      var theta = GlobeModel.angularDistance(vA, vB)
+      if (theta < 0.001) continue
+
+      var altitude = Math.min(0.12, Math.max(0.04, Math.sin(theta / 2) * 0.10))
+      var steps = Math.max(20, Math.min(60, Math.round(theta * 24)))
+      var waypoints = GlobeModel.generateArcWaypoints(vA, vB, altitude, steps)
+      var ping = conn.ping !== undefined ? conn.ping : 0
+      var isConnected = conn.connected !== false
+      var color = GlobeModel.latencyColor(ping, isConnected, healthy, backup, urgent)
+
+      output.push({
+        connection: conn,
+        siteA: siteA,
+        siteB: siteB,
+        vA: vA,
+        vB: vB,
+        theta: theta,
+        altitude: altitude,
+        waypoints: waypoints,
+        color: color,
+        ping: ping,
+        connected: isConnected
+      })
+    }
+    return output
+  }
+
   function prepareSiteGeometry() {
     var output = []
     var rows = Array.isArray(sites) ? sites : []
+    var rawConns = Array.isArray(connections) && connections.length > 0
+      ? connections
+      : (sdwan && Array.isArray(sdwan.connections) ? sdwan.connections : [])
+
     for (var i = 0; i < rows.length; i++) {
       var site = rows[i]
       var latitude = Number(site && (site.lat !== undefined ? site.lat : 0))
@@ -137,6 +212,23 @@ Item {
       latitude *= Math.PI / 180
       longitude *= Math.PI / 180
       var cosLatitude = Math.cos(latitude)
+
+      var sdwanInfo = ""
+      if (rawConns && rawConns.length > 0) {
+        for (var c = 0; c < rawConns.length; c++) {
+          var conn = rawConns[c]
+          var matchA = (site.name && String(site.name).toLowerCase() === String(conn.siteA).toLowerCase()) || (site.id && String(site.id).toLowerCase() === String(conn.siteA).toLowerCase())
+          var matchB = (site.name && String(site.name).toLowerCase() === String(conn.siteB).toLowerCase()) || (site.id && String(site.id).toLowerCase() === String(conn.siteB).toLowerCase())
+          if (matchA) {
+            sdwanInfo = " SD-WAN ⇄ " + conn.siteB + " (" + (conn.ping !== undefined ? conn.ping + "ms" : "mesh") + ")"
+            break
+          } else if (matchB) {
+            sdwanInfo = " SD-WAN ⇄ " + conn.siteA + " (" + (conn.ping !== undefined ? conn.ping + "ms" : "mesh") + ")"
+            break
+          }
+        }
+      }
+
       output.push({
         event: {
           id: site.id || String(i),
@@ -147,6 +239,7 @@ Item {
           clientCount: site.clientCount || 0,
           deviceCount: site.deviceCount || 0,
           isp: site.isp || "",
+          sdwanInfo: sdwanInfo,
           site: site
         },
         worldX: cosLatitude * Math.cos(longitude),
@@ -419,6 +512,144 @@ Item {
     updateVisibleSitesFromRows(visibleRows)
   }
 
+  function drawTrafficPulse(ctx, item, t, centreX, centreY, globeRadius,
+                            sinLatitude, cosLatitude, sinLongitude, cosLongitude, direction) {
+    if (t < 0.02 || t > 0.98) return
+    var pt = GlobeModel.interpolateArc(item.vA, item.vB, item.theta, t, item.altitude)
+    var horiz = pt.x * cosLongitude + pt.y * sinLongitude
+    var xProj = pt.y * cosLongitude - pt.x * sinLongitude
+    var yProj = cosLatitude * pt.z - sinLatitude * horiz
+    var depth = sinLatitude * pt.z + cosLatitude * horiz
+    if (depth <= 0) return
+
+    var sx = centreX + xProj * globeRadius
+    var sy = centreY - yProj * globeRadius
+    var depthAlpha = Math.min(1.0, depth * 4.0)
+
+    var tailT = t - direction * 0.035
+    if (tailT > 0 && tailT < 1) {
+      var tailPt = GlobeModel.interpolateArc(item.vA, item.vB, item.theta, tailT, item.altitude)
+      var tailHoriz = tailPt.x * cosLongitude + tailPt.y * sinLongitude
+      var tailXProj = tailPt.y * cosLongitude - tailPt.x * sinLongitude
+      var tailYProj = cosLatitude * tailPt.z - sinLatitude * tailHoriz
+      var tailDepth = sinLatitude * tailPt.z + cosLatitude * tailHoriz
+      if (tailDepth > 0) {
+        var tailSx = centreX + tailXProj * globeRadius
+        var tailSy = centreY - tailYProj * globeRadius
+        ctx.beginPath()
+        ctx.moveTo(tailSx, tailSy)
+        ctx.lineTo(sx, sy)
+        ctx.strokeStyle = withAlpha(item.color, 0.65 * depthAlpha)
+        ctx.lineWidth = 1.8
+        ctx.stroke()
+      }
+    }
+
+    ctx.beginPath()
+    ctx.arc(sx, sy, 3.2, 0, Math.PI * 2)
+    ctx.fillStyle = withAlpha(item.color, 0.50 * depthAlpha)
+    ctx.fill()
+
+    ctx.beginPath()
+    ctx.arc(sx, sy, 1.5, 0, Math.PI * 2)
+    ctx.fillStyle = withAlpha("#ffffff", 0.95 * depthAlpha)
+    ctx.fill()
+  }
+
+  function paintConnections(ctx, centreX, centreY, globeRadius) {
+    if (!preparedConnections || preparedConnections.length === 0) return
+
+    var latitude = centreLatitude * Math.PI / 180
+    var longitude = centreLongitude * Math.PI / 180
+    var sinLatitude = Math.sin(latitude)
+    var cosLatitude = Math.cos(latitude)
+    var sinLongitude = Math.sin(longitude)
+    var cosLongitude = Math.cos(longitude)
+
+    for (var c = 0; c < preparedConnections.length; c++) {
+      var item = preparedConnections[c]
+      var waypoints = item.waypoints
+      var projected = []
+
+      for (var w = 0; w < waypoints.length; w++) {
+        var wp = waypoints[w]
+        var horiz = wp.x * cosLongitude + wp.y * sinLongitude
+        var xProj = wp.y * cosLongitude - wp.x * sinLongitude
+        var yProj = cosLatitude * wp.z - sinLatitude * horiz
+        var depth = sinLatitude * wp.z + cosLatitude * horiz
+        projected.push({
+          screenX: centreX + xProj * globeRadius,
+          screenY: centreY - yProj * globeRadius,
+          depth: depth,
+          t: wp.t
+        })
+      }
+
+      var isDashed = !item.connected
+
+      function strokeArcPass(lineWidth, strokeAlpha) {
+        ctx.save()
+        ctx.beginPath()
+        ctx.lineWidth = lineWidth
+        ctx.strokeStyle = withAlpha(item.color, strokeAlpha)
+        if (isDashed) {
+          ctx.setLineDash([4, 4])
+        } else {
+          ctx.setLineDash([])
+        }
+        var drawing = false
+        for (var i = 0; i < projected.length; i++) {
+          var pt = projected[i]
+          if (pt.depth >= 0) {
+            if (!drawing) {
+              if (i > 0) {
+                var prev = projected[i - 1]
+                var ratio = prev.depth / (prev.depth - pt.depth)
+                var hx = prev.screenX + (pt.screenX - prev.screenX) * ratio
+                var hy = prev.screenY + (pt.screenY - prev.screenY) * ratio
+                ctx.moveTo(hx, hy)
+                ctx.lineTo(pt.screenX, pt.screenY)
+              } else {
+                ctx.moveTo(pt.screenX, pt.screenY)
+              }
+              drawing = true
+            } else {
+              ctx.lineTo(pt.screenX, pt.screenY)
+            }
+          } else {
+            if (drawing) {
+              var prev = projected[i - 1]
+              var ratio = prev.depth / (prev.depth - pt.depth)
+              var hx = prev.screenX + (pt.screenX - prev.screenX) * ratio
+              var hy = prev.screenY + (pt.screenY - prev.screenY) * ratio
+              ctx.lineTo(hx, hy)
+              drawing = false
+            }
+          }
+        }
+        ctx.stroke()
+        ctx.restore()
+      }
+
+      // 1. Soft glowing aura along the arc
+      strokeArcPass(3.4, 0.22)
+      // 2. Focused core line
+      strokeArcPass(1.4, 0.88)
+
+      // 3. Simulated packet traffic pulses
+      if (item.connected && animateTraffic) {
+        for (var p = 0; p < 3; p++) {
+          var pulseT = (root.flowProgress + p / 3.0) % 1.0
+          drawTrafficPulse(ctx, item, pulseT, centreX, centreY, globeRadius,
+                           sinLatitude, cosLatitude, sinLongitude, cosLongitude, 1)
+        }
+        var revT = (1.0 - (root.flowProgress + 0.5) % 1.0)
+        drawTrafficPulse(ctx, item, revT, centreX, centreY, globeRadius,
+                         sinLatitude, cosLatitude, sinLongitude, cosLongitude, -1)
+      }
+    }
+  }
+
   function paintGlobe(ctx) {
     var centreX = globeCanvas.width / 2
     var centreY = globeCanvas.height / 2
@@ -449,8 +680,10 @@ Item {
     ctx.clip()
     paintGrid(ctx, centreX, centreY, globeRadius)
     paintCountries(ctx, centreX, centreY, globeRadius)
-    paintEvents(ctx)
     ctx.restore()
+
+    paintConnections(ctx, centreX, centreY, globeRadius)
+    paintEvents(ctx)
 
     // Globe horizon outline
     ctx.beginPath()
@@ -487,9 +720,22 @@ Item {
     globeCanvas.requestPaint()
   }
 
+  onConnectionsChanged: {
+    preparedConnections = prepareConnectionGeometry()
+    preparedEvents = prepareSiteGeometry()
+    globeCanvas.requestPaint()
+  }
+
+  onSdwanChanged: {
+    preparedConnections = prepareConnectionGeometry()
+    preparedEvents = prepareSiteGeometry()
+    globeCanvas.requestPaint()
+  }
+
   onSitesChanged: {
     hitEvents = []
     hoveredEvent = null
+    preparedConnections = prepareConnectionGeometry()
     preparedEvents = prepareSiteGeometry()
     if (sites && sites.length > 0 && centreLatitude === -25 && centreLongitude === 120) {
       focusSite(sites[0])
@@ -540,6 +786,7 @@ Item {
   Component.onCompleted: {
     preparedGrid = prepareGridGeometry()
     preparedCountries = prepareCountryGeometry()
+    preparedConnections = prepareConnectionGeometry()
     preparedEvents = prepareSiteGeometry()
     updateVisibleSites()
     globeCanvas.requestPaint()
@@ -634,6 +881,15 @@ Item {
           ? (root.hoveredEvent.gatewayModel ? root.hoveredEvent.gatewayModel + " · " : "") + root.hoveredEvent.clientCount + " clients · " + (root.hoveredEvent.status === "up" ? "ONLINE" : root.hoveredEvent.status.toUpperCase())
           : ""
         color: root.hoveredEvent && root.hoveredEvent.status === "down" ? root.urgent : (root.hoveredEvent && root.hoveredEvent.status === "backup" ? root.backup : root.healthy)
+        font.family: root.fontFamily
+        font.pixelSize: 10
+      }
+
+      Text {
+        textFormat: Text.PlainText
+        visible: Boolean(root.hoveredEvent && root.hoveredEvent.sdwanInfo)
+        text: (root.hoveredEvent && root.hoveredEvent.sdwanInfo) ? root.hoveredEvent.sdwanInfo : ""
+        color: root.healthy
         font.family: root.fontFamily
         font.pixelSize: 10
       }
