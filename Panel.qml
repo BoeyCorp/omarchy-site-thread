@@ -2625,9 +2625,10 @@ Panel {
                 }
               }
             }
+          }
 
-            // DEVICES SUB-VIEW (FLEET HARDWARE INVENTORY VIEW)
-            DeviceInventoryView {
+          // DEVICES SUB-VIEW (FLEET HARDWARE INVENTORY VIEW)
+          DeviceInventoryView {
               visible: root.sitesSubView === "devices"
               width: parent.width
               devices: root.getAllFleetDevices()
