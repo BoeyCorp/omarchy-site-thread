@@ -2616,23 +2616,31 @@ FloatingWindow {
                   font.bold: true
                 }
 
-                SearchableDropdown {
-                  id: switchSiteDropdown
+                Rectangle {
                   Layout.preferredWidth: Style.space(190)
                   Layout.preferredHeight: Style.space(26)
-                  rowHeight: Style.space(26)
-                  showLabel: false
-                  value: root.selectedSwitchSite
-                  options: root.switchSiteOptions
-                  placeholderText: "Search sites..."
-                  emptyText: "No sites match"
-                  foreground: root.foreground
-                  background: root.track
-                  popupBorder: root.outline
-                  accent: root.accent
-                  fontFamily: root.fontFamily
-                  onChanged: function(val) {
-                    root.selectedSwitchSite = val
+                  radius: Style.cornerRadius
+                  color: root.isLightTheme ? "#ffffff" : "#1e1e2e"
+                  border.width: 1
+                  border.color: root.outline
+
+                  SearchableDropdown {
+                    id: switchSiteDropdown
+                    anchors.fill: parent
+                    rowHeight: Style.space(26)
+                    showLabel: false
+                    value: root.selectedSwitchSite
+                    options: root.switchSiteOptions
+                    placeholderText: "Search sites..."
+                    emptyText: "No sites match"
+                    foreground: root.foreground
+                    background: root.isLightTheme ? "#ffffff" : "#1e1e2e"
+                    popupBorder: root.accent
+                    accent: root.accent
+                    fontFamily: root.fontFamily
+                    onChanged: function(val) {
+                      root.selectedSwitchSite = val
+                    }
                   }
                 }
               }
@@ -2650,23 +2658,31 @@ FloatingWindow {
                   font.bold: true
                 }
 
-                SearchableDropdown {
-                  id: switchPickerDropdown
+                Rectangle {
                   Layout.preferredWidth: Style.space(260)
                   Layout.preferredHeight: Style.space(26)
-                  rowHeight: Style.space(26)
-                  showLabel: false
-                  value: root.currentSwitch ? (root.currentSwitch.mac || root.currentSwitch.name || "") : ""
-                  options: root.switchOptionsForSelectedSite
-                  placeholderText: "Search switches..."
-                  emptyText: "No switches match"
-                  foreground: root.foreground
-                  background: root.track
-                  popupBorder: root.outline
-                  accent: root.accent
-                  fontFamily: root.fontFamily
-                  onChanged: function(val) {
-                    root.selectedSwitchMac = val
+                  radius: Style.cornerRadius
+                  color: root.isLightTheme ? "#ffffff" : "#1e1e2e"
+                  border.width: 1
+                  border.color: root.outline
+
+                  SearchableDropdown {
+                    id: switchPickerDropdown
+                    anchors.fill: parent
+                    rowHeight: Style.space(26)
+                    showLabel: false
+                    value: root.currentSwitch ? (root.currentSwitch.mac || root.currentSwitch.name || "") : ""
+                    options: root.switchOptionsForSelectedSite
+                    placeholderText: "Search switches..."
+                    emptyText: "No switches match"
+                    foreground: root.foreground
+                    background: root.isLightTheme ? "#ffffff" : "#1e1e2e"
+                    popupBorder: root.accent
+                    accent: root.accent
+                    fontFamily: root.fontFamily
+                    onChanged: function(val) {
+                      root.selectedSwitchMac = val
+                    }
                   }
                 }
               }
@@ -2858,13 +2874,13 @@ FloatingWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: width
-            contentHeight: portListCol.childrenRect.height + Style.space(16)
+            contentHeight: portGridCol.childrenRect.height + Style.space(16)
             clip: true
 
             Column {
-              id: portListCol
+              id: portGridCol
               width: parent.width
-              spacing: Style.space(2)
+              spacing: Style.space(4)
 
               Text {
                 textFormat: Text.PlainText;
@@ -2878,320 +2894,394 @@ FloatingWindow {
                 topPadding: Style.space(20)
               }
 
-              // High-density table column headers
-              Rectangle {
-                width: portListCol.width
-                height: Style.space(20)
-                color: "transparent"
+              // 2-Column high-density table headers
+              RowLayout {
+                width: parent.width
+                spacing: Style.space(8)
                 visible: tab3View.portsList.length > 0
 
-                RowLayout {
-                  anchors.fill: parent
-                  anchors.leftMargin: Style.space(10)
-                  anchors.rightMargin: Style.space(10)
-                  spacing: Style.space(8)
+                // Left Column Header
+                Rectangle {
+                  Layout.fillWidth: true
+                  Layout.preferredWidth: Math.floor((portGridCol.width - Style.space(8)) / 2)
+                  height: Style.space(20)
+                  color: "transparent"
 
-                  Text {
-                    textFormat: Text.PlainText;
-                    Layout.preferredWidth: Style.space(38)
-                    text: "PORT"
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: 8
-                    font.bold: true
+                  RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: Style.space(8)
+                    anchors.rightMargin: Style.space(8)
+                    spacing: Style.space(6)
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.preferredWidth: Style.space(32)
+                      text: "PORT"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.preferredWidth: Style.space(105)
+                      text: "STATUS & SPEED"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.fillWidth: true
+                      Layout.minimumWidth: Style.space(70)
+                      text: "ENDPOINT"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.preferredWidth: Style.space(60)
+                      text: "POE"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.preferredWidth: Style.space(48)
+                      text: "ACTION"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                      horizontalAlignment: Text.AlignRight
+                    }
                   }
+                }
 
-                  Text {
-                    textFormat: Text.PlainText;
-                    Layout.preferredWidth: Style.space(150)
-                    text: "STATUS & SPEED"
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: 8
-                    font.bold: true
-                  }
+                // Right Column Header
+                Rectangle {
+                  Layout.fillWidth: true
+                  Layout.preferredWidth: Math.floor((portGridCol.width - Style.space(8)) / 2)
+                  height: Style.space(20)
+                  color: "transparent"
 
-                  Text {
-                    textFormat: Text.PlainText;
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: Style.space(140)
-                    text: "CONNECTED ENDPOINT"
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: 8
-                    font.bold: true
-                  }
+                  RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: Style.space(8)
+                    anchors.rightMargin: Style.space(8)
+                    spacing: Style.space(6)
 
-                  Text {
-                    textFormat: Text.PlainText;
-                    Layout.preferredWidth: Style.space(170)
-                    text: "POE TELEMETRY"
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: 8
-                    font.bold: true
-                  }
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.preferredWidth: Style.space(32)
+                      text: "PORT"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                    }
 
-                  Text {
-                    textFormat: Text.PlainText;
-                    Layout.preferredWidth: Style.space(64)
-                    text: "ACTION"
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: 8
-                    font.bold: true
-                    horizontalAlignment: Text.AlignRight
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.preferredWidth: Style.space(105)
+                      text: "STATUS & SPEED"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.fillWidth: true
+                      Layout.minimumWidth: Style.space(70)
+                      text: "ENDPOINT"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.preferredWidth: Style.space(60)
+                      text: "POE"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      Layout.preferredWidth: Style.space(48)
+                      text: "ACTION"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      font.bold: true
+                      horizontalAlignment: Text.AlignRight
+                    }
                   }
                 }
               }
 
-              Repeater {
-                model: tab3View.portsList
-                delegate: Rectangle {
-                  required property var modelData
-                  width: portListCol.width
-                  height: Style.space(25)
-                  radius: 3
-                  color: portRowMouse.containsMouse ? root.cardHover : root.track
-                  border.width: 1
-                  border.color: portRowMouse.containsMouse ? root.accent : (modelData.up ? (modelData.poePower > 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.3) : root.outline) : root.outline)
+              // 2-Column Port Grid
+              Grid {
+                id: portGrid
+                width: parent.width
+                columns: 2
+                columnSpacing: Style.space(8)
+                rowSpacing: Style.space(2)
 
-                  MouseArea {
-                    id: portRowMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                  }
+                Repeater {
+                  model: tab3View.portsList
+                  delegate: Rectangle {
+                    required property var modelData
+                    width: Math.floor((portGrid.width - portGrid.columnSpacing) / 2)
+                    height: Style.space(25)
+                    radius: 3
+                    color: portRowMouse.containsMouse ? root.cardHover : root.track
+                    border.width: 1
+                    border.color: portRowMouse.containsMouse ? root.accent : (modelData.up ? (modelData.poePower > 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.3) : root.outline) : root.outline)
 
-                  RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Style.space(10)
-                    anchors.rightMargin: Style.space(10)
-                    spacing: Style.space(8)
-
-                    // Col 1: Port Badge
-                    Rectangle {
-                      Layout.preferredWidth: Style.space(38)
-                      Layout.preferredHeight: Style.space(18)
-                      radius: 3
-                      color: modelData.up ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.18) : Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.12)
-                      border.width: 1
-                      border.color: modelData.up ? root.healthy : root.outline
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        anchors.centerIn: parent
-                        text: "P" + String(modelData.portIdx)
-                        color: modelData.up ? root.healthy : root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 2
-                        font.bold: true
-                      }
+                    MouseArea {
+                      id: portRowMouse
+                      anchors.fill: parent
+                      hoverEnabled: true
                     }
 
-                    // Col 2: Status & Speed (Dense Inline)
                     RowLayout {
-                      Layout.preferredWidth: Style.space(150)
-                      spacing: Style.space(5)
+                      anchors.fill: parent
+                      anchors.leftMargin: Style.space(8)
+                      anchors.rightMargin: Style.space(8)
+                      spacing: Style.space(6)
 
+                      // Col 1: Port Badge
                       Rectangle {
-                        width: 6
-                        height: 6
+                        Layout.preferredWidth: Style.space(32)
+                        Layout.preferredHeight: Style.space(18)
                         radius: 3
-                        color: modelData.up ? root.healthy : root.dim
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        text: modelData.name || ("Port " + modelData.portIdx)
-                        color: root.foreground
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 2
-                        font.bold: true
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                      }
-
-                      Rectangle {
-                        visible: modelData.up
-                        height: Style.space(16)
-                        radius: 2
-                        color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15)
+                        color: modelData.up ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.18) : Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.12)
                         border.width: 1
-                        border.color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.35)
-                        implicitWidth: spdText.implicitWidth + Style.space(8)
+                        border.color: modelData.up ? root.healthy : root.outline
 
                         Text {
-                          id: spdText
                           textFormat: Text.PlainText;
                           anchors.centerIn: parent
-                          text: modelData.speedText || "1 GbE"
-                          color: root.healthy
+                          text: "P" + String(modelData.portIdx)
+                          color: modelData.up ? root.healthy : root.dim
                           font.family: root.fontFamily
-                          font.pixelSize: 8
+                          font.pixelSize: Style.font.caption - 2
                           font.bold: true
                         }
                       }
 
-                      Text {
-                        textFormat: Text.PlainText;
-                        visible: !modelData.up
-                        text: "Down"
-                        color: root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: 8
-                      }
-                    }
-
-                    // Col 3: Connected Endpoint (Dense Inline)
-                    RowLayout {
-                      Layout.fillWidth: true
-                      Layout.minimumWidth: Style.space(140)
-                      spacing: Style.space(5)
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        text: modelData.connectedDevice ? "" : ""
-                        color: modelData.connectedDevice ? root.accent : root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: 8
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        text: modelData.connectedDevice || "No device identified"
-                        color: modelData.connectedDevice ? root.foreground : root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 2
-                        font.bold: Boolean(modelData.connectedDevice)
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                      }
-                    }
-
-                    // Col 4: PoE Telemetry (Dense Inline)
-                    RowLayout {
-                      Layout.preferredWidth: Style.space(170)
-                      spacing: Style.space(5)
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        visible: modelData.poePower > 0
-                        text: ""
-                        color: root.accent
-                        font.family: root.fontFamily
-                        font.pixelSize: 8
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        visible: modelData.poePower > 0
-                        text: modelData.poePower.toFixed(1) + " W"
-                        color: root.accent
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 2
-                        font.bold: true
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        visible: modelData.poePower > 0
-                        text: "(" + (modelData.poeVoltage ? modelData.poeVoltage.toFixed(0) : "53") + "V · " + (modelData.poeCurrent ? modelData.poeCurrent.toFixed(0) : "0") + "mA)"
-                        color: root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: 8
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        visible: !(modelData.poePower > 0)
-                        text: (modelData.poeMode && modelData.poeMode !== "off") ? "PoE Standby (0.0 W)" : "PoE Off"
-                        color: root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 2
-                      }
-                    }
-
-                    // Col 5: Action (Dense Cycle PoE Button with Tooltip)
-                    Rectangle {
-                      Layout.preferredWidth: Style.space(64)
-                      Layout.preferredHeight: Style.space(18)
-                      radius: 3
-                      color: (modelData.poeMode !== "off" || modelData.poePower > 0)
-                        ? (cycleBtnMouse.containsMouse ? root.cardHover : root.track)
-                        : "transparent"
-                      opacity: (modelData.poeMode !== "off" || modelData.poePower > 0) ? 1.0 : 0.35
-                      border.width: 1
-                      border.color: (modelData.poeMode !== "off" || modelData.poePower > 0)
-                        ? (cycleBtnMouse.containsMouse ? root.backup : root.outline)
-                        : "transparent"
-
+                      // Col 2: Status & Speed (Dense Inline)
                       RowLayout {
-                        anchors.centerIn: parent
-                        spacing: 3
-                        visible: modelData.poeMode !== "off" || modelData.poePower > 0
+                        Layout.preferredWidth: Style.space(105)
+                        spacing: Style.space(4)
 
-                        Text {
-                          textFormat: Text.PlainText;
-                          text: ""
-                          color: root.backup
-                          font.family: root.fontFamily
-                          font.pixelSize: 8
+                        Rectangle {
+                          width: 5
+                          height: 5
+                          radius: 2.5
+                          color: modelData.up ? root.healthy : root.dim
                         }
 
                         Text {
                           textFormat: Text.PlainText;
-                          text: "Cycle"
+                          text: modelData.name || ("Port " + modelData.portIdx)
                           color: root.foreground
                           font.family: root.fontFamily
-                          font.pixelSize: 8
+                          font.pixelSize: Style.font.caption - 2
                           font.bold: true
+                          elide: Text.ElideRight
+                          Layout.fillWidth: true
                         }
-                      }
 
-                      Text {
-                        textFormat: Text.PlainText;
-                        anchors.centerIn: parent
-                        visible: !(modelData.poeMode !== "off" || modelData.poePower > 0)
-                        text: "—"
-                        color: root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: 8
-                      }
+                        Rectangle {
+                          visible: modelData.up
+                          height: Style.space(16)
+                          radius: 2
+                          color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15)
+                          border.width: 1
+                          border.color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.35)
+                          implicitWidth: spdText.implicitWidth + Style.space(6)
 
-                      MouseArea {
-                        id: cycleBtnMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: (modelData.poeMode !== "off" || modelData.poePower > 0) ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        enabled: modelData.poeMode !== "off" || modelData.poePower > 0
-                        onClicked: {
-                          if (root.currentSwitch) {
-                            root.cyclePort(root.currentSwitch.hostId, root.currentSwitch.mac, modelData.portIdx, modelData.name || ("Port " + modelData.portIdx))
+                          Text {
+                            id: spdText
+                            textFormat: Text.PlainText;
+                            anchors.centerIn: parent
+                            text: modelData.speedText || "1G"
+                            color: root.healthy
+                            font.family: root.fontFamily
+                            font.pixelSize: 7
+                            font.bold: true
                           }
                         }
-                      }
-
-                      Rectangle {
-                        z: 10
-                        visible: cycleBtnMouse.containsMouse && (modelData.poeMode !== "off" || modelData.poePower > 0)
-                        anchors.bottom: parent.top
-                        anchors.bottomMargin: 4
-                        anchors.right: parent.right
-                        width: cycleTipText.implicitWidth + Style.space(12)
-                        height: Style.space(20)
-                        radius: 3
-                        color: root.background
-                        border.width: 1
-                        border.color: root.outline
 
                         Text {
-                          id: cycleTipText
                           textFormat: Text.PlainText;
-                          anchors.centerIn: parent
-                          text: "Power cycle PoE on Port " + modelData.portIdx
-                          color: root.foreground
+                          visible: !modelData.up
+                          text: "Down"
+                          color: root.dim
+                          font.family: root.fontFamily
+                          font.pixelSize: 7
+                        }
+                      }
+
+                      // Col 3: Connected Endpoint (Dense Inline)
+                      RowLayout {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: Style.space(70)
+                        spacing: Style.space(4)
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          text: modelData.connectedDevice ? "" : ""
+                          color: modelData.connectedDevice ? root.accent : root.dim
                           font.family: root.fontFamily
                           font.pixelSize: 8
+                        }
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          text: modelData.connectedDevice || "No device"
+                          color: modelData.connectedDevice ? root.foreground : root.dim
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption - 2
+                          font.bold: Boolean(modelData.connectedDevice)
+                          elide: Text.ElideRight
+                          Layout.fillWidth: true
+                        }
+                      }
+
+                      // Col 4: PoE Telemetry (Dense Inline)
+                      RowLayout {
+                        Layout.preferredWidth: Style.space(60)
+                        spacing: Style.space(3)
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          visible: modelData.poePower > 0
+                          text: ""
+                          color: root.accent
+                          font.family: root.fontFamily
+                          font.pixelSize: 7
+                        }
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          visible: modelData.poePower > 0
+                          text: modelData.poePower.toFixed(1) + "W"
+                          color: root.accent
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption - 2
+                          font.bold: true
+                        }
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          visible: !(modelData.poePower > 0)
+                          text: (modelData.poeMode && modelData.poeMode !== "off") ? "Standby" : "Off"
+                          color: root.dim
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption - 2
+                        }
+                      }
+
+                      // Col 5: Action (Dense Cycle PoE Button with Tooltip)
+                      Rectangle {
+                        Layout.preferredWidth: Style.space(48)
+                        Layout.preferredHeight: Style.space(18)
+                        radius: 3
+                        color: (modelData.poeMode !== "off" || modelData.poePower > 0)
+                          ? (cycleBtnMouse.containsMouse ? root.cardHover : root.track)
+                          : "transparent"
+                        opacity: (modelData.poeMode !== "off" || modelData.poePower > 0) ? 1.0 : 0.35
+                        border.width: 1
+                        border.color: (modelData.poeMode !== "off" || modelData.poePower > 0)
+                          ? (cycleBtnMouse.containsMouse ? root.backup : root.outline)
+                          : "transparent"
+
+                        RowLayout {
+                          anchors.centerIn: parent
+                          spacing: 2
+                          visible: modelData.poeMode !== "off" || modelData.poePower > 0
+
+                          Text {
+                            textFormat: Text.PlainText;
+                            text: ""
+                            color: root.backup
+                            font.family: root.fontFamily
+                            font.pixelSize: 7
+                          }
+
+                          Text {
+                            textFormat: Text.PlainText;
+                            text: "Cycle"
+                            color: root.foreground
+                            font.family: root.fontFamily
+                            font.pixelSize: 7
+                            font.bold: true
+                          }
+                        }
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          anchors.centerIn: parent
+                          visible: !(modelData.poeMode !== "off" || modelData.poePower > 0)
+                          text: "—"
+                          color: root.dim
+                          font.family: root.fontFamily
+                          font.pixelSize: 7
+                        }
+
+                        MouseArea {
+                          id: cycleBtnMouse
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: (modelData.poeMode !== "off" || modelData.poePower > 0) ? Qt.PointingHandCursor : Qt.ArrowCursor
+                          enabled: modelData.poeMode !== "off" || modelData.poePower > 0
+                          onClicked: {
+                            if (root.currentSwitch) {
+                              root.cyclePort(root.currentSwitch.hostId, root.currentSwitch.mac, modelData.portIdx, modelData.name || ("Port " + modelData.portIdx))
+                            }
+                          }
+                        }
+
+                        Rectangle {
+                          z: 20
+                          visible: cycleBtnMouse.containsMouse && (modelData.poeMode !== "off" || modelData.poePower > 0)
+                          anchors.bottom: parent.top
+                          anchors.bottomMargin: 4
+                          anchors.right: parent.right
+                          width: cycleTipText.implicitWidth + Style.space(12)
+                          height: Style.space(20)
+                          radius: 3
+                          color: root.isLightTheme ? "#ffffff" : "#161b2a"
+                          border.width: 1
+                          border.color: root.outline
+
+                          Text {
+                            id: cycleTipText
+                            textFormat: Text.PlainText;
+                            anchors.centerIn: parent
+                            text: "Power cycle PoE on Port " + modelData.portIdx + (modelData.poePower > 0 ? (" (" + modelData.poePower + "W)") : "")
+                            color: root.foreground
+                            font.family: root.fontFamily
+                            font.pixelSize: 8
+                          }
                         }
                       }
                     }

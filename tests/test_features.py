@@ -220,16 +220,18 @@ class ConsoleDirectConnectIntegrationTests(unittest.TestCase):
         self.assertIn("readonly property var switchOptionsForSelectedSite:", self.analytics_qml)
         self.assertIn("id: switchSiteDropdown", self.analytics_qml)
         self.assertIn("id: switchPickerDropdown", self.analytics_qml)
-        self.assertIn('placeholderText: "Search sites..."', self.analytics_qml)
-        self.assertIn('placeholderText: "Search switches..."', self.analytics_qml)
+        self.assertIn('background: root.isLightTheme ? "#ffffff" : "#1e1e2e"', self.analytics_qml)
+        self.assertIn('popupBorder: root.accent', self.analytics_qml)
 
     def test_switch_ports_tab_has_dense_port_matrix_layout(self) -> None:
-        self.assertIn("spacing: Style.space(2)", self.analytics_qml)
+        self.assertIn("id: portGrid", self.analytics_qml)
+        self.assertIn("columns: 2", self.analytics_qml)
+        self.assertIn("rowSpacing: Style.space(2)", self.analytics_qml)
         self.assertIn("height: Style.space(20)", self.analytics_qml)
         self.assertIn("height: Style.space(25)", self.analytics_qml)
-        self.assertIn("Layout.preferredWidth: Style.space(38)", self.analytics_qml)
+        self.assertIn("Layout.preferredWidth: Style.space(32)", self.analytics_qml)
         self.assertIn("Layout.preferredHeight: Style.space(18)", self.analytics_qml)
-        self.assertIn("Layout.preferredWidth: Style.space(64)", self.analytics_qml)
+        self.assertIn("Layout.preferredWidth: Style.space(48)", self.analytics_qml)
 
     def test_switch_ports_tab_cycle_button_has_tooltip(self) -> None:
         self.assertIn("visible: cycleBtnMouse.containsMouse && (modelData.poeMode !== \"off\" || modelData.poePower > 0)", self.analytics_qml)
