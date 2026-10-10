@@ -326,51 +326,7 @@ FloatingWindow {
         }
       }
 
-      // KPI Grid
-      RowLayout {
-        Layout.fillWidth: true
-        spacing: Style.space(10)
-
-        StatBlock {
-          label: "WAN FLEET HEALTH"
-          value: "100%"
-          subvalue: "0 Failovers active"
-          valColor: root.healthy
-          subColor: root.healthy
-          fontFamily: root.fontFamily
-          iconText: ""
-        }
-
-        StatBlock {
-          label: "FLEET CLIENTS"
-          value: String(root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 26)
-          subvalue: String(root.fleetData && root.fleetData.network ? root.fleetData.network.wifiClients : 14) + " WiFi · " + String(root.fleetData && root.fleetData.network ? root.fleetData.network.wiredClients : 12) + " Wired"
-          valColor: root.accent
-          fontFamily: root.fontFamily
-          iconText: ""
-        }
-
-        StatBlock {
-          label: "HARDWARE FLEET"
-          value: String(root.fleetData && root.fleetData.network ? root.fleetData.network.deviceCount : 11)
-          subvalue: "0 Offline · 0 Updates"
-          valColor: root.foreground
-          fontFamily: root.fontFamily
-          iconText: ""
-        }
-
-        StatBlock {
-          label: "SITES OPERATIONAL"
-          value: String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 2) + "/" + String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 2)
-          subvalue: "All gateways online"
-          valColor: root.healthy
-          subColor: root.healthy
-          fontFamily: root.fontFamily
-          iconText: ""
-        }
-      }
-
-      // Tab Bar & Toast Banner
+      // Tab Bar & Toast Banner (Top of page)
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.space(8)
@@ -542,12 +498,62 @@ FloatingWindow {
       // ==========================================
       // TAB 0: OVERVIEW & WAN MESH
       // ==========================================
-      RowLayout {
+      ColumnLayout {
         id: tab0View
         visible: root.currentTab === 0
         Layout.fillWidth: true
         Layout.fillHeight: true
-        spacing: Style.space(12)
+        spacing: Style.space(10)
+
+        // KPI Grid (4 status displays on Overview page only)
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Style.space(10)
+
+          StatBlock {
+            label: "WAN FLEET HEALTH"
+            value: "100%"
+            subvalue: "0 Failovers active"
+            valColor: root.healthy
+            subColor: root.healthy
+            fontFamily: root.fontFamily
+            iconText: ""
+          }
+
+          StatBlock {
+            label: "FLEET CLIENTS"
+            value: String(root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 26)
+            subvalue: String(root.fleetData && root.fleetData.network ? root.fleetData.network.wifiClients : 14) + " WiFi · " + String(root.fleetData && root.fleetData.network ? root.fleetData.network.wiredClients : 12) + " Wired"
+            valColor: root.accent
+            fontFamily: root.fontFamily
+            iconText: ""
+          }
+
+          StatBlock {
+            label: "HARDWARE FLEET"
+            value: String(root.fleetData && root.fleetData.network ? root.fleetData.network.deviceCount : 11)
+            subvalue: "0 Offline · 0 Updates"
+            valColor: root.foreground
+            fontFamily: root.fontFamily
+            iconText: ""
+          }
+
+          StatBlock {
+            label: "SITES OPERATIONAL"
+            value: String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 2) + "/" + String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 2)
+            subvalue: "All gateways online"
+            valColor: root.healthy
+            subColor: root.healthy
+            fontFamily: root.fontFamily
+            iconText: ""
+          }
+        }
+
+        // Two-column Overview & Mesh Split
+        RowLayout {
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          spacing: Style.space(12)
 
         // Left Column: Throughput Timeline & Client Distribution
         ColumnLayout {
@@ -1330,6 +1336,7 @@ FloatingWindow {
           }
         }
       }
+    }
 
       // ==========================================
       // TAB 1: GRANULAR CLIENT TELEMETRY & UPLINK
@@ -1776,7 +1783,7 @@ FloatingWindow {
         visible: root.currentTab === 2
         Layout.fillWidth: true
         Layout.fillHeight: true
-        spacing: Style.space(12)
+        spacing: Style.space(10)
 
         // Gateway WAN Interfaces Card
         SectionCard {
@@ -1796,13 +1803,13 @@ FloatingWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: width
-            contentHeight: wanCol.childrenRect.height + Style.space(20)
+            contentHeight: wanCol.childrenRect.height + Style.space(16)
             clip: true
 
             Column {
               id: wanCol
               width: wanFlick.width
-              spacing: Style.space(10)
+              spacing: Style.space(6)
 
               Text {
                 textFormat: Text.PlainText;
@@ -1816,130 +1823,318 @@ FloatingWindow {
                 topPadding: Style.space(20)
               }
 
-              Grid {
-                width: parent.width
-                columns: 2
-                spacing: Style.space(10)
+              // High-density table column headers
+              Rectangle {
+                width: wanCol.width
+                height: Style.space(22)
+                color: "transparent"
+                visible: Boolean(root.fleetData && root.fleetData.wans && root.fleetData.wans.length > 0)
 
-                Repeater {
-                  model: root.fleetData && root.fleetData.wans ? root.fleetData.wans : []
-                  delegate: Rectangle {
-                    required property var modelData
-                    width: (wanCol.width - Style.space(10)) / 2
-                    height: Style.space(136)
-                    radius: 6
-                    color: root.track
-                    border.width: 1
-                    border.color: modelData.plugged ? (modelData.type.indexOf("Primary") !== -1 ? root.accent : root.backup) : root.outline
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.leftMargin: Style.space(12)
+                  anchors.rightMargin: Style.space(12)
+                  spacing: Style.space(10)
 
-                    ColumnLayout {
-                      anchors.fill: parent
-                      anchors.margins: Style.space(10)
-                      spacing: Style.space(3)
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 88
+                    text: "STATE"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
 
-                      // Header row
-                      RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Style.space(6)
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 100
+                    text: "INTERFACE"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
 
-                        Rectangle {
-                          width: 8
-                          height: 8
-                          radius: 4
-                          color: modelData.plugged ? root.healthy : root.dim
-                        }
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 120
+                    Layout.preferredWidth: 160
+                    text: "SITE & GATEWAY"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 140
+                    Layout.preferredWidth: 180
+                    text: "PUBLIC IP & MAC"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 130
+                    Layout.preferredWidth: 160
+                    text: "ISP PEERING & SLA"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.preferredWidth: 58
+                    text: "ACTION"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: 8
+                    font.bold: true
+                    horizontalAlignment: Text.AlignRight
+                  }
+                }
+              }
+
+              // High-density tabular interface rows
+              Repeater {
+                model: root.fleetData && root.fleetData.wans ? root.fleetData.wans : []
+                delegate: Rectangle {
+                  required property var modelData
+                  width: wanCol.width
+                  height: Style.space(46)
+                  radius: 6
+                  color: wanRowMouse.containsMouse ? root.cardHover : root.track
+                  border.width: 1
+                  border.color: modelData.plugged ? (modelData.type.indexOf("Primary") !== -1 ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.35) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.35)) : root.outline
+
+                  RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: Style.space(12)
+                    anchors.rightMargin: Style.space(12)
+                    spacing: Style.space(10)
+
+                    // Col 1: Status Dot & Link Type Tag
+                    RowLayout {
+                      Layout.preferredWidth: 88
+                      spacing: 6
+
+                      Rectangle {
+                        width: 8
+                        height: 8
+                        radius: 4
+                        color: modelData.plugged ? (modelData.type.indexOf("Primary") !== -1 ? root.healthy : root.backup) : root.dim
+                      }
+
+                      Rectangle {
+                        height: 20
+                        width: wanTagText.implicitWidth + 10
+                        radius: 3
+                        color: modelData.plugged ? (modelData.type.indexOf("Primary") !== -1 ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.18) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.18)) : Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.18)
 
                         Text {
+                          id: wanTagText
                           textFormat: Text.PlainText;
-                          text: (modelData.siteName || "Site") + " · " + (modelData.gatewayModel || "Gateway")
-                          color: root.foreground
+                          anchors.centerIn: parent
+                          text: !modelData.plugged ? "UNPLUGGED" : (modelData.type.indexOf("Primary") !== -1 ? "PRIMARY" : "STANDBY")
+                          color: !modelData.plugged ? root.dim : (modelData.type.indexOf("Primary") !== -1 ? root.healthy : root.backup)
                           font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption
+                          font.pixelSize: 8
                           font.bold: true
                         }
-
-                        Item { Layout.fillWidth: true }
-
-                        Rectangle {
-                          height: 18
-                          width: wanTypeTag.implicitWidth + 10
-                          radius: 3
-                          color: modelData.plugged ? (modelData.type.indexOf("Primary") !== -1 ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2)) : Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.2)
-
-                          Text {
-                            id: wanTypeTag
-                            textFormat: Text.PlainText;
-                            anchors.centerIn: parent
-                            text: modelData.plugged ? (modelData.type.indexOf("Primary") !== -1 ? "PRIMARY ACTIVE" : "BACKUP STANDBY") : "UNPLUGGED"
-                            color: modelData.plugged ? (modelData.type.indexOf("Primary") !== -1 ? root.healthy : root.backup) : root.dim
-                            font.family: root.fontFamily
-                            font.pixelSize: 8
-                            font.bold: true
-                          }
-                        }
                       }
+                    }
 
-                      // Hardware Interface details
-                      RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Style.space(8)
+                    // Col 2: Interface / Port Pill & Speed
+                    ColumnLayout {
+                      Layout.preferredWidth: 100
+                      spacing: 1
 
-                        Rectangle {
-                          height: 18
-                          width: ifacePillText.implicitWidth + 10
-                          radius: 3
-                          color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)
-
-                          Text {
-                            id: ifacePillText
-                            textFormat: Text.PlainText;
-                            anchors.centerIn: parent
-                            text: (modelData.interface || "eth0") + " (Port " + (modelData.port !== undefined ? modelData.port : "0") + ")"
-                            color: root.accent
-                            font.family: root.fontFamily
-                            font.pixelSize: 9
-                            font.bold: true
-                          }
-                        }
+                      Rectangle {
+                        height: 18
+                        width: ifacePillText.implicitWidth + 10
+                        radius: 3
+                        color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18)
 
                         Text {
+                          id: ifacePillText
                           textFormat: Text.PlainText;
-                          text: "Negotiated: " + (modelData.speedType || "1GbE") + " Multi-Gigabit"
-                          color: root.dim
+                          anchors.centerIn: parent
+                          text: (modelData.interface || "eth0") + " · P" + (modelData.port !== undefined ? modelData.port : "0")
+                          color: root.accent
                           font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption - 2
+                          font.pixelSize: 9
+                          font.bold: true
                         }
                       }
 
-                      // IP addresses
                       Text {
                         textFormat: Text.PlainText;
-                        text: "Public IPv4: " + (modelData.ipv4 || "DHCP / Lease Pending")
-                        color: root.foreground
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 1
-                        font.bold: true
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        text: "IPv6: " + (modelData.ipv6 || "fe80:: (Link-Local SLAAC)")
+                        text: modelData.speedType || "1GbE"
                         color: root.dim
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 3
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                       }
+                    }
 
-                      // ISP Peering
+                    // Col 3: Site Name & Gateway Model
+                    ColumnLayout {
+                      Layout.fillWidth: true
+                      Layout.minimumWidth: 120
+                      Layout.preferredWidth: 160
+                      spacing: 1
+
                       Text {
                         textFormat: Text.PlainText;
-                        text: "ISP Peering: " + (modelData.isp || "Autonomous System Fiber")
+                        text: modelData.siteName || "Site"
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption
+                        font.bold: true
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.gatewayModel || "UniFi Gateway"
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+                    }
+
+                    // Col 4: Public IPv4 & IPv6 / MAC
+                    ColumnLayout {
+                      Layout.fillWidth: true
+                      Layout.minimumWidth: 140
+                      Layout.preferredWidth: 180
+                      spacing: 1
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.ipv4 || "DHCP Lease Pending"
+                        color: modelData.ipv4 ? root.foreground : root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                        font.bold: Boolean(modelData.ipv4)
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: (modelData.ipv6 ? modelData.ipv6 : "IPv6: None / SLAAC") + (modelData.mac ? (" · " + modelData.mac) : "")
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 3
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+                    }
+
+                    // Col 5: ISP Peering & Uptime SLA
+                    ColumnLayout {
+                      Layout.fillWidth: true
+                      Layout.minimumWidth: 130
+                      Layout.preferredWidth: 160
+                      spacing: 1
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.isp || "Broadband / Fiber"
                         color: root.accent
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 2
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+
+                      RowLayout {
+                        spacing: 4
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          text: ""
+                          color: modelData.plugged ? root.healthy : root.dim
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption - 3
+                        }
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          text: (modelData.uptime || (modelData.plugged ? "100% Uptime" : "Down")) + (modelData.plugged ? " · 0% Loss" : "")
+                          color: modelData.plugged ? root.healthy : root.dim
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption - 2
+                          font.bold: true
+                        }
                       }
                     }
+
+                    // Col 6: Quick Action Ping
+                    Rectangle {
+                      Layout.preferredWidth: 58
+                      Layout.preferredHeight: 22
+                      radius: 4
+                      color: (modelData.ipv4 && modelData.plugged && wanPingMouse.containsMouse) ? root.cardHover : root.track
+                      opacity: (modelData.ipv4 && modelData.plugged) ? 1.0 : 0.4
+                      border.width: 1
+                      border.color: (modelData.ipv4 && modelData.plugged && wanPingMouse.containsMouse) ? root.accent : root.outline
+
+                      RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 3
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          text: ""
+                          color: root.accent
+                          font.family: root.fontFamily
+                          font.pixelSize: 8
+                        }
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          text: "Ping"
+                          color: root.foreground
+                          font.family: root.fontFamily
+                          font.pixelSize: 8
+                          font.bold: true
+                        }
+                      }
+
+                      MouseArea {
+                        id: wanPingMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: (modelData.ipv4 && modelData.plugged) ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: {
+                          if (modelData.ipv4 && modelData.plugged) {
+                            root.pingHost(modelData.ipv4)
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  MouseArea {
+                    id: wanRowMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
                   }
                 }
               }
@@ -1964,24 +2159,44 @@ FloatingWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: width
-            contentHeight: outageListCol.childrenRect.height + Style.space(20)
+            contentHeight: outageListCol.childrenRect.height + Style.space(16)
             clip: true
 
             Column {
               id: outageListCol
               width: parent.width
-              spacing: Style.space(8)
+              spacing: Style.space(6)
 
-              Text {
-                textFormat: Text.PlainText;
-                visible: !root.fleetData || !root.fleetData.outages || root.fleetData.outages.length === 0
-                text: "No internet downtime recorded in recent telemetry periods (100% WAN uptime)."
-                color: root.healthy
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.bodySmall
-                horizontalAlignment: Text.AlignHCenter
+              Rectangle {
                 width: parent.width
-                topPadding: Style.space(20)
+                height: Style.space(36)
+                radius: 5
+                color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.1)
+                border.width: 1
+                border.color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.3)
+                visible: !root.fleetData || !root.fleetData.outages || root.fleetData.outages.length === 0
+
+                RowLayout {
+                  anchors.centerIn: parent
+                  spacing: 8
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: ""
+                    color: root.healthy
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: "100% WAN Fleet Uptime — No carrier outages or packet loss detected across any site in recent telemetry periods."
+                    color: root.healthy
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 1
+                    font.bold: true
+                  }
+                }
               }
 
               Repeater {
@@ -1989,86 +2204,112 @@ FloatingWindow {
                 delegate: Rectangle {
                   required property var modelData
                   width: outageListCol.width
-                  height: Style.space(56)
-                  radius: 6
-                  color: root.track
+                  height: Style.space(38)
+                  radius: 5
+                  color: outageMouse.containsMouse ? root.cardHover : root.track
                   border.width: 1
                   border.color: modelData.severity === "critical" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.4) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.4)
 
                   RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Style.space(10)
-                    spacing: Style.space(12)
+                    anchors.leftMargin: Style.space(10)
+                    anchors.rightMargin: Style.space(12)
+                    spacing: Style.space(10)
 
+                    // Severity badge
                     Rectangle {
-                      Layout.preferredWidth: Style.space(32)
-                      Layout.preferredHeight: Style.space(32)
-                      radius: 6
+                      Layout.preferredWidth: sevText.implicitWidth + 10
+                      Layout.preferredHeight: 20
+                      radius: 3
                       color: modelData.severity === "critical" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2)
 
-                      Text {
-                        textFormat: Text.PlainText;
-                        anchors.centerIn: parent
-                        text: ""
-                        color: modelData.severity === "critical" ? root.urgent : root.backup
-                        font.family: root.fontFamily
-                        font.pixelSize: 14
-                      }
-                    }
-
-                    ColumnLayout {
-                      Layout.fillWidth: true
-                      spacing: 2
-
                       RowLayout {
-                        spacing: 6
+                        anchors.centerIn: parent
+                        spacing: 4
+
                         Text {
                           textFormat: Text.PlainText;
-                          text: modelData.type || "Internet Outage"
-                          color: root.foreground
+                          text: ""
+                          color: modelData.severity === "critical" ? root.urgent : root.backup
                           font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption
+                          font.pixelSize: 9
+                        }
+
+                        Text {
+                          id: sevText
+                          textFormat: Text.PlainText;
+                          text: (modelData.severity || "warning").toUpperCase()
+                          color: modelData.severity === "critical" ? root.urgent : root.backup
+                          font.family: root.fontFamily
+                          font.pixelSize: 8
                           font.bold: true
                         }
-                        Text {
-                          textFormat: Text.PlainText;
-                          text: "· " + (modelData.siteName || "Site")
-                          color: root.accent
-                          font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption - 1
-                        }
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText;
-                        text: modelData.description || "Gateway internet link dropped (packet loss detected)"
-                        color: root.dim
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 2
                       }
                     }
 
-                    ColumnLayout {
-                      spacing: 2
-                      Layout.alignment: Qt.AlignRight
+                    // Site Tag
+                    Rectangle {
+                      Layout.preferredHeight: 18
+                      Layout.preferredWidth: outageSiteText.implicitWidth + 8
+                      radius: 3
+                      color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15)
 
                       Text {
+                        id: outageSiteText
                         textFormat: Text.PlainText;
-                        text: modelData.timeText || "Recent"
-                        color: root.foreground
+                        anchors.centerIn: parent
+                        text: modelData.siteName || "Site"
+                        color: root.accent
                         font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 1
+                        font.pixelSize: 8
                         font.bold: true
                       }
+                    }
+
+                    // Incident summary & description
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: (modelData.type ? (modelData.type + " — ") : "") + (modelData.description || "Gateway internet link dropped")
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      elide: Text.ElideRight
+                      Layout.fillWidth: true
+                    }
+
+                    // Duration pill
+                    Rectangle {
+                      Layout.preferredHeight: 18
+                      Layout.preferredWidth: durText.implicitWidth + 8
+                      radius: 3
+                      color: Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.15)
 
                       Text {
+                        id: durText
                         textFormat: Text.PlainText;
-                        text: "Duration: " + (modelData.durationText || "5m")
+                        anchors.centerIn: parent
+                        text: "⏱ " + (modelData.durationText || "5m")
                         color: root.urgent
                         font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 2
+                        font.pixelSize: 8
+                        font.bold: true
                       }
                     }
+
+                    // Timestamp
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: modelData.timeText || "Recent"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                    }
+                  }
+
+                  MouseArea {
+                    id: outageMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
                   }
                 }
               }
