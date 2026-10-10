@@ -18,7 +18,7 @@ Rectangle {
   Layout.fillWidth: true
   Layout.preferredWidth: 1
   Layout.minimumWidth: 0
-  implicitHeight: Style.space(48)
+  implicitHeight: Style.space(46)
   radius: 4
   color: isHighlighted ? Qt.rgba(valColor.r, valColor.g, valColor.b, 0.15) : trackColor
   border.width: isHighlighted ? 1 : 0
@@ -29,12 +29,12 @@ Rectangle {
 
   ColumnLayout {
     anchors.fill: parent
-    anchors.margins: Style.space(4)
+    anchors.margins: Style.space(3)
     spacing: 1
 
     RowLayout {
       Layout.alignment: Qt.AlignHCenter
-      spacing: Style.space(4)
+      spacing: Style.space(3)
 
       Text {
         textFormat: Text.PlainText;
@@ -42,7 +42,7 @@ Rectangle {
         text: root.iconText
         color: root.valColor
         font.family: root.fontFamily
-        font.pixelSize: Style.font.caption - 1
+        font.pixelSize: 9
         Layout.alignment: Qt.AlignVCenter
       }
 
@@ -51,7 +51,7 @@ Rectangle {
         text: root.value
         color: root.valColor
         font.family: root.fontFamily
-        font.pixelSize: Style.font.title
+        font.pixelSize: 13
         font.bold: true
         elide: Text.ElideRight
         Layout.alignment: Qt.AlignVCenter
@@ -63,7 +63,7 @@ Rectangle {
       text: root.subvalue !== "" ? root.subvalue : root.label
       color: root.subvalue !== "" ? root.subColor : (Color.dim || "#888888")
       font.family: root.fontFamily
-      font.pixelSize: Style.font.caption - 2
+      font.pixelSize: 8
       Layout.fillWidth: true
       horizontalAlignment: Text.AlignHCenter
       elide: Text.ElideRight

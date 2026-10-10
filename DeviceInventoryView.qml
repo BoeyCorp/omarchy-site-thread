@@ -56,45 +56,53 @@ ColumnLayout {
   }
 
   // Filter Bar
-  RowLayout {
+  Flickable {
     Layout.fillWidth: true
-    spacing: Style.space(6)
+    implicitHeight: Style.space(22)
+    contentWidth: catPillsRow.implicitWidth
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
 
-    Repeater {
-      model: [
-        { id: "all", label: "All (" + countCategory("all") + ")" },
-        { id: "gateways", label: "Gateways (" + countCategory("gateways") + ")" },
-        { id: "switches", label: "Switches (" + countCategory("switches") + ")" },
-        { id: "aps", label: "APs (" + countCategory("aps") + ")" },
-        { id: "storage", label: "Storage (" + countCategory("storage") + ")" }
-      ]
-      delegate: Rectangle {
-        required property var modelData
-        readonly property bool isSelected: root.currentFilter === modelData.id
-        implicitHeight: Style.space(24)
-        implicitWidth: catPillText.implicitWidth + Style.space(14)
-        radius: 4
-        color: isSelected ? root.accent : (catMouse.containsMouse ? root.cardHover : root.track)
-        border.width: 1
-        border.color: isSelected ? root.accent : root.outline
+    RowLayout {
+      id: catPillsRow
+      spacing: Style.space(4)
 
-        Text {
-          textFormat: Text.PlainText;
-          id: catPillText
-          anchors.centerIn: parent
-          text: modelData.label
-          color: isSelected ? "#ffffff" : root.foreground
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption - 1
-          font.bold: isSelected
-        }
+      Repeater {
+        model: [
+          { id: "all", label: "All (" + countCategory("all") + ")" },
+          { id: "gateways", label: "Gateways (" + countCategory("gateways") + ")" },
+          { id: "switches", label: "Switches (" + countCategory("switches") + ")" },
+          { id: "aps", label: "APs (" + countCategory("aps") + ")" },
+          { id: "storage", label: "Storage (" + countCategory("storage") + ")" }
+        ]
+        delegate: Rectangle {
+          required property var modelData
+          readonly property bool isSelected: root.currentFilter === modelData.id
+          implicitHeight: Style.space(20)
+          implicitWidth: catPillText.implicitWidth + Style.space(10)
+          radius: 3
+          color: isSelected ? root.accent : (catMouse.containsMouse ? root.cardHover : root.track)
+          border.width: 1
+          border.color: isSelected ? root.accent : root.outline
 
-        MouseArea {
-          id: catMouse
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.currentFilter = modelData.id
+          Text {
+            textFormat: Text.PlainText;
+            id: catPillText
+            anchors.centerIn: parent
+            text: modelData.label
+            color: isSelected ? "#ffffff" : root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption - 2
+            font.bold: isSelected
+          }
+
+          MouseArea {
+            id: catMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.currentFilter = modelData.id
+          }
         }
       }
     }

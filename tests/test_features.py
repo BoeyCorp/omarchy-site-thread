@@ -207,6 +207,40 @@ class ConsoleDirectConnectIntegrationTests(unittest.TestCase):
         self.assertIn("id: tab4View", self.analytics_qml)
 
 
+class UiDimensionsAndDensityTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.statblock_qml = (ROOT / "StatBlock.qml").read_text(encoding="utf-8")
+        self.device_view_qml = (ROOT / "DeviceInventoryView.qml").read_text(encoding="utf-8")
+
+    def test_panel_width_matches_agent_hub(self) -> None:
+        self.assertIn('setting("panelWidth", 450)', self.panel_qml)
+
+    def test_panel_content_height_matches_dense_profile(self) -> None:
+        self.assertIn("Math.min(Style.space(720), content.implicitHeight)", self.panel_qml)
+
+    def test_tab_nav_matches_agent_hub_density(self) -> None:
+        self.assertIn("height: Style.space(28)", self.panel_qml)
+
+    def test_statblock_dimensions_match_agent_hub(self) -> None:
+        self.assertIn("implicitHeight: Style.space(46)", self.statblock_qml)
+        self.assertIn("font.pixelSize: 13", self.statblock_qml)
+
+    def test_overview_globe_is_full_width_with_in_view_roster(self) -> None:
+        self.assertIn("id: globeContainer", self.panel_qml)
+        self.assertIn("height: Style.space(175)", self.panel_qml)
+        self.assertIn("IN VIEW", self.panel_qml)
+
+    def test_site_roster_has_compact_action_cluster(self) -> None:
+        self.assertIn("id: siteCardSurface", self.panel_qml)
+        self.assertIn("id: directSiteMouse", self.panel_qml)
+        self.assertIn("id: sshBtnText", self.panel_qml)
+        self.assertIn("id: pingBtnText", self.panel_qml)
+
+    def test_device_inventory_uses_flickable_filter_bar(self) -> None:
+        self.assertIn("id: catPillsRow", self.device_view_qml)
+
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -39,7 +39,7 @@ Panel {
   readonly property color track: Qt.rgba(foreground.r, foreground.g, foreground.b, isLightTheme ? 0.12 : 0.24)
 
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
-  readonly property int panelWidth: setting("panelWidth", 780)
+  readonly property int panelWidth: setting("panelWidth", 450)
   readonly property int refreshSeconds: setting("refreshSeconds", 30)
 
   property bool autoRotate: false
@@ -829,7 +829,7 @@ Panel {
     open: root.opened
     focusTarget: keyCatcher
     contentWidth: popup.fittedContentWidth(Style.space(root.panelWidth))
-    contentHeight: popup.fittedContentHeight(Math.min(Style.space(680), content.implicitHeight))
+    contentHeight: popup.fittedContentHeight(Math.min(Style.space(720), content.implicitHeight))
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -946,7 +946,7 @@ Panel {
                           : "UNIFI SITETHREAD")
                     color: root.foreground
                     font.family: root.fontFamily
-                    font.pixelSize: Style.font.title
+                    font.pixelSize: 13
                     font.bold: true
                   }
 
@@ -1597,7 +1597,7 @@ Panel {
 
           Rectangle {
             width: parent.width
-            height: Style.space(30)
+            height: Style.space(28)
             color: root.track
             radius: 4
             border.width: 1
@@ -1614,7 +1614,7 @@ Panel {
                   { id: 1, label: root.cloudMode ? "Sites (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "Sites", icon: "\uf132" },
                   { id: 2, label: "Devices (" + (root.data.network && root.data.network.deviceCount ? root.data.network.deviceCount : (root.data.network && root.data.network.devices ? root.data.network.devices.length : 0)) + ")", icon: "\uf0e8" },
                   { id: 3, label: "Issues (" + root.activeIssuesCount + ")", icon: "\uf071" },
-                  { id: 4, label: "Cameras (" + (root.data.protect && root.data.protect.cameras ? root.data.protect.cameras.length : 0) + ")", icon: "\uf03d", visible: !root.cloudMode || (root.data.protect && root.data.protect.available) }
+                  { id: 4, label: "Protect (" + (root.data.protect && root.data.protect.cameras ? root.data.protect.cameras.length : 0) + ")", icon: "\uf03d", visible: !root.cloudMode || (root.data.protect && root.data.protect.available) }
                 ]
                 delegate: Rectangle {
                   required property var modelData
@@ -1629,14 +1629,14 @@ Panel {
 
                   RowLayout {
                     anchors.centerIn: parent
-                    spacing: Style.space(5)
+                    spacing: Style.space(3)
 
                     Text {
                       textFormat: Text.PlainText;
                       text: modelData.icon
                       color: isSelected ? (root.isLightTheme ? "#ffffff" : "#000000") : (tabMouse.containsMouse ? root.foreground : root.dim)
                       font.family: root.fontFamily
-                      font.pixelSize: Style.font.caption - 1
+                      font.pixelSize: 9
                     }
 
                     Text {
@@ -1644,8 +1644,9 @@ Panel {
                       text: modelData.label
                       color: isSelected ? (root.isLightTheme ? "#ffffff" : "#000000") : (tabMouse.containsMouse ? root.foreground : root.dim)
                       font.family: root.fontFamily
-                      font.pixelSize: Style.font.caption - 1
+                      font.pixelSize: 9
                       font.bold: isSelected
+                      elide: Text.ElideRight
                     }
                   }
 
@@ -1824,366 +1825,168 @@ Panel {
                   }
                 }
 
-                // 3D Globe Canvas Container & In-View Sites Panel
+                // 3D Globe Canvas Container (Full width)
                 Rectangle {
                   id: globeContainer
                   width: parent.width
-                  height: Style.space(275)
+                  height: Style.space(175)
                   color: root.isLightTheme ? "#f1f5f9" : "#080b11"
                   radius: Style.cornerRadius - 2
                   border.width: 1
                   border.color: root.outline
                   clip: true
 
-                  Item {
-                    id: globeWrapper
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    anchors.right: visibleSitesPanel.left
-                    clip: true
+                  Globe {
+                    id: fleetGlobe
+                    anchors.fill: parent
+                    sites: root.data && root.data.sites ? root.data.sites : []
+                    autoRotate: root.autoRotate && root.opened && root.activeTab === 0
+                    fontFamily: root.fontFamily
+                    sphereColor: root.isLightTheme ? "#e2e8f0" : "#0f1520"
+                    landColor: root.isLightTheme ? "#94a3b8" : "#1e293b"
+                    gridColor: root.isLightTheme ? "#cbd5e1" : "#334155"
+                    outlineColor: root.accent
+                    textColor: root.foreground
+                    healthy: root.healthy
+                    backup: root.backup
+                    urgent: root.urgent
+                    onSiteActivated: function(site) {
+                      root.openSite(site)
+                    }
+                  }
+                }
 
-                    Globe {
-                      id: fleetGlobe
-                      anchors.fill: parent
-                      sites: root.data && root.data.sites ? root.data.sites : []
-                      autoRotate: root.autoRotate && root.opened && root.activeTab === 0
-                      fontFamily: root.fontFamily
-                      sphereColor: root.isLightTheme ? "#e2e8f0" : "#0f1520"
-                      landColor: root.isLightTheme ? "#94a3b8" : "#1e293b"
-                      gridColor: root.isLightTheme ? "#cbd5e1" : "#334155"
-                      outlineColor: root.accent
-                      textColor: root.foreground
-                      healthy: root.healthy
-                      backup: root.backup
-                      urgent: root.urgent
-                      onSiteActivated: function(site) {
-                        root.openSite(site)
-                      }
+                // In-View Sites Dense Roster
+                Column {
+                  width: parent.width
+                  spacing: Style.space(4)
+                  visible: fleetGlobe.visibleSites && fleetGlobe.visibleSites.length > 0
+
+                  RowLayout {
+                    width: parent.width
+                    spacing: Style.space(6)
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: " IN VIEW (" + (fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0) + ")"
+                      color: root.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      font.bold: true
+                      Layout.fillWidth: true
+                    }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: "Click to open"
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
                     }
                   }
 
-                  // Right Side Panel: Sites currently visible on the globe
-                  Rectangle {
-                    id: visibleSitesPanel
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: Style.space(240)
-                    color: root.isLightTheme ? "#ffffff" : Qt.rgba(0.06, 0.08, 0.12, 0.95)
-                    clip: true
+                  RowLayout {
+                    width: parent.width
+                    spacing: Style.space(6)
 
-                    // Vertical divider between Globe and In-View Panel
-                    Rectangle {
-                      anchors.left: parent.left
-                      anchors.top: parent.top
-                      anchors.bottom: parent.bottom
-                      width: 1
-                      color: root.outline
-                    }
+                    Repeater {
+                      model: fleetGlobe.visibleSites || []
+                      delegate: Rectangle {
+                        id: cardDelegate
+                        required property var modelData
+                        required property int index
 
-                    Column {
-                      anchors.fill: parent
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.minimumWidth: 0
+                        implicitHeight: Style.space(34)
+                        radius: 4
+                        color: cardMouse.containsMouse
+                          ? (root.isLightTheme ? "#f1f5f9" : root.cardHover)
+                          : (root.isLightTheme ? "#f8fafc" : Qt.rgba(root.track.r, root.track.g, root.track.b, 0.45))
+                        border.width: 1
+                        border.color: cardMouse.containsMouse
+                          ? root.accent
+                          : (fleetGlobe.selectedSite && fleetGlobe.selectedSite.id === modelData.id ? root.accent : root.outline)
 
-                      // Header
-                      Rectangle {
-                        width: parent.width
-                        height: Style.space(30)
-                        color: root.isLightTheme ? "#e2e8f0" : root.track
-
-                        Rectangle {
-                          anchors.bottom: parent.bottom
-                          anchors.left: parent.left
-                          anchors.right: parent.right
-                          height: 1
-                          color: root.outline
-                        }
-
-                        Item {
+                        RowLayout {
                           anchors.fill: parent
-                          anchors.leftMargin: Style.space(8)
-                          anchors.rightMargin: Style.space(8)
+                          anchors.leftMargin: Style.space(6)
+                          anchors.rightMargin: Style.space(6)
+                          spacing: Style.space(5)
 
-                          Row {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: Style.space(6)
+                          Rectangle {
+                            width: Style.space(6)
+                            height: Style.space(6)
+                            radius: width / 2
+                            color: modelData.status === "down" ? root.urgent : (modelData.status === "backup" ? root.backup : root.healthy)
+                            Layout.alignment: Qt.AlignVCenter
+                          }
 
-                            Text {
-                              textFormat: Text.PlainText;
-                              text: "\uf06e"
-                              color: root.accent
-                              font.family: root.fontFamily
-                              font.pixelSize: Style.font.caption
-                              anchors.verticalCenter: parent.verticalCenter
+                          ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            RowLayout {
+                              spacing: Style.space(4)
+                              Text {
+                                textFormat: Text.PlainText;
+                                text: Model.safe(modelData.name, "Site")
+                                color: root.foreground
+                                font.family: root.fontFamily
+                                font.pixelSize: Style.font.caption - 1
+                                font.bold: true
+                                elide: Text.ElideRight
+                              }
+                              Text {
+                                textFormat: Text.PlainText;
+                                visible: !!modelData.gatewayModel
+                                text: "(" + modelData.gatewayModel + ")"
+                                color: root.dim
+                                font.family: root.fontFamily
+                                font.pixelSize: 8
+                                elide: Text.ElideRight
+                              }
                             }
 
                             Text {
                               textFormat: Text.PlainText;
-                              text: "IN VIEW"
-                              color: root.foreground
+                              text: " " + (modelData.clientCount !== undefined ? modelData.clientCount : 0) + " ·  " + (modelData.deviceCount !== undefined ? modelData.deviceCount : 0) + (modelData.isp ? (" · " + modelData.isp) : "")
+                              color: root.dim
                               font.family: root.fontFamily
-                              font.pixelSize: Style.font.caption - 1
-                              font.bold: true
-                              anchors.verticalCenter: parent.verticalCenter
+                              font.pixelSize: 8
+                              elide: Text.ElideRight
                             }
                           }
 
                           Rectangle {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            height: Style.space(16)
-                            width: inViewCountText.implicitWidth + Style.space(8)
-                            radius: height / 2
-                            color: fleetGlobe.visibleSites && fleetGlobe.visibleSites.length > 0
-                              ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)
-                              : root.track
-                            border.width: 1
-                            border.color: fleetGlobe.visibleSites && fleetGlobe.visibleSites.length > 0
-                              ? root.accent
-                              : root.outline
-
+                            visible: modelData.status !== "up"
+                            height: Style.space(13)
+                            implicitWidth: itemStatusText.implicitWidth + Style.space(6)
+                            radius: 2
+                            color: modelData.status === "down" ? root.urgent : root.backup
+                            Layout.alignment: Qt.AlignVCenter
                             Text {
                               textFormat: Text.PlainText;
-                              id: inViewCountText
+                              id: itemStatusText
                               anchors.centerIn: parent
-                              text: String(fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0)
-                              color: fleetGlobe.visibleSites && fleetGlobe.visibleSites.length > 0 ? root.accent : root.dim
+                              text: modelData.status ? modelData.status.toUpperCase() : ""
+                              color: "#ffffff"
                               font.family: root.fontFamily
-                              font.pixelSize: Style.font.caption - 2
+                              font.pixelSize: 8
                               font.bold: true
                             }
                           }
                         }
-                      }
 
-                      // Scrollable list or Empty state
-                      Item {
-                        width: parent.width
-                        height: parent.height - Style.space(30)
-
-                        // Empty State: Shown when no sites visible
-                        Column {
-                          visible: !fleetGlobe.visibleSites || fleetGlobe.visibleSites.length === 0
-                          anchors.centerIn: parent
-                          spacing: Style.space(5)
-                          width: parent.width - Style.space(16)
-
-                          Text {
-                            textFormat: Text.PlainText;
-                            text: "\uf070"
-                            color: root.dim
-                            font.family: root.fontFamily
-                            font.pixelSize: Style.space(20)
-                            horizontalAlignment: Text.AlignHCenter
-                            anchors.horizontalCenter: parent.horizontalCenter
-                          }
-
-                          Text {
-                            textFormat: Text.PlainText;
-                            text: "No sites in view"
-                            color: root.dim
-                            font.family: root.fontFamily
-                            font.pixelSize: Style.font.caption
-                            font.bold: true
-                            horizontalAlignment: Text.AlignHCenter
-                            anchors.horizontalCenter: parent.horizontalCenter
-                          }
-
-                          Text {
-                            textFormat: Text.PlainText;
-                            text: "Rotate globe to view sites"
-                            color: root.dim
-                            font.family: root.fontFamily
-                            font.pixelSize: Style.font.caption - 2
-                            horizontalAlignment: Text.AlignHCenter
-                            anchors.horizontalCenter: parent.horizontalCenter
-                          }
-                        }
-
-                        // Scrollable List
-                        Flickable {
-                          id: visibleScroll
-                          visible: fleetGlobe.visibleSites && fleetGlobe.visibleSites.length > 0
+                        MouseArea {
+                          id: cardMouse
                           anchors.fill: parent
-                          contentWidth: width
-                          contentHeight: visibleCardsCol.implicitHeight + Style.space(8)
-                          clip: true
-                          boundsBehavior: Flickable.StopAtBounds
-                          interactive: contentHeight > height
-
-                          Column {
-                            id: visibleCardsCol
-                            width: visibleScroll.width - Style.space(12)
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.top: parent.top
-                            anchors.topMargin: Style.space(6)
-                            spacing: Style.space(5)
-
-                            Repeater {
-                              model: fleetGlobe.visibleSites || []
-                              delegate: Rectangle {
-                                id: cardDelegate
-                                required property var modelData
-                                required property int index
-
-                                width: visibleCardsCol.width
-                                implicitHeight: cardInnerCol.implicitHeight + Style.space(10)
-                                radius: 4
-                                color: cardMouse.containsMouse
-                                  ? (root.isLightTheme ? "#f1f5f9" : root.cardHover)
-                                  : (root.isLightTheme ? "#f8fafc" : Qt.rgba(root.track.r, root.track.g, root.track.b, 0.45))
-                                border.width: 1
-                                border.color: cardMouse.containsMouse
-                                  ? root.accent
-                                  : (fleetGlobe.selectedSite && fleetGlobe.selectedSite.id === modelData.id ? root.accent : root.outline)
-
-                                MouseArea {
-                                  id: cardMouse
-                                  anchors.fill: parent
-                                  hoverEnabled: true
-                                  cursorShape: Qt.PointingHandCursor
-                                  onClicked: root.openSite(cardDelegate.modelData)
-                                  onEntered: fleetGlobe.selectedSite = cardDelegate.modelData
-                                  onExited: {
-                                    if (fleetGlobe.selectedSite && fleetGlobe.selectedSite.id === cardDelegate.modelData.id) {
-                                      fleetGlobe.selectedSite = null
-                                    }
-                                  }
-                                }
-
-                                Column {
-                                  id: cardInnerCol
-                                  anchors.left: parent.left
-                                  anchors.right: parent.right
-                                  anchors.top: parent.top
-                                  anchors.margins: Style.space(6)
-                                  spacing: Style.space(3)
-
-                                  // Row 1: Status Dot + Site Name + Focus Icon
-                                  Row {
-                                    width: parent.width
-                                    spacing: Style.space(5)
-
-                                    Rectangle {
-                                      width: Style.space(7)
-                                      height: Style.space(7)
-                                      radius: width / 2
-                                      color: modelData.status === "down" ? root.urgent : (modelData.status === "backup" ? root.backup : root.healthy)
-                                      anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Text {
-                                      textFormat: Text.PlainText;
-                                      text: Model.safe(modelData.name, "Site")
-                                      color: root.foreground
-                                      font.family: root.fontFamily
-                                      font.pixelSize: Style.font.caption
-                                      font.bold: true
-                                      elide: Text.ElideRight
-                                      width: parent.width - Style.space(32)
-                                      anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Text {
-                                      textFormat: Text.PlainText;
-                                      text: ""
-                                      color: focusPinMouse.containsMouse ? root.accent : root.dim
-                                      font.family: root.fontFamily
-                                      font.pixelSize: Style.font.caption - 1
-                                      anchors.verticalCenter: parent.verticalCenter
-                                      MouseArea {
-                                        id: focusPinMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: fleetGlobe.focusSite(cardDelegate.modelData)
-                                      }
-                                    }
-                                  }
-
-                                  // Row 2: Gateway model / ISP
-                                  Row {
-                                    width: parent.width
-                                    visible: !!(modelData.gatewayModel || modelData.isp)
-                                    Text {
-                                      textFormat: Text.PlainText;
-                                      text: modelData.gatewayModel ? modelData.gatewayModel : (modelData.isp ? modelData.isp : "")
-                                      color: root.dim
-                                      font.family: root.fontFamily
-                                      font.pixelSize: Style.font.caption - 2
-                                      elide: Text.ElideRight
-                                      width: parent.width
-                                    }
-                                  }
-
-                                  // Row 3: Telemetry chips
-                                  Row {
-                                    width: parent.width
-                                    spacing: Style.space(8)
-
-                                    Row {
-                                      spacing: Style.space(3)
-                                      Text {
-                                        textFormat: Text.PlainText;
-                                        text: ""
-                                        color: root.dim
-                                        font.family: root.fontFamily
-                                        font.pixelSize: Style.font.caption - 2
-                                        anchors.verticalCenter: parent.verticalCenter
-                                      }
-                                      Text {
-                                        textFormat: Text.PlainText;
-                                        text: String(modelData.clientCount !== undefined ? modelData.clientCount : 0)
-                                        color: root.foreground
-                                        font.family: root.fontFamily
-                                        font.pixelSize: Style.font.caption - 2
-                                        font.bold: true
-                                        anchors.verticalCenter: parent.verticalCenter
-                                      }
-                                    }
-
-                                    Row {
-                                      spacing: Style.space(3)
-                                      Text {
-                                        textFormat: Text.PlainText;
-                                        text: ""
-                                        color: root.dim
-                                        font.family: root.fontFamily
-                                        font.pixelSize: Style.font.caption - 2
-                                        anchors.verticalCenter: parent.verticalCenter
-                                      }
-                                      Text {
-                                        textFormat: Text.PlainText;
-                                        text: String(modelData.deviceCount !== undefined ? modelData.deviceCount : 0)
-                                        color: root.foreground
-                                        font.family: root.fontFamily
-                                        font.pixelSize: Style.font.caption - 2
-                                        anchors.verticalCenter: parent.verticalCenter
-                                      }
-                                    }
-
-                                    Rectangle {
-                                      visible: modelData.status !== "up"
-                                      height: Style.space(13)
-                                      width: itemStatusText.implicitWidth + Style.space(6)
-                                      radius: 2
-                                      color: modelData.status === "down" ? root.urgent : root.backup
-                                      anchors.verticalCenter: parent.verticalCenter
-                                      Text {
-                                        textFormat: Text.PlainText;
-                                        id: itemStatusText
-                                        anchors.centerIn: parent
-                                        text: modelData.status ? modelData.status.toUpperCase() : ""
-                                        color: "#ffffff"
-                                        font.family: root.fontFamily
-                                        font.pixelSize: Style.font.caption - 3
-                                        font.bold: true
-                                      }
-                                    }
-                                  }
-                                }
-                              }
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.openSite(cardDelegate.modelData)
+                          onEntered: fleetGlobe.selectedSite = cardDelegate.modelData
+                          onExited: {
+                            if (fleetGlobe.selectedSite && fleetGlobe.selectedSite.id === cardDelegate.modelData.id) {
+                              fleetGlobe.selectedSite = null
                             }
                           }
                         }
@@ -2195,7 +1998,7 @@ Panel {
                 // Interactive Telemetry Strip
                 Rectangle {
                   width: parent.width
-                  height: Style.space(26)
+                  height: Style.space(22)
                   radius: 3
                   color: root.track
                   border.width: 1
@@ -2203,19 +2006,19 @@ Panel {
 
                   Row {
                     anchors.centerIn: parent
-                    spacing: Style.space(8)
+                    spacing: Style.space(6)
                     Rectangle {
-                      width: Style.space(6)
+                      width: Style.space(5)
                       height: width
                       radius: width / 2
                       color: root.healthy
                       anchors.verticalCenter: parent.verticalCenter
                     }
                     Text { textFormat: Text.PlainText;
-                      text: (fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0) + " of " + (root.data && root.data.sites ? root.data.sites.length : 0) + " sites in view  ·  Drag to rotate  ·  Scroll to zoom  ·  Click node to inspect"
+                      text: (fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0) + " of " + (root.data && root.data.sites ? root.data.sites.length : 0) + " sites in view  ·  Drag to rotate  ·  Scroll to zoom"
                       color: root.dim
                       font.family: root.fontFamily
-                      font.pixelSize: Style.font.caption - 1
+                      font.pixelSize: 8
                       anchors.verticalCenter: parent.verticalCenter
                     }
                   }
@@ -2383,130 +2186,217 @@ Panel {
                 ? (root.data.sites || [])
                 : (root.data.network && root.data.network.devices ? root.data.network.devices : [])
               BorderSurface {
+                id: siteCardSurface
                 required property var modelData
                 width: content.width
-                implicitHeight: denseSiteRow.implicitHeight + Style.space(16)
-                color: root.card
+                implicitHeight: siteCardCol.implicitHeight + Style.space(14)
+                color: siteCardMouse.containsMouse ? root.cardHover : root.card
                 radius: Style.cornerRadius
-                borderSpec: Border.flat(root.outline, 1)
+                borderSpec: Border.flat(siteCardMouse.containsMouse ? root.accent : root.outline, 1)
 
-                Row {
-                  id: denseSiteRow
+                MouseArea {
+                  id: siteCardMouse
+                  anchors.fill: parent
+                  enabled: root.cloudMode
+                  cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                  onClicked: root.openSite(siteCardSurface.modelData)
+                }
+
+                ColumnLayout {
+                  id: siteCardCol
                   anchors.left: parent.left
                   anchors.right: parent.right
-                  anchors.verticalCenter: parent.verticalCenter
-                  anchors.margins: Style.space(9)
-                  spacing: Style.space(10)
+                  anchors.top: parent.top
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(4)
 
-                  // Status dot
-                  Rectangle {
-                    width: Style.space(9)
-                    height: width
-                    radius: width / 2
-                    color: root.cloudMode
-                      ? Model.siteColor(modelData.status, root.healthy, root.backup, root.urgent)
-                      : (modelData.online ? root.healthy : root.urgent)
-                    anchors.verticalCenter: parent.verticalCenter
-                  }
+                  // Row 1: Status Dot + Site Name + Gateway Badge + Status Pill
+                  RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Style.space(6)
 
-                  // Main site telemetry
-                  Column {
-                    width: parent.width - Style.space(root.cloudMode ? 280 : 130)
-                    spacing: Style.space(2)
-                    Row {
-                      spacing: Style.space(6)
-                      Text { textFormat: Text.PlainText; text: Model.safe(modelData.name, "UniFi Site"); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true }
-                      Rectangle {
-                        visible: root.cloudMode && modelData.gatewayModel !== undefined && modelData.gatewayModel !== ""
-                        radius: 3
-                        height: Style.space(16)
-                        width: gwBadgeText.implicitWidth + Style.space(8)
-                        color: root.track
-                        border.width: 1
-                        border.color: root.outline
-                        anchors.verticalCenter: parent.verticalCenter
-                        Text { textFormat: Text.PlainText; id: gwBadgeText; anchors.centerIn: parent; text: Model.safe(modelData.gatewayModel); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                      }
+                    Rectangle {
+                      width: Style.space(8)
+                      height: Style.space(8)
+                      radius: width / 2
+                      color: root.cloudMode
+                        ? Model.siteColor(siteCardSurface.modelData.status, root.healthy, root.backup, root.urgent)
+                        : (siteCardSurface.modelData.online ? root.healthy : root.urgent)
+                      Layout.alignment: Qt.AlignVCenter
                     }
-                    Text { textFormat: Text.PlainText;
-                      text: root.cloudMode
-                        ? (String(modelData.deviceCount || 0) + " dev · " + String(modelData.clientCount || 0) + " cli ( " + (modelData.wifiClients || 0) + " / 󰈀 " + (modelData.wiredClients || 0) + ")" + (modelData.isp ? " · " + Model.safe(modelData.isp) : "") + " · WAN " + Number(modelData.wanUptime || 100).toFixed(1) + "%")
-                        : (Model.safe(modelData.model, "") + (modelData.ip ? " · " + Model.safe(modelData.ip) : ""))
-                      color: root.dim
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: Model.safe(siteCardSurface.modelData.name, "UniFi Site")
+                      color: root.foreground
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption
-                    }
-                  }
-
-                  // SSH to Gateway Action Button
-                  Rectangle {
-                    visible: root.cloudMode && modelData.gatewayIp !== undefined && modelData.gatewayIp !== ""
-                    width: sshBtnText.implicitWidth + Style.space(12)
-                    height: Style.space(24)
-                    radius: 3
-                    color: sshMouse.containsMouse ? root.cardHover : root.track
-                    border.width: 1
-                    border.color: root.outline
-                    anchors.verticalCenter: parent.verticalCenter
-                    Text { textFormat: Text.PlainText; id: sshBtnText; anchors.centerIn: parent; text: "SSH"; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                    MouseArea {
-                      id: sshMouse
-                      anchors.fill: parent
-                      hoverEnabled: true
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: root.launchSsh(modelData.gatewayIp, "root")
-                    }
-                  }
-
-                  // Ping Gateway Action Button
-                  Rectangle {
-                    visible: root.cloudMode && modelData.gatewayIp !== undefined && modelData.gatewayIp !== ""
-                    width: pingBtnText.implicitWidth + Style.space(12)
-                    height: Style.space(24)
-                    radius: 3
-                    color: pingMouse.containsMouse ? root.cardHover : root.track
-                    border.width: 1
-                    border.color: root.outline
-                    anchors.verticalCenter: parent.verticalCenter
-                    Text { textFormat: Text.PlainText; id: pingBtnText; anchors.centerIn: parent; text: "Ping"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                    MouseArea {
-                      id: pingMouse
-                      anchors.fill: parent
-                      hoverEnabled: true
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: root.launchPing(modelData.gatewayIp)
-                    }
-                  }
-
-                  // Status Pill
-                  Rectangle {
-                    radius: 3
-                    height: Style.space(20)
-                    width: siteStatusLabel.implicitWidth + Style.space(10)
-                    color: root.cloudMode
-                      ? (modelData.status === "down" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.18) : (modelData.status === "backup" ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.18) : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.18)))
-                      : (modelData.online ? root.track : Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.18))
-                    border.width: 1
-                    border.color: root.cloudMode
-                      ? Model.siteColor(modelData.status, root.healthy, root.backup, root.urgent)
-                      : (modelData.online ? root.outline : root.urgent)
-                    anchors.verticalCenter: parent.verticalCenter
-                    Text { textFormat: Text.PlainText;
-                      id: siteStatusLabel
-                      anchors.centerIn: parent
-                      text: root.cloudMode
-                        ? String(modelData.statusText || "Online").toUpperCase()
-                        : (modelData.online ? "ONLINE" : "OFFLINE")
-                      color: root.cloudMode
-                        ? Model.siteColor(modelData.status, root.healthy, root.backup, root.urgent)
-                        : (modelData.online ? root.dim : root.urgent)
-                      font.family: root.fontFamily
-                      font.pixelSize: Style.font.caption - 1
                       font.bold: true
+                      elide: Text.ElideRight
+                      Layout.fillWidth: true
+                      Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Rectangle {
+                      visible: root.cloudMode && siteCardSurface.modelData.gatewayModel !== undefined && siteCardSurface.modelData.gatewayModel !== ""
+                      radius: 3
+                      implicitHeight: Style.space(16)
+                      implicitWidth: gwBadgeText.implicitWidth + Style.space(8)
+                      color: root.track
+                      border.width: 1
+                      border.color: root.outline
+                      Layout.alignment: Qt.AlignVCenter
+                      Text {
+                        textFormat: Text.PlainText;
+                        id: gwBadgeText
+                        anchors.centerIn: parent
+                        text: Model.safe(siteCardSurface.modelData.gatewayModel)
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                      }
+                    }
+
+                    Rectangle {
+                      radius: 3
+                      implicitHeight: Style.space(16)
+                      implicitWidth: siteStatusLabel.implicitWidth + Style.space(8)
+                      color: root.cloudMode
+                        ? (siteCardSurface.modelData.status === "down" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.18) : (siteCardSurface.modelData.status === "backup" ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.18) : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.18)))
+                        : (siteCardSurface.modelData.online ? root.track : Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.18))
+                      border.width: 1
+                      border.color: root.cloudMode
+                        ? Model.siteColor(siteCardSurface.modelData.status, root.healthy, root.backup, root.urgent)
+                        : (siteCardSurface.modelData.online ? root.outline : root.urgent)
+                      Layout.alignment: Qt.AlignVCenter
+                      Text {
+                        textFormat: Text.PlainText;
+                        id: siteStatusLabel
+                        anchors.centerIn: parent
+                        text: root.cloudMode
+                          ? String(siteCardSurface.modelData.statusText || "Online").toUpperCase()
+                          : (siteCardSurface.modelData.online ? "ONLINE" : "OFFLINE")
+                        color: root.cloudMode
+                          ? Model.siteColor(siteCardSurface.modelData.status, root.healthy, root.backup, root.urgent)
+                          : (siteCardSurface.modelData.online ? root.dim : root.urgent)
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                        font.bold: true
+                      }
+                    }
+                  }
+
+                  // Row 2: Telemetry Details + Action Buttons (Direct, SSH, Ping)
+                  RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Style.space(6)
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: root.cloudMode
+                        ? (String(siteCardSurface.modelData.deviceCount || 0) + " dev · " + String(siteCardSurface.modelData.clientCount || 0) + " cli ( " + (siteCardSurface.modelData.wifiClients || 0) + " / 󰈀 " + (siteCardSurface.modelData.wiredClients || 0) + ")" + (siteCardSurface.modelData.isp ? " · " + Model.safe(siteCardSurface.modelData.isp) : "") + " · WAN " + Number(siteCardSurface.modelData.wanUptime || 100).toFixed(1) + "%")
+                        : (Model.safe(siteCardSurface.modelData.model, "") + (siteCardSurface.modelData.ip ? " · " + Model.safe(siteCardSurface.modelData.ip) : ""))
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                      elide: Text.ElideRight
+                      Layout.fillWidth: true
+                      Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    // Action buttons cluster
+                    RowLayout {
+                      spacing: Style.space(4)
+                      Layout.alignment: Qt.AlignVCenter
+
+                      // Direct Connect Launch button
+                      Rectangle {
+                        property var sc: root.getSiteConsole(siteCardSurface.modelData.hostId)
+                        visible: root.cloudMode && sc !== null && Boolean(sc.directConnectUrl || sc.directConnectDomain)
+                        implicitWidth: Style.space(20)
+                        implicitHeight: Style.space(20)
+                        radius: 3
+                        color: directSiteMouse.containsMouse ? root.accent : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18)
+                        border.width: 1
+                        border.color: root.accent
+                        Text {
+                          textFormat: Text.PlainText;
+                          anchors.centerIn: parent
+                          text: ""
+                          color: directSiteMouse.containsMouse ? "#ffffff" : root.accent
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption - 2
+                        }
+                        MouseArea {
+                          id: directSiteMouse
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: {
+                            var target = sc ? (sc.directConnectUrl || ("https://" + sc.directConnectDomain)) : ""
+                            if (target) Quickshell.execDetached(["xdg-open", target])
+                          }
+                        }
+                      }
+
+                      // SSH to Gateway Action Button
+                      Rectangle {
+                        visible: root.cloudMode && siteCardSurface.modelData.gatewayIp !== undefined && siteCardSurface.modelData.gatewayIp !== ""
+                        implicitWidth: sshBtnText.implicitWidth + Style.space(8)
+                        implicitHeight: Style.space(20)
+                        radius: 3
+                        color: sshMouse.containsMouse ? root.cardHover : root.track
+                        border.width: 1
+                        border.color: root.outline
+                        Text {
+                          textFormat: Text.PlainText;
+                          id: sshBtnText
+                          anchors.centerIn: parent
+                          text: "SSH"
+                          color: root.accent
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption - 2
+                          font.bold: true
+                        }
+                        MouseArea {
+                          id: sshMouse
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.launchSsh(siteCardSurface.modelData.gatewayIp, "root")
+                        }
+                      }
+
+                      // Ping Gateway Action Button
+                      Rectangle {
+                        visible: root.cloudMode && siteCardSurface.modelData.gatewayIp !== undefined && siteCardSurface.modelData.gatewayIp !== ""
+                        implicitWidth: pingBtnText.implicitWidth + Style.space(8)
+                        implicitHeight: Style.space(20)
+                        radius: 3
+                        color: pingMouse.containsMouse ? root.cardHover : root.track
+                        border.width: 1
+                        border.color: root.outline
+                        Text {
+                          textFormat: Text.PlainText;
+                          id: pingBtnText
+                          anchors.centerIn: parent
+                          text: "Ping"
+                          color: root.dim
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption - 2
+                          font.bold: true
+                        }
+                        MouseArea {
+                          id: pingMouse
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.launchPing(siteCardSurface.modelData.gatewayIp)
+                        }
+                      }
                     }
                   }
                 }
-                MouseArea { anchors.fill: parent; enabled: root.cloudMode; cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor; onClicked: root.openSite(modelData) }
               }
             }
           }
@@ -2546,60 +2436,60 @@ Panel {
             spacing: Style.space(8)
 
             // Header & Filter bar
-            Item {
+            RowLayout {
               width: parent.width
-              height: Style.space(24)
+              spacing: Style.space(4)
 
-              PanelSectionHeader {
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - Style.space(280)
-                text: "FLEET ISSUES & EVENT JOURNAL"
-                foreground: root.foreground
-                fontFamily: root.fontFamily
+              Text {
+                textFormat: Text.PlainText;
+                text: "FLEET ISSUES"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                font.bold: true
+                Layout.fillWidth: true
               }
 
               // Filter buttons & Clear button
-              Row {
-                spacing: Style.space(4)
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
+              RowLayout {
+                spacing: Style.space(3)
+                Layout.alignment: Qt.AlignRight
 
                 Rectangle {
-                  width: allFilterText.implicitWidth + Style.space(10)
-                  height: Style.space(22)
+                  implicitWidth: allFilterText.implicitWidth + Style.space(8)
+                  implicitHeight: Style.space(20)
                   radius: 3
                   color: root.issueFilter === "all" ? root.accent : root.track
-                  Text { textFormat: Text.PlainText; id: allFilterText; anchors.centerIn: parent; text: "All (" + root.issuesList.length + ")"; color: root.issueFilter === "all" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: root.issueFilter === "all" }
+                  Text { textFormat: Text.PlainText; id: allFilterText; anchors.centerIn: parent; text: "All (" + root.issuesList.length + ")"; color: root.issueFilter === "all" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: root.issueFilter === "all" }
                   MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.issueFilter = "all" }
                 }
 
                 Rectangle {
-                  width: actFilterText.implicitWidth + Style.space(10)
-                  height: Style.space(22)
+                  implicitWidth: actFilterText.implicitWidth + Style.space(8)
+                  implicitHeight: Style.space(20)
                   radius: 3
                   color: root.issueFilter === "active" ? root.urgent : root.track
-                  Text { textFormat: Text.PlainText; id: actFilterText; anchors.centerIn: parent; text: "Active (" + root.activeIssuesCount + ")"; color: root.issueFilter === "active" ? "#ffffff" : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: root.issueFilter === "active" }
+                  Text { textFormat: Text.PlainText; id: actFilterText; anchors.centerIn: parent; text: "Active (" + root.activeIssuesCount + ")"; color: root.issueFilter === "active" ? "#ffffff" : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: root.issueFilter === "active" }
                   MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.issueFilter = "active" }
                 }
 
                 Rectangle {
-                  width: resFilterText.implicitWidth + Style.space(10)
-                  height: Style.space(22)
+                  implicitWidth: resFilterText.implicitWidth + Style.space(8)
+                  implicitHeight: Style.space(20)
                   radius: 3
                   color: root.issueFilter === "resolved" ? root.dim : root.track
-                  Text { textFormat: Text.PlainText; id: resFilterText; anchors.centerIn: parent; text: "Resolved (" + (root.issuesList.length - root.activeIssuesCount) + ")"; color: root.issueFilter === "resolved" ? "#ffffff" : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: root.issueFilter === "resolved" }
+                  Text { textFormat: Text.PlainText; id: resFilterText; anchors.centerIn: parent; text: "Resolved"; color: root.issueFilter === "resolved" ? "#ffffff" : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: root.issueFilter === "resolved" }
                   MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.issueFilter = "resolved" }
                 }
 
                 Rectangle {
-                  width: clearHistoryBtnText.implicitWidth + Style.space(10)
-                  height: Style.space(22)
+                  implicitWidth: clearHistoryBtnText.implicitWidth + Style.space(8)
+                  implicitHeight: Style.space(20)
                   radius: 3
                   color: clearHistoryMouse.containsMouse ? root.cardHover : root.track
                   border.width: 1
                   border.color: root.outline
-                  Text { textFormat: Text.PlainText; id: clearHistoryBtnText; anchors.centerIn: parent; text: "Clear"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
+                  Text { textFormat: Text.PlainText; id: clearHistoryBtnText; anchors.centerIn: parent; text: "Clear"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
                   MouseArea {
                     id: clearHistoryMouse
                     anchors.fill: parent
@@ -2627,49 +2517,53 @@ Panel {
                 required property var modelData
                 readonly property bool isResolved: modelData.active !== true
                 width: content.width
-                implicitHeight: issueRow.implicitHeight + Style.space(14)
+                implicitHeight: issueRow.implicitHeight + Style.space(12)
                 color: root.card
                 radius: Style.cornerRadius
                 opacity: isResolved ? 0.62 : 1.0
                 borderSpec: Border.flat(isResolved ? root.outline : (modelData.severity === "critical" ? root.urgent : root.backup), 1)
 
-                Row {
+                RowLayout {
                   id: issueRow
-                  anchors.left: parent.left
-                  anchors.right: parent.right
-                  anchors.verticalCenter: parent.verticalCenter
-                  anchors.margins: Style.space(9)
-                  spacing: Style.space(10)
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
 
                   // Status Icon (Warning vs Checkmark)
                   Text {
-                    textFormat: Text.PlainText
+                    textFormat: Text.PlainText;
                     text: isResolved ? "✓" : "\uf071"
                     color: isResolved ? root.dim : (modelData.severity === "critical" ? root.urgent : root.backup)
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.body
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                   }
 
-                  Column {
-                    width: parent.width - issueBadge.implicitWidth - Style.space(45)
-                    spacing: Style.space(2)
+                  ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+
                     Text {
-                      textFormat: Text.PlainText
+                      textFormat: Text.PlainText;
                       text: Model.safe(modelData.title)
                       color: isResolved ? root.dim : root.foreground
                       font.family: root.fontFamily
-                      font.pixelSize: Style.font.bodySmall
+                      font.pixelSize: Style.font.caption
                       font.bold: !isResolved
+                      elide: Text.ElideRight
+                      Layout.fillWidth: true
                     }
+
                     Text {
-                      textFormat: Text.PlainText
+                      textFormat: Text.PlainText;
                       text: isResolved
                         ? (Model.safe(modelData.site) + (modelData.resolvedAt ? (" · Resolved " + Model.timeAgo(modelData.resolvedAt)) : "") + (modelData.durationSeconds ? (" · Downtime: " + Model.formatDuration(modelData.durationSeconds)) : ""))
                         : (Model.safe(modelData.site) + (modelData.durationSeconds ? (" · Down for " + Model.formatDuration(modelData.durationSeconds)) : ""))
                       color: root.dim
                       font.family: root.fontFamily
-                      font.pixelSize: Style.font.caption
+                      font.pixelSize: Style.font.caption - 2
+                      elide: Text.ElideRight
+                      Layout.fillWidth: true
                     }
                   }
 
@@ -2677,20 +2571,20 @@ Panel {
                   Rectangle {
                     id: issueBadge
                     radius: 3
-                    height: Style.space(18)
-                    width: issueBadgeText.implicitWidth + Style.space(10)
+                    implicitHeight: Style.space(16)
+                    implicitWidth: issueBadgeText.implicitWidth + Style.space(8)
                     color: isResolved ? root.track : (modelData.severity === "critical" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.18) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.18))
                     border.width: 1
                     border.color: isResolved ? root.outline : (modelData.severity === "critical" ? root.urgent : root.backup)
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     Text {
-                      textFormat: Text.PlainText
+                      textFormat: Text.PlainText;
                       id: issueBadgeText
                       anchors.centerIn: parent
                       text: isResolved ? "RESOLVED" : "ACTIVE"
                       color: isResolved ? root.dim : (modelData.severity === "critical" ? root.urgent : root.backup)
                       font.family: root.fontFamily
-                      font.pixelSize: Style.font.caption - 1
+                      font.pixelSize: Style.font.caption - 2
                       font.bold: true
                     }
                   }
@@ -2738,26 +2632,34 @@ Panel {
               }
             }
 
-            Row {
+            Flickable {
               width: parent.width
-              spacing: Style.space(6)
-              Repeater {
-                model: root.data.protect && root.data.protect.cameras ? root.data.protect.cameras : []
-                Rectangle {
-                  required property var modelData
-                  width: Math.max(Style.space(110), Math.floor((content.width - Style.space(18)) / Math.min(4, root.data.protect.cameras.length)))
-                  height: Style.space(52)
-                  radius: Style.cornerRadius
-                  color: String(modelData.id) === root.selectedCameraId ? Style.selectedFillFor(root.foreground, root.accent) : Style.normalFillFor(root.foreground, root.accent)
-                  border.width: String(modelData.id) === root.selectedCameraId ? 1 : 0
-                  border.color: root.accent
-                  Column {
-                    anchors.centerIn: parent
-                    width: parent.width - Style.space(12)
-                    Text { textFormat: Text.PlainText; width: parent.width; text: Model.safe(modelData.name, "Camera"); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter }
-                    Text { textFormat: Text.PlainText; width: parent.width; text: modelData.online ? "ONLINE" : "OFFLINE"; color: modelData.online ? root.dim : root.urgent; font.family: root.fontFamily; font.pixelSize: Style.font.caption; horizontalAlignment: Text.AlignHCenter }
+              implicitHeight: Style.space(48)
+              contentWidth: cameraCardsRow.implicitWidth
+              clip: true
+              boundsBehavior: Flickable.StopAtBounds
+
+              RowLayout {
+                id: cameraCardsRow
+                spacing: Style.space(6)
+                Repeater {
+                  model: root.data.protect && root.data.protect.cameras ? root.data.protect.cameras : []
+                  Rectangle {
+                    required property var modelData
+                    implicitWidth: Style.space(100)
+                    implicitHeight: Style.space(44)
+                    radius: Style.cornerRadius
+                    color: String(modelData.id) === root.selectedCameraId ? Style.selectedFillFor(root.foreground, root.accent) : Style.normalFillFor(root.foreground, root.accent)
+                    border.width: String(modelData.id) === root.selectedCameraId ? 1 : 0
+                    border.color: root.accent
+                    ColumnLayout {
+                      anchors.centerIn: parent
+                      spacing: 1
+                      Text { textFormat: Text.PlainText; text: Model.safe(modelData.name, "Camera"); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true; elide: Text.ElideRight; Layout.alignment: Qt.AlignHCenter }
+                      Text { textFormat: Text.PlainText; text: modelData.online ? "ONLINE" : "OFFLINE"; color: modelData.online ? root.dim : root.urgent; font.family: root.fontFamily; font.pixelSize: 8; Layout.alignment: Qt.AlignHCenter }
+                    }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.selectCamera(modelData) }
                   }
-                  MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.selectCamera(modelData) }
                 }
               }
             }
@@ -2766,24 +2668,25 @@ Panel {
 
           Rectangle { width: parent.width; height: 1; color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.1) }
 
-          Row {
+          RowLayout {
             width: parent.width
-            spacing: Style.space(10)
-            Text { textFormat: Text.PlainText;
-              width: parent.width - disconnectButton.width - Style.space(10)
-              text: root.cloudMode ? "UI Account key stored securely in Secret Service" : "Credentials stored securely in Secret Service"
+            spacing: Style.space(8)
+            Text {
+              textFormat: Text.PlainText;
+              Layout.fillWidth: true
+              text: root.cloudMode ? "UI Account key stored in Secret Service" : "Credentials stored in Secret Service"
               color: root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-              anchors.verticalCenter: parent.verticalCenter
+              font.pixelSize: Style.font.caption - 2
+              elide: Text.ElideRight
             }
             Rectangle {
               id: disconnectButton
-              width: disconnectText.implicitWidth + Style.space(18)
-              height: Style.space(30)
+              implicitWidth: disconnectText.implicitWidth + Style.space(14)
+              implicitHeight: Style.space(24)
               radius: Style.cornerRadius
               color: disconnectArea.containsMouse ? Style.hoverFillFor(root.foreground, root.accent) : "transparent"
-              Text { textFormat: Text.PlainText; id: disconnectText; anchors.centerIn: parent; text: root.confirmDisconnect ? "Click again to forget" : "Disconnect"; color: root.confirmDisconnect ? root.urgent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+              Text { textFormat: Text.PlainText; id: disconnectText; anchors.centerIn: parent; text: root.confirmDisconnect ? "Confirm forget" : "Disconnect"; color: root.confirmDisconnect ? root.urgent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
               MouseArea {
                 id: disconnectArea
                 anchors.fill: parent
