@@ -179,7 +179,7 @@ FloatingWindow {
           // 24h Traffic Chart
           SectionCard {
             title: "24-HOUR WAN THROUGHPUT"
-            subtitle: "Peak Download: 84.5 Mbps · Peak Upload: 22.8 Mbps"
+            subtitle: "Catalyse Office · Lough Stanley Home · Peak: 84.5 Mbps DL / 22.8 Mbps UL"
             iconText: ""
             titleColor: root.foreground
             badgeText: "REAL-TIME"
@@ -193,25 +193,50 @@ FloatingWindow {
               id: chartCanvas
               Layout.fillWidth: true
               Layout.fillHeight: true
-              Layout.minimumHeight: Style.space(140)
+              Layout.minimumHeight: Style.space(160)
               Layout.margins: Style.space(8)
+
+              onWidthChanged: requestPaint()
+              onHeightChanged: requestPaint()
+
+              Connections {
+                target: root
+                function onFleetDataChanged() { chartCanvas.requestPaint() }
+              }
+
               onPaint: {
                 var ctx = getContext("2d")
                 if (!ctx) return
                 ctx.reset()
                 var w = width
                 var h = height
-                if (w <= 0 || h <= 0) return
+                if (w <= 50 || h <= 40) return
 
-                // Grid lines
-                ctx.strokeStyle = root.isLightTheme ? "#e2e8f0" : "#2a324b"
+                var leftPad = 32
+                var botPad = 18
+                var chartW = w - leftPad - 10
+                var chartH = h - botPad - 8
+
+                // Grid lines & Y-axis labels
+                ctx.strokeStyle = root.isLightTheme ? "#cbd5e1" : "#2a324b"
+                ctx.fillStyle = root.dim
+                ctx.font = "8px " + root.fontFamily
                 ctx.lineWidth = 0.5
+                var labels = ["100M", "75M", "50M", "25M", "0M"]
                 for (var g = 0; g <= 4; g++) {
-                  var y = (h / 4) * g
+                  var y = 8 + (chartH / 4) * g
                   ctx.beginPath()
-                  ctx.moveTo(0, y)
-                  ctx.lineTo(w, y)
+                  ctx.moveTo(leftPad, y)
+                  ctx.lineTo(w - 10, y)
                   ctx.stroke()
+                  ctx.fillText(labels[g], 2, y + 3)
+                }
+
+                // X-axis time labels
+                var timeLabels = ["24h ago", "18h", "12h", "6h", "Now"]
+                for (var t = 0; t < timeLabels.length; t++) {
+                  var tx = leftPad + (chartW / 4) * t
+                  ctx.fillText(timeLabels[t], tx - (t === 4 ? 18 : 10), h - 3)
                 }
 
                 // Sample points for download
@@ -220,10 +245,10 @@ FloatingWindow {
 
                 // Draw Download Curve
                 ctx.beginPath()
-                var step = w / (rxData.length - 1)
+                var step = chartW / (rxData.length - 1)
                 for (var i = 0; i < rxData.length; i++) {
-                  var px = i * step
-                  var py = h - (rxData[i] / 90) * h
+                  var px = leftPad + i * step
+                  var py = 8 + chartH - (rxData[i] / 90) * chartH
                   if (i === 0) ctx.moveTo(px, py)
                   else ctx.lineTo(px, py)
                 }
@@ -232,11 +257,11 @@ FloatingWindow {
                 ctx.stroke()
 
                 // Download gradient fill
-                var grad = ctx.createLinearGradient(0, 0, 0, h)
+                var grad = ctx.createLinearGradient(0, 8, 0, 8 + chartH)
                 grad.addColorStop(0, Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.35))
                 grad.addColorStop(1, Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.02))
-                ctx.lineTo(w, h)
-                ctx.lineTo(0, h)
+                ctx.lineTo(leftPad + chartW, 8 + chartH)
+                ctx.lineTo(leftPad, 8 + chartH)
                 ctx.closePath()
                 ctx.fillStyle = grad
                 ctx.fill()
@@ -244,8 +269,8 @@ FloatingWindow {
                 // Draw Upload Curve
                 ctx.beginPath()
                 for (var j = 0; j < txData.length; j++) {
-                  var txX = j * step
-                  var txY = h - (txData[j] / 90) * h
+                  var txX = leftPad + j * step
+                  var txY = 8 + chartH - (txData[j] / 90) * chartH
                   if (j === 0) ctx.moveTo(txX, txY)
                   else ctx.lineTo(txX, txY)
                 }
@@ -279,7 +304,7 @@ FloatingWindow {
           // Client Density Breakdown
           SectionCard {
             title: "CLIENT DENSITY BY BAND & SITE"
-            subtitle: "14 WiFi clients connected across 6 Access Points"
+            subtitle: String(root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 27) + " clients across " + String(root.fleetData && root.fleetData.network ? root.fleetData.network.deviceCount : 11) + " managed devices"
             iconText: ""
             titleColor: root.foreground
             fontFamily: root.fontFamily
@@ -293,25 +318,53 @@ FloatingWindow {
               Layout.margins: Style.space(8)
               spacing: Style.space(6)
 
-              Text { textFormat: Text.PlainText; text: "5 GHz High-Throughput (9 clients · 64%)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+              readonly property int totalClients: root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 27
+              readonly property int wifiClients: root.fleetData && root.fleetData.network ? root.fleetData.network.wifiClients : 15
+              readonly property int wiredClients: root.fleetData && root.fleetData.network ? root.fleetData.network.wiredClients : 12
+
+              Text {
+                textFormat: Text.PlainText;
+                text: "WiFi Wireless Clients (" + parent.wifiClients + " clients · " + (parent.totalClients > 0 ? Math.round(parent.wifiClients / parent.totalClients * 100) : 56) + "%)"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 1
+                font.bold: true
+              }
               Rectangle {
                 Layout.fillWidth: true
-                height: Style.space(8)
+                Layout.preferredHeight: Style.space(8)
                 radius: 4
                 color: root.track
-                Rectangle { width: parent.width * 0.64; height: parent.height; radius: 4; color: root.accent }
+                Rectangle {
+                  width: Math.max(8, parent.width * (parent.parent.totalClients > 0 ? (parent.parent.wifiClients / parent.parent.totalClients) : 0.56))
+                  height: parent.height
+                  radius: 4
+                  color: root.accent
+                }
               }
 
-              Text { textFormat: Text.PlainText; text: "2.4 GHz IoT & Legacy (5 clients · 36%)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+              Text {
+                textFormat: Text.PlainText;
+                text: "Wired Ethernet Clients (" + parent.wiredClients + " clients · " + (parent.totalClients > 0 ? Math.round(parent.wiredClients / parent.totalClients * 100) : 44) + "%)"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 1
+                font.bold: true
+              }
               Rectangle {
                 Layout.fillWidth: true
-                height: Style.space(8)
+                Layout.preferredHeight: Style.space(8)
                 radius: 4
                 color: root.track
-                Rectangle { width: parent.width * 0.36; height: parent.height; radius: 4; color: root.backup }
+                Rectangle {
+                  width: Math.max(8, parent.width * (parent.parent.totalClients > 0 ? (parent.parent.wiredClients / parent.parent.totalClients) : 0.44))
+                  height: parent.height
+                  radius: 4
+                  color: root.backup
+                }
               }
 
-              Text { textFormat: Text.PlainText; text: "6 GHz WiFi 7 (U7 Pro Ready)"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+              Text { textFormat: Text.PlainText; text: "6 GHz WiFi 7 (U7 Pro Ready) · Low-Latency Priority Active"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
             }
           }
         }
@@ -335,41 +388,57 @@ FloatingWindow {
             Flickable {
               Layout.fillWidth: true
               Layout.fillHeight: true
+              Layout.preferredHeight: 1
               Layout.margins: Style.space(6)
               contentWidth: width
-              contentHeight: siteMatrixCol.implicitHeight
+              contentHeight: siteMatrixCol.childrenRect.height + Style.space(16)
               clip: true
 
-              ColumnLayout {
+              Column {
                 id: siteMatrixCol
                 width: parent.width
                 spacing: Style.space(8)
+
+                Text {
+                  textFormat: Text.PlainText;
+                  visible: !root.fleetData || !root.fleetData.sites || root.fleetData.sites.length === 0
+                  text: "Loading managed sites telemetry..."
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  horizontalAlignment: Text.AlignHCenter
+                  width: parent.width
+                  topPadding: Style.space(20)
+                }
 
                 Repeater {
                   model: root.fleetData && root.fleetData.sites ? root.fleetData.sites : []
                   delegate: Rectangle {
                     required property var modelData
-                    Layout.fillWidth: true
-                    implicitHeight: siteCol.implicitHeight + Style.space(12)
+                    width: siteMatrixCol.width
+                    height: siteCol.childrenRect.height + Style.space(18)
                     radius: 4
                     color: root.track
                     border.width: 1
                     border.color: root.outline
 
-                    ColumnLayout {
+                    Column {
                       id: siteCol
                       anchors.left: parent.left
                       anchors.right: parent.right
                       anchors.top: parent.top
                       anchors.margins: Style.space(8)
-                      spacing: Style.space(4)
+                      spacing: Style.space(5)
 
-                      RowLayout {
-                        Layout.fillWidth: true
+                      Row {
+                        width: parent.width
                         spacing: Style.space(6)
 
                         Rectangle {
-                          width: 8; height: 8; radius: 4
+                          width: 8
+                          height: 8
+                          radius: 4
+                          anchors.verticalCenter: parent.verticalCenter
                           color: modelData.status === "down" ? root.urgent : (modelData.status === "backup" ? root.backup : root.healthy)
                         }
 
@@ -380,20 +449,23 @@ FloatingWindow {
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption
                           font.bold: true
-                          Layout.fillWidth: true
+                          width: parent.width - 90
+                          elide: Text.ElideRight
+                          anchors.verticalCenter: parent.verticalCenter
                         }
 
                         Rectangle {
-                          height: 14
+                          height: 16
                           width: statusTextTag.implicitWidth + 8
                           radius: 2
-                          color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
+                          anchors.verticalCenter: parent.verticalCenter
+                          color: modelData.status === "down" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2) : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
                           Text {
                             textFormat: Text.PlainText;
                             id: statusTextTag
                             anchors.centerIn: parent
-                            text: "ONLINE"
-                            color: root.healthy
+                            text: modelData.status === "down" ? "OFFLINE" : (modelData.status === "backup" ? "BACKUP WAN" : "ONLINE")
+                            color: modelData.status === "down" ? root.urgent : root.healthy
                             font.family: root.fontFamily
                             font.pixelSize: 8
                             font.bold: true
@@ -403,7 +475,8 @@ FloatingWindow {
 
                       Text {
                         textFormat: Text.PlainText;
-                        text: (modelData.gatewayModel || "Gateway") + " · IP: " + (modelData.gatewayIp || "DHCP")
+                        width: parent.width
+                        text: (modelData.gatewayModel || "Gateway") + " · Public IP: " + (modelData.gatewayIp || "DHCP")
                         color: root.dim
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 2
@@ -411,19 +484,20 @@ FloatingWindow {
 
                       Text {
                         textFormat: Text.PlainText;
-                        text: "ISP: " + (modelData.isp || "Unknown ISP") + " · " + (modelData.timezone || "UTC")
+                        width: parent.width
+                        text: "ISP: " + (modelData.isp || "Unknown ISP") + " · Timezone: " + (modelData.timezone || "UTC")
                         color: root.accent
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 2
                       }
 
-                      RowLayout {
-                        Layout.fillWidth: true
+                      Row {
+                        width: parent.width
                         spacing: Style.space(12)
 
                         Text {
                           textFormat: Text.PlainText;
-                          text: " " + (modelData.clientCount || 0) + " clients"
+                          text: " " + (modelData.clientCount || 0) + " clients (" + (modelData.wifiClients || 0) + "W / " + (modelData.wiredClients || 0) + "E)"
                           color: root.foreground
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2
@@ -431,15 +505,15 @@ FloatingWindow {
 
                         Text {
                           textFormat: Text.PlainText;
-                          text: " " + (modelData.deviceCount || 0) + " devices"
-                          color: root.foreground
+                          text: " " + (modelData.deviceCount || 0) + " devices" + (modelData.offlineCount > 0 ? " (1 off)" : "")
+                          color: modelData.offlineCount > 0 ? root.urgent : root.foreground
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2
                         }
 
                         Text {
                           textFormat: Text.PlainText;
-                          text: " 100% uptime"
+                          text: " " + (modelData.wanUptime || 100) + "% uptime"
                           color: root.healthy
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2

@@ -34,6 +34,7 @@ BorderSurface {
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: parent.top
+    anchors.bottom: root.Layout.fillHeight ? parent.bottom : undefined
     anchors.topMargin: root.contentTopInset
     anchors.rightMargin: root.contentRightInset
     anchors.bottomMargin: root.contentBottomInset
