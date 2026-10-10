@@ -11,9 +11,9 @@ FloatingWindow {
   id: root
   title: "UniFi SiteThread — Fleet Analytics & Telemetry"
   color: root.background
-  minimumSize: Qt.size(860, 560)
-  implicitWidth: 1060
-  implicitHeight: 720
+  minimumSize: Qt.size(860, 580)
+  implicitWidth: 1080
+  implicitHeight: 740
 
   property var fleetData: null
   property color foreground: (Color.popups && Color.popups.foreground) ? Color.popups.foreground : (Color.foreground || "#D8DEE9")

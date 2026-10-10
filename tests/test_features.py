@@ -206,6 +206,12 @@ class ConsoleDirectConnectIntegrationTests(unittest.TestCase):
         self.assertIn("function openExternalUrl(url)", self.analytics_qml)
         self.assertIn("id: tab4View", self.analytics_qml)
 
+    def test_analytics_window_matches_agent_hub_window_size(self) -> None:
+        self.assertIn("minimumSize: Qt.size(860, 580)", self.analytics_qml)
+        self.assertIn("implicitWidth: 1080", self.analytics_qml)
+        self.assertIn("implicitHeight: 740", self.analytics_qml)
+        self.assertIn('title: "UniFi SiteThread — Fleet Analytics & Telemetry"', self.analytics_qml)
+
 
 class UiDimensionsAndDensityTests(unittest.TestCase):
     def setUp(self) -> None:
