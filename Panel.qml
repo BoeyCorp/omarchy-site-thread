@@ -7,6 +7,7 @@ import qs.Commons
 import qs.Ui
 import "Model.js" as Model
 import "GlobeModel.js" as GlobeModel
+import "windows"
 
 Panel {
   id: root
@@ -62,17 +63,18 @@ Panel {
     root.close()
     if (tabIndex !== undefined) {
       root.analyticsTab = Math.max(0, Math.min(4, tabIndex))
+      if (analyticsWindow) {
+        analyticsWindow.currentTab = root.analyticsTab
+      }
     }
     analyticsOpen = true
-    if (analyticsWindowLoader.item && tabIndex !== undefined) {
-      analyticsWindowLoader.item.currentTab = root.analyticsTab
-    }
   }
   function closeAnalytics() { analyticsOpen = false }
   function toggleAnalytics() {
-    if (!analyticsOpen) root.close()
-    analyticsOpen = !analyticsOpen
+    if (analyticsOpen) closeAnalytics()
+    else openAnalytics()
   }
+
 
   function goToMainPage() {
     if (root.analyticsOpen) root.closeAnalytics()
@@ -90,7 +92,9 @@ Panel {
       if (root.inSite) root.loadSite()
       else root.refresh()
     } else {
-      if (root.opened) {
+      if (root.analyticsOpen) {
+        root.closeAnalytics()
+      } else if (root.opened) {
         if (root.inSite || root.settingsMode || root.activeTab !== 0) {
           root.goToMainPage()
         } else {
@@ -522,6 +526,7 @@ Panel {
 
   onOpenedChanged: {
     if (opened) {
+      if (root.analyticsOpen) root.closeAnalytics()
       if (inSite) loadSite()
       else refresh()
     }
@@ -3385,30 +3390,25 @@ Panel {
   }
 }
 
-  Loader {
-    id: analyticsWindowLoader
-    active: root.analyticsOpen
-    source: Qt.resolvedUrl("windows/AnalyticsWindow.qml")
-    onLoaded: {
-      if (item) {
-        item.fleetData = Qt.binding(function() { return root.data })
-        item.currentTab = root.analyticsTab
-        item.visible = Qt.binding(function() { return root.analyticsOpen })
-        item.closed.connect(function() {
-          root.analyticsOpen = false
-        })
-      }
+  AnalyticsWindow {
+    id: analyticsWindow
+    anchorItem: button
+    bar: root.bar
+    owner: analyticsOwner
+    open: root.analyticsOpen
+    fleetData: root.data
+    currentTab: root.analyticsTab
+    onClosed: root.closeAnalytics()
+    onBackToFleetRequested: {
+      root.closeAnalytics()
+      root.open()
     }
   }
 
-  Connections {
-    target: analyticsWindowLoader.item
-    ignoreUnknownSignals: true
-    function onVisibleChanged() {
-      if (analyticsWindowLoader.item && !analyticsWindowLoader.item.visible) {
-        root.analyticsOpen = false
-      }
-    }
+  QtObject {
+    id: analyticsOwner
+    readonly property bool popoutSwitchClosing: false
+    function close() { root.closeAnalytics() }
   }
 
   IpcHandler {
@@ -3425,20 +3425,20 @@ Panel {
     function closeAnalytics(): void { root.closeAnalytics() }
     function toggleAnalytics(): void { root.toggleAnalytics() }
     function filterAnalyticsSite(siteName: string): void {
-      if (analyticsWindowLoader.item) {
-        analyticsWindowLoader.item.toggleSiteSelection({ name: siteName, id: siteName })
+      if (analyticsWindow) {
+        analyticsWindow.toggleSiteSelection({ name: siteName, id: siteName })
       }
     }
     function clearAnalyticsSiteFilter(): void {
-      if (analyticsWindowLoader.item) {
-        analyticsWindowLoader.item.clearSiteSelection()
+      if (analyticsWindow) {
+        analyticsWindow.clearSiteSelection()
       }
     }
     function hoverAnalyticsThroughput(index: int): void {
-      if (analyticsWindowLoader.item) {
-        analyticsWindowLoader.item.chartHoverIndex = index
-        analyticsWindowLoader.item.chartHoverMouseX = 50 + index * 24
-        analyticsWindowLoader.item.chartHoverMouseY = 120
+      if (analyticsWindow) {
+        analyticsWindow.chartHoverIndex = index
+        analyticsWindow.chartHoverMouseX = 50 + index * 24
+        analyticsWindow.chartHoverMouseY = 120
       }
     }
     function tab(index: int): void {
