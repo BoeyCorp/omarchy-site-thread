@@ -45,6 +45,7 @@ Panel {
   property bool autoRotate: false
   property string issueFilter: "all"
   property string deviceFilter: "all"
+  property string sitesSubView: "sites"
   property int refreshAgeSec: 0
   property double lastRefreshMs: Date.now()
   property bool analyticsOpen: false
@@ -78,6 +79,7 @@ Panel {
     if (root.inSite) root.backToSites()
     root.settingsMode = false
     root.activeTab = 0
+    root.sitesSubView = "sites"
   }
 
   function handleBarClick(b) {
@@ -408,6 +410,7 @@ Panel {
     selectedCameraName = ""
     snapshotPath = ""
     activeTab = 1
+    sitesSubView = "sites"
     notice = ""
   }
 
@@ -500,7 +503,7 @@ Panel {
   }
 
   function requestSnapshot() {
-    var viewingProtect = inSite ? siteTab === 1 : activeTab === 4
+    var viewingProtect = inSite ? siteTab === 1 : activeTab === 3
     if (!opened || !viewingProtect || selectedCameraId === "" || snapshotProc.running) return
     snapshotProc.command = inSite
       ? [helper, "snapshot", selectedCameraId, String(selectedSite.hostId)]
@@ -526,7 +529,7 @@ Panel {
   }
 
   onActiveTabChanged: {
-    if (!inSite && activeTab === 4 && data.protect && data.protect.cameras && data.protect.cameras.length > 0) {
+    if (!inSite && activeTab === 3 && data.protect && data.protect.cameras && data.protect.cameras.length > 0) {
       if (selectedCameraId === "") selectCamera(data.protect.cameras[0])
       else requestSnapshot()
     }
@@ -755,7 +758,7 @@ Panel {
 
   Timer {
     interval: 2500
-    running: root.opened && root.selectedCameraId !== "" && (root.inSite ? root.siteTab === 1 : root.activeTab === 4)
+    running: root.opened && root.selectedCameraId !== "" && (root.inSite ? root.siteTab === 1 : root.activeTab === 3)
     repeat: true
     triggeredOnStart: false
     onTriggered: root.requestSnapshot()
@@ -922,10 +925,8 @@ Panel {
           root.activeTab = 1
         } else if (t === "3") {
           root.activeTab = 2
-        } else if (t === "4") {
+        } else if (t === "4" && (!root.cloudMode || (root.data && root.data.protect && root.data.protect.available))) {
           root.activeTab = 3
-        } else if (t === "5" && root.data && root.data.protect && root.data.protect.available) {
-          root.activeTab = 4
         }
       }
 
@@ -1711,9 +1712,8 @@ Panel {
                 model: [
                   { id: 0, label: "Overview", icon: "\uf0e4" },
                   { id: 1, label: root.cloudMode ? "Sites (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "Sites", icon: "\uf132" },
-                  { id: 2, label: "Devices (" + (root.data.network && root.data.network.deviceCount ? root.data.network.deviceCount : (root.data.network && root.data.network.devices ? root.data.network.devices.length : 0)) + ")", icon: "\uf0e8" },
-                  { id: 3, label: "Issues (" + root.activeIssuesCount + ")", icon: "\uf071" },
-                  { id: 4, label: "Protect (" + (root.data.protect && root.data.protect.cameras ? root.data.protect.cameras.length : 0) + ")", icon: "\uf03d", visible: !root.cloudMode || (root.data.protect && root.data.protect.available) }
+                  { id: 2, label: "Issues (" + root.activeIssuesCount + ")", icon: "\uf071" },
+                  { id: 3, label: "Protect (" + (root.data.protect && root.data.protect.cameras ? root.data.protect.cameras.length : 0) + ")", icon: "\uf03d", visible: !root.cloudMode || (root.data.protect && root.data.protect.available) }
                 ]
                 delegate: Rectangle {
                   required property var modelData
@@ -1782,7 +1782,7 @@ Panel {
                 trackColor: root.track
                 fontFamily: root.fontFamily
                 isHighlighted: root.siteDownCount > 0
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 1 }
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.activeTab = 1; root.sitesSubView = "sites"; } }
               }
 
               StatBlock {
@@ -1795,7 +1795,7 @@ Panel {
                 trackColor: root.track
                 fontFamily: root.fontFamily
                 isHighlighted: root.siteBackupCount > 0
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 1 }
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.activeTab = 1; root.sitesSubView = "sites"; } }
               }
 
               StatBlock {
@@ -1808,7 +1808,7 @@ Panel {
                 trackColor: root.track
                 fontFamily: root.fontFamily
                 isHighlighted: !!(root.data.network && root.data.network.offlineCount > 0)
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 2 }
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.activeTab = 1; root.sitesSubView = "devices"; } }
               }
 
               StatBlock {
@@ -1820,7 +1820,7 @@ Panel {
                 subColor: root.dim
                 trackColor: root.track
                 fontFamily: root.fontFamily
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 2 }
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.activeTab = 1; root.sitesSubView = "devices"; } }
               }
             }
 
@@ -2206,21 +2206,113 @@ Panel {
                       Text { textFormat: Text.PlainText; id: activePillLabel; anchors.centerIn: parent; text: "ACTIVE"; color: modelData.severity === "critical" ? root.urgent : root.backup; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
                     }
                   }
-                  MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 3 }
+                  MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.activeTab = 2 }
                 }
               }
             }
           }
 
-          // TAB 1: SITES (HIGH DENSITY FLEET VIEW)
+          // TAB 1: SITES & DEVICES (HIGH DENSITY FLEET VIEW)
           Column {
             visible: root.activeTab === 1
             width: parent.width
             spacing: Style.space(8)
 
-            PanelSectionHeader { width: parent.width; text: root.cloudMode ? "ALL SITES (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "NETWORK DEVICES"; foreground: root.foreground; fontFamily: root.fontFamily }
+            // Sub-navigation: Sites / Devices toggle
+            RowLayout {
+              width: parent.width
+              spacing: Style.space(4)
 
-            // Site Magic SD-WAN Mesh Banner
+              Rectangle {
+                implicitHeight: Style.space(22)
+                implicitWidth: sitesSubPillRow.implicitWidth + Style.space(16)
+                radius: 3
+                color: root.sitesSubView === "sites" ? root.accent : (subSitesMouse.containsMouse ? root.cardHover : root.track)
+                border.width: 1
+                border.color: root.sitesSubView === "sites" ? root.accent : root.outline
+
+                RowLayout {
+                  id: sitesSubPillRow
+                  anchors.centerIn: parent
+                  spacing: Style.space(4)
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: "\uf132"
+                    color: root.sitesSubView === "sites" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 2
+                  }
+                  Text {
+                    textFormat: Text.PlainText;
+                    id: sitesSubPillText
+                    text: root.cloudMode ? "Sites (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "Sites"
+                    color: root.sitesSubView === "sites" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 2
+                    font.bold: root.sitesSubView === "sites"
+                  }
+                }
+
+                MouseArea {
+                  id: subSitesMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.sitesSubView = "sites"
+                }
+              }
+
+              Rectangle {
+                implicitHeight: Style.space(22)
+                implicitWidth: devSubPillRow.implicitWidth + Style.space(16)
+                radius: 3
+                color: root.sitesSubView === "devices" ? root.accent : (subDevMouse.containsMouse ? root.cardHover : root.track)
+                border.width: 1
+                border.color: root.sitesSubView === "devices" ? root.accent : root.outline
+
+                RowLayout {
+                  id: devSubPillRow
+                  anchors.centerIn: parent
+                  spacing: Style.space(4)
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: "\uf0e8"
+                    color: root.sitesSubView === "devices" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 2
+                  }
+                  Text {
+                    textFormat: Text.PlainText;
+                    id: devSubPillText
+                    text: "Devices (" + root.getAllFleetDevices().length + ")"
+                    color: root.sitesSubView === "devices" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 2
+                    font.bold: root.sitesSubView === "devices"
+                  }
+                }
+
+                MouseArea {
+                  id: subDevMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.sitesSubView = "devices"
+                }
+              }
+
+              Item { Layout.fillWidth: true }
+            }
+
+            // SITES SUB-VIEW
+            Column {
+              visible: root.sitesSubView === "sites"
+              width: parent.width
+              spacing: Style.space(8)
+
+              PanelSectionHeader { width: parent.width; text: root.cloudMode ? "ALL SITES (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "SITES"; foreground: root.foreground; fontFamily: root.fontFamily }
+
+              // Site Magic SD-WAN Mesh Banner
             BorderSurface {
               visible: Boolean(root.data && root.data.sdwan && root.data.sdwan.available)
               width: parent.width
@@ -2533,15 +2625,10 @@ Panel {
                 }
               }
             }
-          }
 
-          // TAB 2: DEVICES (FLEET HARDWARE INVENTORY VIEW)
-          Column {
-            visible: root.activeTab === 2
-            width: parent.width
-            spacing: Style.space(8)
-
+            // DEVICES SUB-VIEW (FLEET HARDWARE INVENTORY VIEW)
             DeviceInventoryView {
+              visible: root.sitesSubView === "devices"
               width: parent.width
               devices: root.getAllFleetDevices()
               currentFilter: root.deviceFilter
@@ -2563,9 +2650,9 @@ Panel {
             }
           }
 
-          // TAB 3: ISSUES & AUDIT TRAIL (HISTORICAL RESOLVED ISSUES GREYED OUT)
+          // TAB 2: ISSUES & AUDIT TRAIL (HISTORICAL RESOLVED ISSUES GREYED OUT)
           Column {
-            visible: root.activeTab === 3
+            visible: root.activeTab === 2
             width: parent.width
             spacing: Style.space(8)
 
@@ -2738,9 +2825,9 @@ Panel {
             }
           }
 
-          // TAB 4: PROTECT CAMERAS
+          // TAB 3: PROTECT CAMERAS
           Column {
-            visible: root.activeTab === 4
+            visible: root.activeTab === 3
             width: parent.width
             spacing: Style.space(8)
             PanelSectionHeader { width: parent.width; text: root.cloudMode ? "PROTECT ACROSS ALL SITES" : "PROTECT CAMERAS"; foreground: root.foreground; fontFamily: root.fontFamily }
@@ -3205,8 +3292,11 @@ Panel {
       }
     }
     function tab(index: int): void {
-      root.activeTab = Math.max(0, Math.min(4, index))
+      root.activeTab = Math.max(0, Math.min(3, index))
       root.open()
+    }
+    function setSitesSubView(view: string): void {
+      root.sitesSubView = view === "devices" ? "devices" : "sites"
     }
     function rotate(longitude: real): void {
       fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(longitude)
@@ -3227,6 +3317,7 @@ Panel {
         settingsMode: root.settingsMode,
         analyticsOpen: root.analyticsOpen,
         activeTab: root.activeTab,
+        sitesSubView: root.sitesSubView,
         inSite: root.inSite,
         siteLoading: root.siteLoading,
         siteLiveRefreshing: root.siteLiveRefreshing,

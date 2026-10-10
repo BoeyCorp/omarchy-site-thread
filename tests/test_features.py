@@ -378,6 +378,35 @@ class SiteCachingAndPrefetchTests(unittest.TestCase):
         self.assertIn("property bool siteLiveRefreshing: false", self.panel_qml)
 
 
+class MergedSitesAndDevicesTabTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+
+    def test_top_navigation_has_four_tabs_without_standalone_devices(self) -> None:
+        self.assertIn('{ id: 0, label: "Overview"', self.panel_qml)
+        self.assertIn('{ id: 1, label: root.cloudMode ? "Sites', self.panel_qml)
+        self.assertIn('{ id: 2, label: "Issues (', self.panel_qml)
+        self.assertIn('{ id: 3, label: "Protect (', self.panel_qml)
+        self.assertNotIn('{ id: 2, label: "Devices', self.panel_qml)
+
+    def test_sites_tab_has_subview_toggle_and_merges_device_inventory(self) -> None:
+        self.assertIn('property string sitesSubView: "sites"', self.panel_qml)
+        self.assertIn('id: sitesSubPillText', self.panel_qml)
+        self.assertIn('id: devSubPillText', self.panel_qml)
+        self.assertIn('visible: root.sitesSubView === "sites"', self.panel_qml)
+        self.assertIn('visible: root.sitesSubView === "devices"', self.panel_qml)
+        self.assertIn('DeviceInventoryView {', self.panel_qml)
+
+    def test_overview_statblocks_route_to_merged_sites_and_devices(self) -> None:
+        self.assertIn('root.activeTab = 1; root.sitesSubView = "sites";', self.panel_qml)
+        self.assertIn('root.activeTab = 1; root.sitesSubView = "devices";', self.panel_qml)
+
+    def test_ipc_supports_four_tabs_and_sites_subview(self) -> None:
+        self.assertIn("root.activeTab = Math.max(0, Math.min(3, index))", self.panel_qml)
+        self.assertIn("function setSitesSubView(view: string): void", self.panel_qml)
+        self.assertIn("sitesSubView: root.sitesSubView,", self.panel_qml)
+
+
 if __name__ == "__main__":
     unittest.main()
 
