@@ -320,8 +320,67 @@ class GlobeZoomFeatureTests(unittest.TestCase):
         self.assertIn("function globeScaleValue(): real", self.panel_qml)
 
 
+class SiteCachingAndPrefetchTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+
+    def test_site_cache_path_generation(self) -> None:
+        path = SITE_THREAD.site_cache_path("console:123", "site/home")
+        self.assertTrue(path.name.startswith("site_console_123_site_home"))
+        self.assertTrue(path.name.endswith(".json"))
+
+    def test_save_and_read_site_cache(self) -> None:
+        test_payload = {
+            "ok": True,
+            "connected": True,
+            "siteId": "test-site",
+            "hostId": "test-host",
+            "network": {"deviceCount": 5},
+        }
+        SITE_THREAD.save_site_cache("test-host", "test-site", test_payload)
+
+        cached = SITE_THREAD.read_site_cache("test-host", "test-site")
+        self.assertIsNotNone(cached)
+        self.assertTrue(cached.get("_cached"))
+        self.assertIn("cachedAt", cached)
+        self.assertEqual(cached.get("siteId"), "test-site")
+        self.assertEqual(cached.get("network", {}).get("deviceCount"), 5)
+
+    def test_read_site_cache_ttl_expiration(self) -> None:
+        test_payload = {"ok": True, "siteId": "exp-site"}
+        SITE_THREAD.save_site_cache("exp-host", "exp-site", test_payload)
+
+        # Fresh cache (< 600s) is valid
+        self.assertIsNotNone(SITE_THREAD.read_site_cache("exp-host", "exp-site", max_age=600))
+        # Zero max_age simulates expired cache
+        self.assertIsNone(SITE_THREAD.read_site_cache("exp-host", "exp-site", max_age=0))
+
+    def test_demo_site_generation(self) -> None:
+        site = SITE_THREAD.demo_site("console-home", "home")
+        self.assertTrue(site.get("ok"))
+        self.assertTrue(site.get("demo"))
+        self.assertEqual(site.get("siteId"), "home")
+        self.assertIn("network", site)
+        self.assertIn("protect", site)
+        self.assertIn("console", site)
+        self.assertGreaterEqual(len(site["network"]["devices"]), 1)
+
+    def test_panel_has_prefetch_timer_and_cached_proc(self) -> None:
+        self.assertIn("id: prefetchTimer", self.panel_qml)
+        self.assertIn("interval: 600000", self.panel_qml)
+        self.assertIn("root.prefetchSites()", self.panel_qml)
+        self.assertIn("id: prefetchProc", self.panel_qml)
+        self.assertIn("prefetch-sites", self.panel_qml)
+
+        self.assertIn("id: siteCachedProc", self.panel_qml)
+        self.assertIn("--cached-only", self.panel_qml)
+        self.assertIn("--live", self.panel_qml)
+        self.assertIn("property bool siteLiveRefreshing: false", self.panel_qml)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

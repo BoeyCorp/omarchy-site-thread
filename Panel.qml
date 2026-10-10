@@ -260,6 +260,7 @@ Panel {
   property var selectedSite: null
   property var siteData: ({})
   property bool siteLoading: false
+  property bool siteLiveRefreshing: false
   property int siteTab: 0
   property string overviewSelection: ""
   property var downConfirmations: ({})
@@ -377,15 +378,26 @@ Panel {
     selectedCameraId = ""
     selectedCameraName = ""
     snapshotPath = ""
+    siteLoading = true
+    siteLiveRefreshing = true
     loadSite()
   }
 
   function loadSite() {
-    if (!inSite || siteProc.running) return
-    siteLoading = true
+    if (!inSite) return
     notice = ""
-    siteProc.command = [helper, "site", String(selectedSite.hostId), String(selectedSite.id)]
-    siteProc.running = true
+
+    // 1. Immediately request cached data if available (instant response)
+    siteCachedProc.command = [helper, "site", String(selectedSite.hostId), String(selectedSite.id), "--cached-only"]
+    siteCachedProc.running = true
+
+    // 2. Launch background live refresh
+    if (!siteProc.running) {
+      siteLoading = (!siteData || !siteData.ok)
+      siteLiveRefreshing = true
+      siteProc.command = [helper, "site", String(selectedSite.hostId), String(selectedSite.id), "--live"]
+      siteProc.running = true
+    }
   }
 
   function backToSites() {
@@ -540,9 +552,36 @@ Panel {
         root.loading = false
         root.refreshAgeSec = 0
         root.lastRefreshMs = Date.now()
+        if (parsed.ok && parsed.sites && parsed.sites.length > 0) {
+          root.prefetchSites()
+        }
       }
     }
     onExited: function(exitCode) { root.loading = false }
+  }
+
+  Process {
+    id: prefetchProc
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        // Site prefetch finished
+      }
+    }
+  }
+
+  function prefetchSites() {
+    if (prefetchProc.running) return
+    prefetchProc.command = [root.helper, "prefetch-sites"]
+    prefetchProc.running = true
+  }
+
+  Timer {
+    id: prefetchTimer
+    interval: 600000 // 10 minutes = 600,000 ms
+    repeat: true
+    running: true
+    onTriggered: root.prefetchSites()
   }
 
   Process {
@@ -554,27 +593,53 @@ Panel {
   }
 
   Process {
+    id: siteCachedProc
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var parsed = Model.parse(text, { ok: false })
+        if (parsed.ok && root.inSite && root.selectedSite && String(parsed.siteId) === String(root.selectedSite.id)) {
+          if (!root.siteData || !root.siteData.ok || root.siteData._cached) {
+            root.siteData = parsed
+            root.siteLoading = false
+          }
+        }
+      }
+    }
+  }
+
+  Process {
     id: siteProc
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
         var parsed = Model.parse(text, { ok: false, error: "Invalid site response" })
         if (parsed.ok) {
-          root.siteData = parsed
-          root.notice = ""
-          if (root.siteTab === 1 && parsed.protect && parsed.protect.cameras && parsed.protect.cameras.length > 0) {
-            var selectedStillExists = false
-            for (var index = 0; index < parsed.protect.cameras.length; index++) {
-              if (String(parsed.protect.cameras[index].id) === root.selectedCameraId) selectedStillExists = true
+          if (root.inSite && root.selectedSite && String(parsed.siteId) === String(root.selectedSite.id)) {
+            root.siteData = parsed
+            root.notice = ""
+            if (root.siteTab === 1 && parsed.protect && parsed.protect.cameras && parsed.protect.cameras.length > 0) {
+              var selectedStillExists = false
+              for (var index = 0; index < parsed.protect.cameras.length; index++) {
+                if (String(parsed.protect.cameras[index].id) === root.selectedCameraId) selectedStillExists = true
+              }
+              if (!selectedStillExists) root.selectCamera(parsed.protect.cameras[0])
+              else root.requestSnapshot()
             }
-            if (!selectedStillExists) root.selectCamera(parsed.protect.cameras[0])
-            else root.requestSnapshot()
           }
-        } else root.notice = Model.safe(parsed.error, "Unable to load this site")
+        } else {
+          if (!root.siteData || !root.siteData.ok) {
+            root.notice = Model.safe(parsed.error, "Unable to load this site")
+          }
+        }
         root.siteLoading = false
+        root.siteLiveRefreshing = false
       }
     }
-    onExited: function(exitCode) { root.siteLoading = false }
+    onExited: function(exitCode) {
+      root.siteLoading = false
+      root.siteLiveRefreshing = false
+    }
   }
 
   Process {
@@ -987,7 +1052,9 @@ Panel {
                     text: root.settingsMode
                       ? "Configuration, Badge Modes & Terminal Launcher"
                       : (root.inSite
-                          ? Model.safe(root.selectedSite.statusText, "Live site view")
+                          ? (root.siteLiveRefreshing
+                              ? (root.siteData && root.siteData._cached ? "Cached view · Syncing live data…" : "Connecting to site…")
+                              : (root.siteData && root.siteData._cached ? "Cached view · 10m cycle" : Model.safe(root.selectedSite.statusText, "Live site view")))
                           : (root.connected ? Model.summarySubtitle(root.data) : "Network + Protect"))
                     color: root.dim
                     font.family: root.fontFamily
@@ -1052,6 +1119,38 @@ Panel {
                     Text {
                       textFormat: Text.PlainText;
                       text: "Refreshing…"
+                      color: root.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      opacity: 0.9
+                    }
+                  }
+
+                  // Site live syncing spinner
+                  RowLayout {
+                    spacing: Style.space(3)
+                    visible: root.inSite && root.siteLiveRefreshing
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: ""
+                      color: root.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                      transformOrigin: Item.Center
+
+                      RotationAnimation on rotation {
+                        running: root.inSite && root.siteLiveRefreshing
+                        loops: Animation.Infinite
+                        from: 0
+                        to: 360
+                        duration: 800
+                      }
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: "Syncing live…"
                       color: root.accent
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 1
@@ -3119,6 +3218,7 @@ Panel {
     function visibleSitesCount(): int {
       return fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0
     }
+    function prefetchSites(): void { root.prefetchSites() }
     function goToMainPage(): void { root.goToMainPage() }
     function handleBarClick(button: int): void { root.handleBarClick(button) }
     function status(): string {
@@ -3128,6 +3228,8 @@ Panel {
         analyticsOpen: root.analyticsOpen,
         activeTab: root.activeTab,
         inSite: root.inSite,
+        siteLoading: root.siteLoading,
+        siteLiveRefreshing: root.siteLiveRefreshing,
         hasBar: root.bar !== null,
         rootWindow: root.QsWindow.window !== null,
         buttonWindow: button.QsWindow.window !== null,
