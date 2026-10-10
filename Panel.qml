@@ -987,6 +987,12 @@ Panel {
                   cursorShape: Qt.PointingHandCursor
                   onClicked: root.backToSites()
                 }
+
+                PanelToolTip {
+                  visible: backMouse.containsMouse
+                  text: "Back to all sites"
+                  fontFamily: root.fontFamily
+                }
               }
 
               // UniFi Logo
@@ -1190,6 +1196,12 @@ Panel {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.toggleAnalytics()
                   }
+
+                  PanelToolTip {
+                    visible: chartMouse.containsMouse
+                    text: root.analyticsOpen ? "Close telemetry analytics" : "Open telemetry & mesh analytics"
+                    fontFamily: root.fontFamily
+                  }
                 }
 
                 // 2. Open Web UniFi Console Button
@@ -1215,6 +1227,12 @@ Panel {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.openConsole()
+                  }
+
+                  PanelToolTip {
+                    visible: webMouse.containsMouse
+                    text: "Open UniFi Cloud Portal in browser"
+                    fontFamily: root.fontFamily
                   }
                 }
 
@@ -1251,6 +1269,12 @@ Panel {
                       }
                     }
                   }
+
+                  PanelToolTip {
+                    visible: directConnectMouse.containsMouse
+                    text: "Direct P2P connect to UniFi OS console"
+                    fontFamily: root.fontFamily
+                  }
                 }
 
                 // 3. Refresh Button
@@ -1286,6 +1310,12 @@ Panel {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.inSite ? root.loadSite() : root.refresh()
                   }
+
+                  PanelToolTip {
+                    visible: refMouse.containsMouse
+                    text: root.inSite ? "Refresh live site telemetry" : "Refresh fleet telemetry"
+                    fontFamily: root.fontFamily
+                  }
                 }
 
                 // 4. Settings Button
@@ -1310,6 +1340,12 @@ Panel {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.settingsMode ? root.closeSettings() : root.openSettings()
+                  }
+
+                  PanelToolTip {
+                    visible: setMouse.containsMouse
+                    text: root.settingsMode ? "Close settings" : "Plugin settings"
+                    fontFamily: root.fontFamily
                   }
                 }
               }
@@ -1876,6 +1912,12 @@ Panel {
                           }
                         }
                       }
+
+                      PanelToolTip {
+                        visible: focusMouse.containsMouse
+                        text: "Center globe on primary site"
+                        fontFamily: root.fontFamily
+                      }
                     }
 
                     // Rotate left
@@ -1891,6 +1933,12 @@ Panel {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(fleetGlobe.centreLongitude - 25)
+                      }
+
+                      PanelToolTip {
+                        visible: rotLeftMouse.containsMouse
+                        text: "Rotate globe left 25°"
+                        fontFamily: root.fontFamily
                       }
                     }
 
@@ -1908,6 +1956,12 @@ Panel {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(fleetGlobe.centreLongitude + 25)
                       }
+
+                      PanelToolTip {
+                        visible: rotRightMouse.containsMouse
+                        text: "Rotate globe right 25°"
+                        fontFamily: root.fontFamily
+                      }
                     }
 
                     // Zoom In
@@ -1923,6 +1977,12 @@ Panel {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: fleetGlobe.zoomIn()
+                      }
+
+                      PanelToolTip {
+                        visible: zoomInMouse.containsMouse
+                        text: "Zoom in on globe"
+                        fontFamily: root.fontFamily
                       }
                     }
 
@@ -1940,6 +2000,12 @@ Panel {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: fleetGlobe.zoomOut()
                       }
+
+                      PanelToolTip {
+                        visible: zoomOutMouse.containsMouse
+                        text: "Zoom out on globe"
+                        fontFamily: root.fontFamily
+                      }
                     }
 
                     // Auto-rotate toggle
@@ -1951,7 +2017,19 @@ Panel {
                       border.width: 1
                       border.color: root.autoRotate ? root.accent : "transparent"
                       Text { textFormat: Text.PlainText; id: autoRotText; anchors.centerIn: parent; text: root.autoRotate ? " Auto" : " Auto"; color: root.autoRotate ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                      MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.autoRotate = !root.autoRotate }
+                      MouseArea {
+                        id: autoRotMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.autoRotate = !root.autoRotate
+                      }
+
+                      PanelToolTip {
+                        visible: autoRotMouse.containsMouse
+                        text: root.autoRotate ? "Pause globe auto-rotation" : "Enable continuous globe rotation"
+                        fontFamily: root.fontFamily
+                      }
                     }
                   }
                 }
@@ -2260,6 +2338,12 @@ Panel {
                   cursorShape: Qt.PointingHandCursor
                   onClicked: root.sitesSubView = "sites"
                 }
+
+                PanelToolTip {
+                  visible: subSitesMouse.containsMouse
+                  text: "View fleet sites and SD-WAN mesh connections"
+                  fontFamily: root.fontFamily
+                }
               }
 
               Rectangle {
@@ -2298,6 +2382,12 @@ Panel {
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onClicked: root.sitesSubView = "devices"
+                }
+
+                PanelToolTip {
+                  visible: subDevMouse.containsMouse
+                  text: "View all network hardware devices across fleet"
+                  fontFamily: root.fontFamily
                 }
               }
 
@@ -2425,6 +2515,12 @@ Panel {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.openAnalytics()
+                  }
+
+                  PanelToolTip {
+                    visible: sdwanBtnMouse.containsMouse
+                    text: "Open SD-WAN Site Magic mesh topology and analytics"
+                    fontFamily: root.fontFamily
                   }
                 }
               }
@@ -2586,6 +2682,12 @@ Panel {
                             if (target) Quickshell.execDetached(["xdg-open", target])
                           }
                         }
+
+                        PanelToolTip {
+                          visible: directSiteMouse.containsMouse
+                          text: "Direct P2P connect to UniFi OS console"
+                          fontFamily: root.fontFamily
+                        }
                       }
 
                       // SSH to Gateway Action Button
@@ -2614,6 +2716,12 @@ Panel {
                           cursorShape: Qt.PointingHandCursor
                           onClicked: root.launchSsh(siteCardSurface.modelData.gatewayIp, "root")
                         }
+
+                        PanelToolTip {
+                          visible: sshMouse.containsMouse
+                          text: "Open SSH terminal to gateway (" + siteCardSurface.modelData.gatewayIp + ")"
+                          fontFamily: root.fontFamily
+                        }
                       }
 
                       // Ping Gateway Action Button
@@ -2641,6 +2749,12 @@ Panel {
                           hoverEnabled: true
                           cursorShape: Qt.PointingHandCursor
                           onClicked: root.launchPing(siteCardSurface.modelData.gatewayIp)
+                        }
+
+                        PanelToolTip {
+                          visible: pingMouse.containsMouse
+                          text: "Ping gateway (" + siteCardSurface.modelData.gatewayIp + ")"
+                          fontFamily: root.fontFamily
                         }
                       }
                     }
@@ -3058,6 +3172,12 @@ Panel {
                     }
                   }
                 }
+
+                PanelToolTip {
+                  visible: directBtnMouse.containsMouse
+                  text: "Launch direct P2P console connection"
+                  fontFamily: root.fontFamily
+                }
               }
 
               Rectangle {
@@ -3082,6 +3202,12 @@ Panel {
                   onClicked: {
                     root.openAnalytics(4)
                   }
+                }
+
+                PanelToolTip {
+                  visible: directHubMouse.containsMouse
+                  text: "Open UniFi OS applications hub"
+                  fontFamily: root.fontFamily
                 }
               }
             }

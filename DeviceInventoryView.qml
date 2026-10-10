@@ -103,6 +103,12 @@ ColumnLayout {
             cursorShape: Qt.PointingHandCursor
             onClicked: root.currentFilter = modelData.id
           }
+
+          PanelToolTip {
+            visible: catMouse.containsMouse
+            text: modelData.id === "all" ? "Show all fleet devices" : ("Filter to " + modelData.label.split(" (")[0])
+            fontFamily: root.fontFamily
+          }
         }
       }
     }
@@ -246,6 +252,12 @@ ColumnLayout {
                   cursorShape: Qt.PointingHandCursor
                   onClicked: root.sshRequested(modelData.ip, "root")
                 }
+
+                PanelToolTip {
+                  visible: sshMouse.containsMouse
+                  text: "Open SSH terminal session (" + modelData.ip + ")"
+                  fontFamily: root.fontFamily
+                }
               }
 
               // Ping Button
@@ -273,6 +285,12 @@ ColumnLayout {
                   cursorShape: Qt.PointingHandCursor
                   onClicked: root.pingRequested(modelData.ip)
                 }
+
+                PanelToolTip {
+                  visible: pingMouse.containsMouse
+                  text: "Send ICMP ping to " + modelData.ip
+                  fontFamily: root.fontFamily
+                }
               }
 
               // Web UI Link
@@ -299,6 +317,12 @@ ColumnLayout {
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onClicked: root.webRequested(modelData.ip)
+                }
+
+                PanelToolTip {
+                  visible: webMouse.containsMouse
+                  text: "Open device web management page (https://" + modelData.ip + ")"
+                  fontFamily: root.fontFamily
                 }
               }
             }

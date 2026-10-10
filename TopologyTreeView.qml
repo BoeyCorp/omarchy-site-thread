@@ -224,6 +224,12 @@ ColumnLayout {
             cursorShape: Qt.PointingHandCursor
             onClicked: if (gwCard.gw && gwCard.gw.ip) root.sshRequested(gwCard.gw.ip, "root")
           }
+
+          PanelToolTip {
+            visible: gwSshMouse.containsMouse
+            text: "Open SSH terminal to gateway (" + (gwCard.gw ? gwCard.gw.ip : "") + ")"
+            fontFamily: root.fontFamily
+          }
         }
       }
 
@@ -375,6 +381,12 @@ ColumnLayout {
                   }
                 }
               }
+
+              PanelToolTip {
+                visible: t1ActionMouse.containsMouse
+                text: root.isSwitch(modelData) ? ("Open SSH session to switch (" + modelData.ip + ")") : ("Ping device (" + modelData.ip + ")")
+                fontFamily: root.fontFamily
+              }
             }
           }
 
@@ -482,6 +494,12 @@ ColumnLayout {
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onClicked: root.pingRequested(modelData.ip)
+                }
+
+                PanelToolTip {
+                  visible: t2PingMouse.containsMouse
+                  text: "Ping device (" + modelData.ip + ")"
+                  fontFamily: root.fontFamily
                 }
               }
             }

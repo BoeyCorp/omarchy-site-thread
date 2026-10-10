@@ -435,6 +435,55 @@ class ActionButtonSizingAndOverlapTests(unittest.TestCase):
         self.assertIn("implicitWidth: t1ActionRow.implicitWidth + Style.space(10)", self.topology_qml)
 
 
+class ActionButtonToolTipTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.device_view_qml = (ROOT / "DeviceInventoryView.qml").read_text(encoding="utf-8")
+        self.topology_qml = (ROOT / "TopologyTreeView.qml").read_text(encoding="utf-8")
+
+    def test_sdwan_banner_mesh_button_has_tooltip(self) -> None:
+        self.assertIn("id: sdwanBtnMouse", self.panel_qml)
+        self.assertIn("visible: sdwanBtnMouse.containsMouse", self.panel_qml)
+        self.assertIn('text: "Open SD-WAN Site Magic mesh topology and analytics"', self.panel_qml)
+
+    def test_subview_toggle_pills_have_tooltips(self) -> None:
+        self.assertIn("visible: subSitesMouse.containsMouse", self.panel_qml)
+        self.assertIn('text: "View fleet sites and SD-WAN mesh connections"', self.panel_qml)
+        self.assertIn("visible: subDevMouse.containsMouse", self.panel_qml)
+        self.assertIn('text: "View all network hardware devices across fleet"', self.panel_qml)
+
+    def test_site_cards_actions_have_tooltips(self) -> None:
+        self.assertIn("visible: directSiteMouse.containsMouse", self.panel_qml)
+        self.assertIn('text: "Direct P2P connect to UniFi OS console"', self.panel_qml)
+        self.assertIn("visible: sshMouse.containsMouse", self.panel_qml)
+        self.assertIn('text: "Open SSH terminal to gateway (" + siteCardSurface.modelData.gatewayIp + ")"', self.panel_qml)
+        self.assertIn("visible: pingMouse.containsMouse", self.panel_qml)
+        self.assertIn('text: "Ping gateway (" + siteCardSurface.modelData.gatewayIp + ")"', self.panel_qml)
+
+    def test_insite_direct_connect_buttons_have_tooltips(self) -> None:
+        self.assertIn("visible: directBtnMouse.containsMouse", self.panel_qml)
+        self.assertIn('text: "Launch direct P2P console connection"', self.panel_qml)
+        self.assertIn("visible: directHubMouse.containsMouse", self.panel_qml)
+        self.assertIn('text: "Open UniFi OS applications hub"', self.panel_qml)
+
+    def test_device_inventory_buttons_have_tooltips(self) -> None:
+        self.assertIn("visible: catMouse.containsMouse", self.device_view_qml)
+        self.assertIn("visible: sshMouse.containsMouse", self.device_view_qml)
+        self.assertIn('text: "Open SSH terminal session (" + modelData.ip + ")"', self.device_view_qml)
+        self.assertIn("visible: pingMouse.containsMouse", self.device_view_qml)
+        self.assertIn('text: "Send ICMP ping to " + modelData.ip', self.device_view_qml)
+        self.assertIn("visible: webMouse.containsMouse", self.device_view_qml)
+        self.assertIn('text: "Open device web management page (https://" + modelData.ip + ")"', self.device_view_qml)
+
+    def test_topology_tree_buttons_have_tooltips(self) -> None:
+        self.assertIn("visible: gwSshMouse.containsMouse", self.topology_qml)
+        self.assertIn('text: "Open SSH terminal to gateway (" + (gwCard.gw ? gwCard.gw.ip : "") + ")"', self.topology_qml)
+        self.assertIn("visible: t1ActionMouse.containsMouse", self.topology_qml)
+        self.assertIn('text: root.isSwitch(modelData) ? ("Open SSH session to switch (" + modelData.ip + ")") : ("Ping device (" + modelData.ip + ")")', self.topology_qml)
+        self.assertIn("visible: t2PingMouse.containsMouse", self.topology_qml)
+        self.assertIn('text: "Ping device (" + modelData.ip + ")"', self.topology_qml)
+
+
 if __name__ == "__main__":
     unittest.main()
 
