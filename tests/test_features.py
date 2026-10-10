@@ -407,6 +407,34 @@ class MergedSitesAndDevicesTabTests(unittest.TestCase):
         self.assertIn("sitesSubView: root.sitesSubView,", self.panel_qml)
 
 
+class ActionButtonSizingAndOverlapTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.device_view_qml = (ROOT / "DeviceInventoryView.qml").read_text(encoding="utf-8")
+        self.topology_qml = (ROOT / "TopologyTreeView.qml").read_text(encoding="utf-8")
+        self.analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+
+    def test_sdwan_banner_action_button_and_row_layout(self) -> None:
+        self.assertIn("id: sdwanRow", self.panel_qml)
+        self.assertIn("id: sdwanBtnRow", self.panel_qml)
+        self.assertIn("implicitWidth: sdwanBtnRow.implicitWidth + Style.space(14)", self.panel_qml)
+
+    def test_device_inventory_action_buttons_sizing_and_no_overlap(self) -> None:
+        self.assertIn("implicitWidth: sshBtnRow.implicitWidth + Style.space(12)", self.device_view_qml)
+        self.assertIn("implicitWidth: pingBtnRow.implicitWidth + Style.space(12)", self.device_view_qml)
+        self.assertIn("implicitWidth: webBtnRow.implicitWidth + Style.space(12)", self.device_view_qml)
+        self.assertIn('text: "IP: "', self.device_view_qml)
+        self.assertIn("elide: Text.ElideRight", self.device_view_qml)
+
+    def test_site_cards_action_buttons_padding(self) -> None:
+        self.assertIn("implicitWidth: sshBtnText.implicitWidth + Style.space(14)", self.panel_qml)
+        self.assertIn("implicitWidth: pingBtnText.implicitWidth + Style.space(14)", self.panel_qml)
+
+    def test_topology_tree_action_buttons_sizing(self) -> None:
+        self.assertIn("implicitWidth: gwSshRow.implicitWidth + Style.space(12)", self.topology_qml)
+        self.assertIn("implicitWidth: t1ActionRow.implicitWidth + Style.space(10)", self.topology_qml)
+
+
 if __name__ == "__main__":
     unittest.main()
 

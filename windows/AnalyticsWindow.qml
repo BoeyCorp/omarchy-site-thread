@@ -1123,6 +1123,8 @@ FloatingWindow {
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 1
                         font.bold: true
+                        elide: Text.ElideRight
+                        Layout.maximumWidth: Style.space(120)
                       }
                     }
                     Text {
@@ -1131,6 +1133,8 @@ FloatingWindow {
                       color: root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 3
+                      elide: Text.ElideRight
+                      Layout.maximumWidth: Style.space(120)
                     }
                   }
 
@@ -1173,6 +1177,8 @@ FloatingWindow {
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 1
                         font.bold: true
+                        elide: Text.ElideRight
+                        Layout.maximumWidth: Style.space(120)
                       }
                     }
                     Text {
@@ -1181,6 +1187,8 @@ FloatingWindow {
                       color: root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 3
+                      elide: Text.ElideRight
+                      Layout.maximumWidth: Style.space(120)
                     }
                   }
                 }

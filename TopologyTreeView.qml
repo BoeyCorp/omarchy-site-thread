@@ -205,12 +205,13 @@ ColumnLayout {
         Rectangle {
           visible: !!(gwCard.gw && gwCard.gw.ip)
           implicitHeight: Style.space(20)
-          implicitWidth: gwSshText.implicitWidth + Style.space(10)
+          implicitWidth: gwSshRow.implicitWidth + Style.space(12)
           radius: 3
           color: gwSshMouse.containsMouse ? root.accent : root.track
           border.width: 1
           border.color: root.accent
           RowLayout {
+            id: gwSshRow
             anchors.centerIn: parent
             spacing: Style.space(3)
             Text { textFormat: Text.PlainText; text: ""; color: gwSshMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }
@@ -336,12 +337,13 @@ ColumnLayout {
             Rectangle {
               visible: !!modelData.ip
               implicitHeight: Style.space(18)
-              implicitWidth: t1ActionText.implicitWidth + Style.space(8)
+              implicitWidth: t1ActionRow.implicitWidth + Style.space(10)
               radius: 3
               color: t1ActionMouse.containsMouse ? root.accent : root.track
               border.width: 1
               border.color: root.outline
               RowLayout {
+                id: t1ActionRow
                 anchors.centerIn: parent
                 spacing: Style.space(2)
                 Text {

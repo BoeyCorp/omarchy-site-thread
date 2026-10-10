@@ -161,11 +161,14 @@ ColumnLayout {
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
               font.bold: true
+              elide: Text.ElideRight
+              Layout.fillWidth: true
               Layout.alignment: Qt.AlignVCenter
             }
 
             Text {
               textFormat: Text.PlainText;
+              visible: !!(modelData.model && modelData.name !== modelData.model)
               text: "· " + (modelData.model || "")
               color: root.dim
               font.family: root.fontFamily
@@ -173,13 +176,11 @@ ColumnLayout {
               Layout.alignment: Qt.AlignVCenter
             }
 
-            Item { Layout.fillWidth: true }
-
             // Site Badge
             Rectangle {
               visible: !!modelData.site
               height: Style.space(16)
-              width: siteBadgeText.implicitWidth + Style.space(10)
+              implicitWidth: siteBadgeText.implicitWidth + Style.space(10)
               radius: 3
               color: root.track
               border.width: 1
@@ -210,10 +211,10 @@ ColumnLayout {
               color: root.dim
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption - 2
+              elide: Text.ElideRight
+              Layout.fillWidth: true
               Layout.alignment: Qt.AlignVCenter
             }
-
-            Item { Layout.fillWidth: true }
 
             // 1-Click Action Buttons
             RowLayout {
@@ -224,13 +225,14 @@ ColumnLayout {
               Rectangle {
                 visible: !!modelData.ip && (deviceCategory(modelData) === "gateways" || deviceCategory(modelData) === "switches")
                 implicitHeight: Style.space(20)
-                implicitWidth: sshText.implicitWidth + Style.space(10)
+                implicitWidth: sshBtnRow.implicitWidth + Style.space(12)
                 radius: 3
                 color: sshMouse.containsMouse ? root.accent : root.track
                 border.width: 1
                 border.color: root.accent
 
                 RowLayout {
+                  id: sshBtnRow
                   anchors.centerIn: parent
                   spacing: Style.space(3)
                   Text { textFormat: Text.PlainText; text: ""; color: sshMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }
@@ -250,13 +252,14 @@ ColumnLayout {
               Rectangle {
                 visible: !!modelData.ip
                 implicitHeight: Style.space(20)
-                implicitWidth: pingText.implicitWidth + Style.space(10)
+                implicitWidth: pingBtnRow.implicitWidth + Style.space(12)
                 radius: 3
                 color: pingMouse.containsMouse ? root.cardHover : root.track
                 border.width: 1
                 border.color: root.outline
 
                 RowLayout {
+                  id: pingBtnRow
                   anchors.centerIn: parent
                   spacing: Style.space(3)
                   Text { textFormat: Text.PlainText; text: ""; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }
@@ -276,13 +279,14 @@ ColumnLayout {
               Rectangle {
                 visible: !!modelData.ip
                 implicitHeight: Style.space(20)
-                implicitWidth: webText.implicitWidth + Style.space(10)
+                implicitWidth: webBtnRow.implicitWidth + Style.space(12)
                 radius: 3
                 color: webMouse.containsMouse ? root.cardHover : root.track
                 border.width: 1
                 border.color: root.outline
 
                 RowLayout {
+                  id: webBtnRow
                   anchors.centerIn: parent
                   spacing: Style.space(3)
                   Text { textFormat: Text.PlainText; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }

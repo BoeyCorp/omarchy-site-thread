@@ -2321,28 +2321,31 @@ Panel {
               radius: Style.cornerRadius
               borderSpec: Border.flat(root.accent, 1)
 
-              Row {
+              RowLayout {
                 id: sdwanRow
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.margins: Style.space(10)
-                spacing: Style.space(10)
+                spacing: Style.space(8)
 
                 Rectangle {
-                  width: Style.space(9)
+                  width: Style.space(8)
                   height: width
                   radius: width / 2
                   color: (root.data && root.data.sdwan && root.data.sdwan.status === "connected") ? root.healthy : root.backup
-                  anchors.verticalCenter: parent.verticalCenter
+                  Layout.alignment: Qt.AlignVCenter
                 }
 
-                Column {
-                  width: parent.width - Style.space(130)
+                ColumnLayout {
+                  Layout.fillWidth: true
                   spacing: Style.space(2)
+                  Layout.alignment: Qt.AlignVCenter
 
-                  Row {
+                  RowLayout {
+                    Layout.fillWidth: true
                     spacing: Style.space(6)
+
                     Text {
                       textFormat: Text.PlainText;
                       text: "Site Magic SD-WAN: " + (root.data && root.data.sdwan && root.data.sdwan.name ? root.data.sdwan.name : "Catalyse-Mesh")
@@ -2350,10 +2353,13 @@ Panel {
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption
                       font.bold: true
+                      elide: Text.ElideRight
+                      Layout.fillWidth: true
                     }
+
                     Rectangle {
-                      height: 14
-                      width: sdwanStatusText.implicitWidth + 8
+                      height: Style.space(14)
+                      implicitWidth: sdwanStatusText.implicitWidth + Style.space(8)
                       radius: 2
                       color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
                       Text {
@@ -2377,25 +2383,42 @@ Panel {
                     color: root.dim
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 2
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
                   }
                 }
 
-                Item { width: 1; height: 1 }
-
                 Rectangle {
-                  height: Style.space(22)
-                  width: sdwanBtnText.implicitWidth + Style.space(12)
+                  implicitHeight: Style.space(22)
+                  implicitWidth: sdwanBtnRow.implicitWidth + Style.space(14)
                   radius: 3
                   color: sdwanBtnMouse.containsMouse ? root.accent : root.card
                   border.width: 1
                   border.color: root.accent
-                  anchors.verticalCenter: parent.verticalCenter
+                  Layout.alignment: Qt.AlignVCenter
+
                   Row {
+                    id: sdwanBtnRow
                     anchors.centerIn: parent
                     spacing: Style.space(4)
-                    Text { textFormat: Text.PlainText; text: ""; color: sdwanBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 10 }
-                    Text { textFormat: Text.PlainText; id: sdwanBtnText; text: "Mesh"; color: sdwanBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: ""
+                      color: sdwanBtnMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : root.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: 10
+                    }
+                    Text {
+                      textFormat: Text.PlainText;
+                      id: sdwanBtnText
+                      text: "Mesh"
+                      color: sdwanBtnMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : root.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                      font.bold: true
+                    }
                   }
+
                   MouseArea {
                     id: sdwanBtnMouse
                     anchors.fill: parent
@@ -2568,18 +2591,18 @@ Panel {
                       // SSH to Gateway Action Button
                       Rectangle {
                         visible: root.cloudMode && siteCardSurface.modelData.gatewayIp !== undefined && siteCardSurface.modelData.gatewayIp !== ""
-                        implicitWidth: sshBtnText.implicitWidth + Style.space(8)
+                        implicitWidth: sshBtnText.implicitWidth + Style.space(14)
                         implicitHeight: Style.space(20)
                         radius: 3
-                        color: sshMouse.containsMouse ? root.cardHover : root.track
+                        color: sshMouse.containsMouse ? root.accent : root.track
                         border.width: 1
-                        border.color: root.outline
+                        border.color: sshMouse.containsMouse ? root.accent : root.outline
                         Text {
                           textFormat: Text.PlainText;
                           id: sshBtnText
                           anchors.centerIn: parent
                           text: "SSH"
-                          color: root.accent
+                          color: sshMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : root.accent
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2
                           font.bold: true
@@ -2596,18 +2619,18 @@ Panel {
                       // Ping Gateway Action Button
                       Rectangle {
                         visible: root.cloudMode && siteCardSurface.modelData.gatewayIp !== undefined && siteCardSurface.modelData.gatewayIp !== ""
-                        implicitWidth: pingBtnText.implicitWidth + Style.space(8)
+                        implicitWidth: pingBtnText.implicitWidth + Style.space(14)
                         implicitHeight: Style.space(20)
                         radius: 3
                         color: pingMouse.containsMouse ? root.cardHover : root.track
                         border.width: 1
-                        border.color: root.outline
+                        border.color: pingMouse.containsMouse ? root.accent : root.outline
                         Text {
                           textFormat: Text.PlainText;
                           id: pingBtnText
                           anchors.centerIn: parent
                           text: "Ping"
-                          color: root.dim
+                          color: pingMouse.containsMouse ? root.foreground : root.dim
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2
                           font.bold: true
