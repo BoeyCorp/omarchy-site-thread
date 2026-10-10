@@ -28,7 +28,8 @@ FloatingWindow {
   property string clientSearch: ""
   property string clientSiteFilter: "All"
   property string clientMediumFilter: "All"
-  property int selectedSwitchIndex: 0
+  property string selectedSwitchSite: "all"
+  property string selectedSwitchMac: ""
   property string portFilter: "All"
   property string statusToast: ""
   property string toastType: "info"
@@ -62,7 +63,115 @@ FloatingWindow {
   readonly property color outline: Qt.rgba(foreground.r, foreground.g, foreground.b, isLightTheme ? 0.14 : 0.18)
 
   readonly property var availableSwitches: root.fleetData && root.fleetData.switches ? root.fleetData.switches : []
-  readonly property var currentSwitch: (availableSwitches.length > root.selectedSwitchIndex && root.selectedSwitchIndex >= 0) ? availableSwitches[root.selectedSwitchIndex] : (availableSwitches.length > 0 ? availableSwitches[0] : null)
+
+  readonly property var switchSiteOptions: {
+    var opts = [{ value: "all", label: "All Sites", description: (root.availableSwitches ? root.availableSwitches.length : 0) + " switches total" }]
+    var siteMap = {}
+    var swList = root.availableSwitches || []
+    for (var i = 0; i < swList.length; i++) {
+      var sn = swList[i].siteName || "Default Site"
+      siteMap[sn] = (siteMap[sn] || 0) + 1
+    }
+    if (root.fleetData && root.fleetData.sites) {
+      for (var j = 0; j < root.fleetData.sites.length; j++) {
+        var s = root.fleetData.sites[j]
+        var sName = s.name || s.id || "Site"
+        if (siteMap[sName] === undefined) siteMap[sName] = 0
+      }
+    }
+    var keys = Object.keys(siteMap).sort()
+    for (var k = 0; k < keys.length; k++) {
+      var c = siteMap[keys[k]]
+      opts.push({
+        value: keys[k],
+        label: keys[k],
+        description: c + (c === 1 ? " switch" : " switches")
+      })
+    }
+    return opts
+  }
+
+  readonly property var switchesForSelectedSite: {
+    var list = root.availableSwitches || []
+    if (root.selectedSwitchSite && root.selectedSwitchSite !== "all") {
+      return list.filter(function(s) {
+        return (s.siteName || "Default Site") === root.selectedSwitchSite
+      })
+    }
+    return list
+  }
+
+  readonly property var switchOptionsForSelectedSite: {
+    var list = root.switchesForSelectedSite || []
+    var opts = []
+    for (var i = 0; i < list.length; i++) {
+      var sw = list[i]
+      var val = sw.mac || sw.name || ("sw-" + i)
+      var activeCount = sw.activePorts !== undefined ? sw.activePorts : (sw.ports ? sw.ports.filter(function(p){ return p.up }).length : 0)
+      var totalCount = sw.totalPorts !== undefined ? sw.totalPorts : (sw.ports ? sw.ports.length : 0)
+      var pwr = sw.totalPower !== undefined ? (sw.totalPower + "W PoE") : ""
+      opts.push({
+        value: val,
+        label: sw.name || ("Switch " + (i + 1)),
+        description: (sw.model ? sw.model + " · " : "") + (sw.siteName ? sw.siteName + " · " : "") + activeCount + "/" + totalCount + " ports" + (pwr ? " · " + pwr : "")
+      })
+    }
+    if (opts.length === 0) {
+      opts.push({ value: "", label: "No switches found", description: "No switches in " + (root.selectedSwitchSite === "all" ? "fleet" : root.selectedSwitchSite) })
+    }
+    return opts
+  }
+
+  readonly property var currentSwitch: {
+    var list = root.switchesForSelectedSite || []
+    if (list.length === 0) return null
+    if (root.selectedSwitchMac !== "") {
+      for (var i = 0; i < list.length; i++) {
+        var key = list[i].mac || list[i].name || ("sw-" + i)
+        if (key === root.selectedSwitchMac) {
+          return list[i]
+        }
+      }
+    }
+    return list[0]
+  }
+
+  readonly property int selectedSwitchIndex: {
+    var list = root.availableSwitches || []
+    if (!root.currentSwitch) return 0
+    for (var i = 0; i < list.length; i++) {
+      if ((list[i].mac && list[i].mac === root.currentSwitch.mac) ||
+          (list[i].name && list[i].name === root.currentSwitch.name)) {
+        return i
+      }
+    }
+    return 0
+  }
+
+  onSelectedSwitchSiteChanged: {
+    var list = root.switchesForSelectedSite || []
+    if (list.length > 0) {
+      var found = false
+      for (var i = 0; i < list.length; i++) {
+        var k = list[i].mac || list[i].name || ("sw-" + i)
+        if (k === root.selectedSwitchMac) {
+          found = true
+          break
+        }
+      }
+      if (!found) {
+        root.selectedSwitchMac = list[0].mac || list[0].name || ""
+      }
+    } else {
+      root.selectedSwitchMac = ""
+    }
+  }
+
+  onAvailableSwitchesChanged: {
+    if (root.availableSwitches && root.availableSwitches.length > 0 && root.selectedSwitchMac === "") {
+      root.selectedSwitchMac = root.availableSwitches[0].mac || root.availableSwitches[0].name || ""
+    }
+  }
 
   Process {
     id: powerCycleProc
@@ -2476,59 +2585,88 @@ FloatingWindow {
         // Switch Selector & Budget Header Card
         SectionCard {
           Layout.fillWidth: true
+          clip: false
           title: "SWITCH FLEET SELECTION & POE BUDGET"
-          subtitle: (root.currentSwitch ? root.currentSwitch.name : "Switch") + " · " + (root.currentSwitch ? root.currentSwitch.siteName : "") + " (" + (root.currentSwitch ? root.currentSwitch.activePorts : 0) + "/" + (root.currentSwitch ? root.currentSwitch.totalPorts : 0) + " ports active)"
+          subtitle: (root.currentSwitch ? root.currentSwitch.name : "No switch selected") + (root.currentSwitch ? (" · " + (root.currentSwitch.siteName || "") + " (" + (root.currentSwitch.activePorts || 0) + "/" + (root.currentSwitch.totalPorts || 0) + " ports active)") : "")
           iconText: ""
           titleColor: root.foreground
           fontFamily: root.fontFamily
-          badgeText: String(root.currentSwitch ? root.currentSwitch.totalPower : 0) + " W / " + String(root.currentSwitch ? root.currentSwitch.maxPower : 600) + " W POE"
+          badgeText: root.currentSwitch ? (String(root.currentSwitch.totalPower || 0) + " W / " + String(root.currentSwitch.maxPower || 600) + " W POE") : "0 W POE"
           badgeColor: root.accent
 
           ColumnLayout {
             Layout.fillWidth: true
             spacing: Style.space(6)
 
-            // Switch selector buttons row
+            // Switch selector toolbar: Site Dropdown (filter) + Switch Dropdown + Filter Pills
             RowLayout {
               Layout.fillWidth: true
-              spacing: Style.space(8)
+              spacing: Style.space(10)
 
-              Text {
-                textFormat: Text.PlainText;
-                text: "SWITCH:"
-                color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption - 1
-                font.bold: true
+              // Site Filter Dropdown (acts as a filter)
+              RowLayout {
+                spacing: Style.space(6)
+
+                Text {
+                  textFormat: Text.PlainText;
+                  text: "SITE:"
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 1
+                  font.bold: true
+                }
+
+                SearchableDropdown {
+                  id: switchSiteDropdown
+                  Layout.preferredWidth: Style.space(190)
+                  Layout.preferredHeight: Style.space(26)
+                  rowHeight: Style.space(26)
+                  showLabel: false
+                  value: root.selectedSwitchSite
+                  options: root.switchSiteOptions
+                  placeholderText: "Search sites..."
+                  emptyText: "No sites match"
+                  foreground: root.foreground
+                  background: root.track
+                  popupBorder: root.outline
+                  accent: root.accent
+                  fontFamily: root.fontFamily
+                  onChanged: function(val) {
+                    root.selectedSwitchSite = val
+                  }
+                }
               }
 
-              Repeater {
-                model: root.availableSwitches
-                delegate: Rectangle {
-                  required property var modelData
-                  required property int index
-                  height: Style.space(26)
-                  width: swBtnText.implicitWidth + Style.space(16)
-                  radius: 4
-                  color: root.selectedSwitchIndex === index ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.22) : root.track
-                  border.width: 1
-                  border.color: root.selectedSwitchIndex === index ? root.accent : root.outline
+              // Switch Selector Dropdown
+              RowLayout {
+                spacing: Style.space(6)
 
-                  Text {
-                    id: swBtnText
-                    textFormat: Text.PlainText;
-                    anchors.centerIn: parent
-                    text: (modelData.name || "Switch") + " (" + (modelData.siteName || "") + ")"
-                    color: root.selectedSwitchIndex === index ? root.foreground : root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption - 1
-                    font.bold: root.selectedSwitchIndex === index
-                  }
+                Text {
+                  textFormat: Text.PlainText;
+                  text: "SWITCH:"
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 1
+                  font.bold: true
+                }
 
-                  MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: { root.selectedSwitchIndex = index }
+                SearchableDropdown {
+                  id: switchPickerDropdown
+                  Layout.preferredWidth: Style.space(260)
+                  Layout.preferredHeight: Style.space(26)
+                  rowHeight: Style.space(26)
+                  showLabel: false
+                  value: root.currentSwitch ? (root.currentSwitch.mac || root.currentSwitch.name || "") : ""
+                  options: root.switchOptionsForSelectedSite
+                  placeholderText: "Search switches..."
+                  emptyText: "No switches match"
+                  foreground: root.foreground
+                  background: root.track
+                  popupBorder: root.outline
+                  accent: root.accent
+                  fontFamily: root.fontFamily
+                  onChanged: function(val) {
+                    root.selectedSwitchMac = val
                   }
                 }
               }
@@ -2638,6 +2776,71 @@ FloatingWindow {
                 }
               }
             }
+
+            // Physical RJ45 Faceplate Port Visualizer (Chassis Strip)
+            Rectangle {
+              Layout.fillWidth: true
+              Layout.preferredHeight: Style.space(32)
+              color: root.track
+              radius: 4
+              border.width: 1
+              border.color: root.outline
+              visible: Boolean(root.currentSwitch && root.currentSwitch.ports && root.currentSwitch.ports.length > 0)
+
+              Flickable {
+                anchors.fill: parent
+                anchors.margins: Style.space(3)
+                contentWidth: jackRowLayout.width
+                contentHeight: height
+                clip: true
+
+                RowLayout {
+                  id: jackRowLayout
+                  spacing: Style.space(3)
+
+                  Repeater {
+                    model: root.currentSwitch ? (root.currentSwitch.ports || []) : []
+                    delegate: Rectangle {
+                      required property var modelData
+                      required property int index
+                      width: Style.space(18)
+                      height: Style.space(24)
+                      radius: 2
+                      color: modelData.up
+                        ? (modelData.poePower > 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.25) : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2))
+                        : Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.1)
+                      border.width: 1
+                      border.color: modelData.up
+                        ? (modelData.poePower > 0 ? root.accent : root.healthy)
+                        : root.outline
+
+                      ColumnLayout {
+                        anchors.centerIn: parent
+                        spacing: 1
+
+                        Text {
+                          textFormat: Text.PlainText;
+                          Layout.alignment: Qt.AlignHCenter
+                          text: String(modelData.portIdx)
+                          color: modelData.up ? root.foreground : root.dim
+                          font.family: root.fontFamily
+                          font.pixelSize: 7
+                          font.bold: true
+                        }
+
+                        Rectangle {
+                          Layout.alignment: Qt.AlignHCenter
+                          width: 4
+                          height: 4
+                          radius: 2
+                          color: modelData.up ? (modelData.poePower > 0 ? root.accent : root.healthy) : root.dim
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
 
@@ -2661,7 +2864,7 @@ FloatingWindow {
             Column {
               id: portListCol
               width: parent.width
-              spacing: Style.space(6)
+              spacing: Style.space(2)
 
               Text {
                 textFormat: Text.PlainText;
@@ -2678,19 +2881,19 @@ FloatingWindow {
               // High-density table column headers
               Rectangle {
                 width: portListCol.width
-                height: Style.space(22)
+                height: Style.space(20)
                 color: "transparent"
                 visible: tab3View.portsList.length > 0
 
                 RowLayout {
                   anchors.fill: parent
-                  anchors.leftMargin: Style.space(12)
-                  anchors.rightMargin: Style.space(12)
-                  spacing: Style.space(10)
+                  anchors.leftMargin: Style.space(10)
+                  anchors.rightMargin: Style.space(10)
+                  spacing: Style.space(8)
 
                   Text {
                     textFormat: Text.PlainText;
-                    Layout.preferredWidth: 44
+                    Layout.preferredWidth: Style.space(38)
                     text: "PORT"
                     color: root.dim
                     font.family: root.fontFamily
@@ -2700,7 +2903,7 @@ FloatingWindow {
 
                   Text {
                     textFormat: Text.PlainText;
-                    Layout.preferredWidth: 140
+                    Layout.preferredWidth: Style.space(150)
                     text: "STATUS & SPEED"
                     color: root.dim
                     font.family: root.fontFamily
@@ -2711,8 +2914,7 @@ FloatingWindow {
                   Text {
                     textFormat: Text.PlainText;
                     Layout.fillWidth: true
-                    Layout.minimumWidth: 140
-                    Layout.preferredWidth: 180
+                    Layout.minimumWidth: Style.space(140)
                     text: "CONNECTED ENDPOINT"
                     color: root.dim
                     font.family: root.fontFamily
@@ -2722,7 +2924,7 @@ FloatingWindow {
 
                   Text {
                     textFormat: Text.PlainText;
-                    Layout.preferredWidth: 180
+                    Layout.preferredWidth: Style.space(170)
                     text: "POE TELEMETRY"
                     color: root.dim
                     font.family: root.fontFamily
@@ -2732,7 +2934,7 @@ FloatingWindow {
 
                   Text {
                     textFormat: Text.PlainText;
-                    Layout.preferredWidth: 70
+                    Layout.preferredWidth: Style.space(64)
                     text: "ACTION"
                     color: root.dim
                     font.family: root.fontFamily
@@ -2748,8 +2950,8 @@ FloatingWindow {
                 delegate: Rectangle {
                   required property var modelData
                   width: portListCol.width
-                  height: Style.space(40)
-                  radius: 5
+                  height: Style.space(25)
+                  radius: 3
                   color: portRowMouse.containsMouse ? root.cardHover : root.track
                   border.width: 1
                   border.color: portRowMouse.containsMouse ? root.accent : (modelData.up ? (modelData.poePower > 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.3) : root.outline) : root.outline)
@@ -2762,15 +2964,15 @@ FloatingWindow {
 
                   RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: Style.space(12)
-                    anchors.rightMargin: Style.space(12)
-                    spacing: Style.space(10)
+                    anchors.leftMargin: Style.space(10)
+                    anchors.rightMargin: Style.space(10)
+                    spacing: Style.space(8)
 
                     // Col 1: Port Badge
                     Rectangle {
-                      Layout.preferredWidth: 44
-                      Layout.preferredHeight: 22
-                      radius: 4
+                      Layout.preferredWidth: Style.space(38)
+                      Layout.preferredHeight: Style.space(18)
+                      radius: 3
                       color: modelData.up ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.18) : Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.12)
                       border.width: 1
                       border.color: modelData.up ? root.healthy : root.outline
@@ -2781,126 +2983,139 @@ FloatingWindow {
                         text: "P" + String(modelData.portIdx)
                         color: modelData.up ? root.healthy : root.dim
                         font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 1
+                        font.pixelSize: Style.font.caption - 2
                         font.bold: true
                       }
                     }
 
-                    // Col 2: Status & Speed
-                    ColumnLayout {
-                      Layout.preferredWidth: 140
-                      spacing: 1
+                    // Col 2: Status & Speed (Dense Inline)
+                    RowLayout {
+                      Layout.preferredWidth: Style.space(150)
+                      spacing: Style.space(5)
 
-                      RowLayout {
-                        spacing: 4
-                        Rectangle {
-                          width: 6
-                          height: 6
-                          radius: 3
-                          color: modelData.up ? root.healthy : root.dim
-                        }
-                        Text {
-                          textFormat: Text.PlainText;
-                          text: modelData.name || ("Port " + modelData.portIdx)
-                          color: root.foreground
-                          font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption - 1
-                          font.bold: true
-                          elide: Text.ElideRight
-                          Layout.fillWidth: true
-                        }
+                      Rectangle {
+                        width: 6
+                        height: 6
+                        radius: 3
+                        color: modelData.up ? root.healthy : root.dim
                       }
 
                       Text {
                         textFormat: Text.PlainText;
-                        text: modelData.up ? (modelData.speedText + " Full Duplex") : "Link Down"
-                        color: modelData.up ? root.healthy : root.dim
+                        text: modelData.name || ("Port " + modelData.portIdx)
+                        color: root.foreground
                         font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 3
+                        font.pixelSize: Style.font.caption - 2
+                        font.bold: true
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                       }
-                    }
 
-                    // Col 3: Connected Endpoint
-                    ColumnLayout {
-                      Layout.fillWidth: true
-                      Layout.minimumWidth: 140
-                      Layout.preferredWidth: 180
-                      spacing: 1
+                      Rectangle {
+                        visible: modelData.up
+                        height: Style.space(16)
+                        radius: 2
+                        color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15)
+                        border.width: 1
+                        border.color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.35)
+                        implicitWidth: spdText.implicitWidth + Style.space(8)
 
-                      RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
                         Text {
+                          id: spdText
                           textFormat: Text.PlainText;
-                          text: modelData.connectedDevice ? "" : ""
-                          color: modelData.connectedDevice ? root.accent : root.dim
+                          anchors.centerIn: parent
+                          text: modelData.speedText || "1 GbE"
+                          color: root.healthy
                           font.family: root.fontFamily
                           font.pixelSize: 8
-                        }
-                        Text {
-                          textFormat: Text.PlainText;
-                          text: modelData.connectedDevice || "No device identified"
-                          color: modelData.connectedDevice ? root.foreground : root.dim
-                          font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption - 1
-                          font.bold: Boolean(modelData.connectedDevice)
-                          elide: Text.ElideRight
-                          Layout.fillWidth: true
+                          font.bold: true
                         }
                       }
 
                       Text {
                         textFormat: Text.PlainText;
-                        text: modelData.up ? "Active link negotiation" : "Port idle / link down"
+                        visible: !modelData.up
+                        text: "Down"
                         color: root.dim
                         font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 3
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
+                        font.pixelSize: 8
                       }
                     }
 
-                    // Col 4: PoE Telemetry
-                    ColumnLayout {
-                      Layout.preferredWidth: 180
-                      spacing: 1
+                    // Col 3: Connected Endpoint (Dense Inline)
+                    RowLayout {
+                      Layout.fillWidth: true
+                      Layout.minimumWidth: Style.space(140)
+                      spacing: Style.space(5)
 
-                      RowLayout {
-                        spacing: 5
-                        Rectangle {
-                          width: 6
-                          height: 6
-                          radius: 3
-                          color: modelData.poePower > 0 ? root.accent : root.dim
-                        }
-                        Text {
-                          textFormat: Text.PlainText;
-                          text: modelData.poePower > 0 ? (modelData.poePower.toFixed(1) + " W @ " + (modelData.poeVoltage ? modelData.poeVoltage.toFixed(1) : "53.5") + " V") : (modelData.poeMode !== "off" ? "PoE Standby (0.0 W)" : "PoE Off")
-                          color: modelData.poePower > 0 ? root.accent : root.dim
-                          font.family: root.fontFamily
-                          font.pixelSize: Style.font.caption - 1
-                          font.bold: modelData.poePower > 0
-                        }
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.connectedDevice ? "" : ""
+                        color: modelData.connectedDevice ? root.accent : root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: 8
                       }
 
                       Text {
                         textFormat: Text.PlainText;
-                        text: modelData.poePower > 0 ? ("Current: " + (modelData.poeCurrent ? modelData.poeCurrent.toFixed(0) : "0") + " mA · PoE+ (at)") : ("Mode: " + (modelData.poeMode || "off"))
-                        color: root.dim
+                        text: modelData.connectedDevice || "No device identified"
+                        color: modelData.connectedDevice ? root.foreground : root.dim
                         font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 3
+                        font.pixelSize: Style.font.caption - 2
+                        font.bold: Boolean(modelData.connectedDevice)
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                       }
                     }
 
-                    // Col 5: Action (Cycle PoE)
+                    // Col 4: PoE Telemetry (Dense Inline)
+                    RowLayout {
+                      Layout.preferredWidth: Style.space(170)
+                      spacing: Style.space(5)
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        visible: modelData.poePower > 0
+                        text: ""
+                        color: root.accent
+                        font.family: root.fontFamily
+                        font.pixelSize: 8
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        visible: modelData.poePower > 0
+                        text: modelData.poePower.toFixed(1) + " W"
+                        color: root.accent
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                        font.bold: true
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        visible: modelData.poePower > 0
+                        text: "(" + (modelData.poeVoltage ? modelData.poeVoltage.toFixed(0) : "53") + "V · " + (modelData.poeCurrent ? modelData.poeCurrent.toFixed(0) : "0") + "mA)"
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: 8
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        visible: !(modelData.poePower > 0)
+                        text: (modelData.poeMode && modelData.poeMode !== "off") ? "PoE Standby (0.0 W)" : "PoE Off"
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                      }
+                    }
+
+                    // Col 5: Action (Dense Cycle PoE Button with Tooltip)
                     Rectangle {
-                      Layout.preferredWidth: 70
-                      Layout.preferredHeight: 22
-                      radius: 4
+                      Layout.preferredWidth: Style.space(64)
+                      Layout.preferredHeight: Style.space(18)
+                      radius: 3
                       color: (modelData.poeMode !== "off" || modelData.poePower > 0)
                         ? (cycleBtnMouse.containsMouse ? root.cardHover : root.track)
                         : "transparent"
@@ -2912,7 +3127,7 @@ FloatingWindow {
 
                       RowLayout {
                         anchors.centerIn: parent
-                        spacing: 4
+                        spacing: 3
                         visible: modelData.poeMode !== "off" || modelData.poePower > 0
 
                         Text {
@@ -2922,6 +3137,7 @@ FloatingWindow {
                           font.family: root.fontFamily
                           font.pixelSize: 8
                         }
+
                         Text {
                           textFormat: Text.PlainText;
                           text: "Cycle"
@@ -2952,6 +3168,30 @@ FloatingWindow {
                           if (root.currentSwitch) {
                             root.cyclePort(root.currentSwitch.hostId, root.currentSwitch.mac, modelData.portIdx, modelData.name || ("Port " + modelData.portIdx))
                           }
+                        }
+                      }
+
+                      Rectangle {
+                        z: 10
+                        visible: cycleBtnMouse.containsMouse && (modelData.poeMode !== "off" || modelData.poePower > 0)
+                        anchors.bottom: parent.top
+                        anchors.bottomMargin: 4
+                        anchors.right: parent.right
+                        width: cycleTipText.implicitWidth + Style.space(12)
+                        height: Style.space(20)
+                        radius: 3
+                        color: root.background
+                        border.width: 1
+                        border.color: root.outline
+
+                        Text {
+                          id: cycleTipText
+                          textFormat: Text.PlainText;
+                          anchors.centerIn: parent
+                          text: "Power cycle PoE on Port " + modelData.portIdx
+                          color: root.foreground
+                          font.family: root.fontFamily
+                          font.pixelSize: 8
                         }
                       }
                     }

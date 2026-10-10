@@ -212,6 +212,33 @@ class ConsoleDirectConnectIntegrationTests(unittest.TestCase):
         self.assertIn("implicitHeight: 740", self.analytics_qml)
         self.assertIn('title: "UniFi SiteThread — Fleet Analytics & Telemetry"', self.analytics_qml)
 
+    def test_switch_ports_tab_has_searchable_site_and_switch_dropdowns(self) -> None:
+        self.assertIn("property string selectedSwitchSite: \"all\"", self.analytics_qml)
+        self.assertIn("property string selectedSwitchMac: \"\"", self.analytics_qml)
+        self.assertIn("readonly property var switchSiteOptions:", self.analytics_qml)
+        self.assertIn("readonly property var switchesForSelectedSite:", self.analytics_qml)
+        self.assertIn("readonly property var switchOptionsForSelectedSite:", self.analytics_qml)
+        self.assertIn("id: switchSiteDropdown", self.analytics_qml)
+        self.assertIn("id: switchPickerDropdown", self.analytics_qml)
+        self.assertIn('placeholderText: "Search sites..."', self.analytics_qml)
+        self.assertIn('placeholderText: "Search switches..."', self.analytics_qml)
+
+    def test_switch_ports_tab_has_dense_port_matrix_layout(self) -> None:
+        self.assertIn("spacing: Style.space(2)", self.analytics_qml)
+        self.assertIn("height: Style.space(20)", self.analytics_qml)
+        self.assertIn("height: Style.space(25)", self.analytics_qml)
+        self.assertIn("Layout.preferredWidth: Style.space(38)", self.analytics_qml)
+        self.assertIn("Layout.preferredHeight: Style.space(18)", self.analytics_qml)
+        self.assertIn("Layout.preferredWidth: Style.space(64)", self.analytics_qml)
+
+    def test_switch_ports_tab_cycle_button_has_tooltip(self) -> None:
+        self.assertIn("visible: cycleBtnMouse.containsMouse && (modelData.poeMode !== \"off\" || modelData.poePower > 0)", self.analytics_qml)
+        self.assertIn('text: "Power cycle PoE on Port " + modelData.portIdx', self.analytics_qml)
+
+    def test_switch_ports_tab_has_chassis_jack_visualizer(self) -> None:
+        self.assertIn("id: jackRowLayout", self.analytics_qml)
+        self.assertIn("Physical RJ45 Faceplate Port Visualizer", self.analytics_qml)
+
 
 class UiDimensionsAndDensityTests(unittest.TestCase):
     def setUp(self) -> None:
