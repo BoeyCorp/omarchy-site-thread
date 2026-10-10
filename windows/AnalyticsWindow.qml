@@ -308,7 +308,7 @@ FloatingWindow {
               id: tab2Row
               anchors.centerIn: parent
               spacing: 6
-              Text { textFormat: Text.PlainText; text: ""; color: root.currentTab === 2 ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+              Text { textFormat: Text.PlainText; text: ""; color: root.currentTab === 2 ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
               Text {
                 textFormat: Text.PlainText;
                 text: "WAN & Outages (" + (root.fleetData && root.fleetData.wans ? root.fleetData.wans.length : 0) + ")"
@@ -619,7 +619,7 @@ FloatingWindow {
             visible: Boolean(root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.available)
             title: "SITE MAGIC SD-WAN"
             subtitle: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.name ? root.fleetData.sdwan.name : "Catalyse-Mesh") + " · Zero-Trust Inter-Site Mesh"
-            iconText: ""
+            iconText: ""
             titleColor: root.foreground
             fontFamily: root.fontFamily
             badgeText: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.status === "connected") ? "MESH ACTIVE" : "DEGRADED"
@@ -1003,7 +1003,7 @@ FloatingWindow {
                     id: medFilterText
                     textFormat: Text.PlainText;
                     anchors.centerIn: parent
-                    text: modelData === "All" ? "All Mediums" : (modelData === "WiFi" ? " WiFi Only" : " Wired Only")
+                    text: modelData === "All" ? "All Mediums" : (modelData === "WiFi" ? " WiFi Only" : "󰈀 Wired Only")
                     color: root.clientMediumFilter === modelData ? root.accent : root.dim
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 1
@@ -1107,7 +1107,7 @@ FloatingWindow {
                       Text {
                         textFormat: Text.PlainText;
                         anchors.centerIn: parent
-                        text: modelData.isWired ? "" : ""
+                        text: modelData.isWired ? "󰈀" : ""
                         color: modelData.isWired ? root.backup : root.accent
                         font.family: root.fontFamily
                         font.pixelSize: 16
@@ -1338,7 +1338,7 @@ FloatingWindow {
           Layout.preferredHeight: 3
           title: "GATEWAY WAN HARDWARE TELEMETRY"
           subtitle: "Multi-gigabit WAN interfaces, physical port states, link speeds, IPv4/IPv6, and ISP peering"
-          iconText: ""
+          iconText: ""
           titleColor: root.foreground
           fontFamily: root.fontFamily
           badgeText: String(root.fleetData && root.fleetData.wans ? root.fleetData.wans.length : 0) + " INTERFACES"

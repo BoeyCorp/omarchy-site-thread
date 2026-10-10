@@ -2270,7 +2270,7 @@ Panel {
                   Row {
                     anchors.centerIn: parent
                     spacing: Style.space(4)
-                    Text { textFormat: Text.PlainText; text: ""; color: sdwanBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 10 }
+                    Text { textFormat: Text.PlainText; text: ""; color: sdwanBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 10 }
                     Text { textFormat: Text.PlainText; id: sdwanBtnText; text: "Mesh"; color: sdwanBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
                   }
                   MouseArea {
