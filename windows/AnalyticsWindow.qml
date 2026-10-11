@@ -554,10 +554,10 @@ FloatingWindow {
         }
       }
 
-      // Tab Bar (4 evenly-spaced tabs spanning the window width)
+      // Tab Bar (7 evenly-spaced tabs spanning the window width)
       RowLayout {
         Layout.fillWidth: true
-        spacing: Style.space(10)
+        spacing: Style.space(5)
 
         // Tab 0: Overview & Mesh
         Rectangle {
@@ -566,14 +566,18 @@ FloatingWindow {
           Layout.minimumWidth: 0
           Layout.preferredHeight: Style.space(34)
           radius: 6
+          clip: true
           color: root.currentTab === 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab0Mouse.containsMouse ? root.cardHover : root.track)
           border.width: 1
           border.color: root.currentTab === 0 ? root.accent : root.outline
 
           RowLayout {
-            anchors.centerIn: parent
-            spacing: Style.space(6)
+            anchors.fill: parent
+            anchors.leftMargin: Style.space(6)
+            anchors.rightMargin: Style.space(6)
+            spacing: Style.space(4)
             Text {
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 0 ? root.accent : root.dim
@@ -581,11 +585,13 @@ FloatingWindow {
               font.pixelSize: Style.font.caption
             }
             Text {
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: "Overview & Mesh"
               color: root.currentTab === 0 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
               font.bold: root.currentTab === 0
               elide: Text.ElideRight
             }
@@ -598,6 +604,12 @@ FloatingWindow {
             cursorShape: Qt.PointingHandCursor
             onClicked: { root.currentTab = 0 }
           }
+
+          PanelToolTip {
+            visible: tab0Mouse.containsMouse
+            text: "Overview & Mesh"
+            fontFamily: root.fontFamily
+          }
         }
 
         // Tab 1: Client Telemetry
@@ -607,14 +619,18 @@ FloatingWindow {
           Layout.minimumWidth: 0
           Layout.preferredHeight: Style.space(34)
           radius: 6
+          clip: true
           color: root.currentTab === 1 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab1Mouse.containsMouse ? root.cardHover : root.track)
           border.width: 1
           border.color: root.currentTab === 1 ? root.accent : root.outline
 
           RowLayout {
-            anchors.centerIn: parent
-            spacing: Style.space(6)
+            anchors.fill: parent
+            anchors.leftMargin: Style.space(6)
+            anchors.rightMargin: Style.space(6)
+            spacing: Style.space(4)
             Text {
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 1 ? root.accent : root.dim
@@ -622,11 +638,13 @@ FloatingWindow {
               font.pixelSize: Style.font.caption
             }
             Text {
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: "Client Telemetry (" + (root.fleetData && root.fleetData.clients ? root.fleetData.clients.length : (root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 0)) + ")"
               color: root.currentTab === 1 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
               font.bold: root.currentTab === 1
               elide: Text.ElideRight
             }
@@ -639,6 +657,12 @@ FloatingWindow {
             cursorShape: Qt.PointingHandCursor
             onClicked: { root.currentTab = 1 }
           }
+
+          PanelToolTip {
+            visible: tab1Mouse.containsMouse
+            text: "Client Telemetry (" + (root.fleetData && root.fleetData.clients ? root.fleetData.clients.length : (root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 0)) + ")"
+            fontFamily: root.fontFamily
+          }
         }
 
         // Tab 2: WAN & Outages
@@ -648,14 +672,18 @@ FloatingWindow {
           Layout.minimumWidth: 0
           Layout.preferredHeight: Style.space(34)
           radius: 6
+          clip: true
           color: root.currentTab === 2 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab2Mouse.containsMouse ? root.cardHover : root.track)
           border.width: 1
           border.color: root.currentTab === 2 ? root.accent : root.outline
 
           RowLayout {
-            anchors.centerIn: parent
-            spacing: Style.space(6)
+            anchors.fill: parent
+            anchors.leftMargin: Style.space(6)
+            anchors.rightMargin: Style.space(6)
+            spacing: Style.space(4)
             Text {
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 2 ? root.accent : root.dim
@@ -663,11 +691,13 @@ FloatingWindow {
               font.pixelSize: Style.font.caption
             }
             Text {
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: "WAN & Outages (" + (root.fleetData && root.fleetData.wans ? root.fleetData.wans.length : 0) + ")"
               color: root.currentTab === 2 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
               font.bold: root.currentTab === 2
               elide: Text.ElideRight
             }
@@ -680,6 +710,12 @@ FloatingWindow {
             cursorShape: Qt.PointingHandCursor
             onClicked: { root.currentTab = 2 }
           }
+
+          PanelToolTip {
+            visible: tab2Mouse.containsMouse
+            text: "WAN & Outages (" + (root.fleetData && root.fleetData.wans ? root.fleetData.wans.length : 0) + ")"
+            fontFamily: root.fontFamily
+          }
         }
 
         // Tab 3: Switch Ports & PoE
@@ -689,14 +725,18 @@ FloatingWindow {
           Layout.minimumWidth: 0
           Layout.preferredHeight: Style.space(34)
           radius: 6
+          clip: true
           color: root.currentTab === 3 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab3Mouse.containsMouse ? root.cardHover : root.track)
           border.width: 1
           border.color: root.currentTab === 3 ? root.accent : root.outline
 
           RowLayout {
-            anchors.centerIn: parent
-            spacing: Style.space(6)
+            anchors.fill: parent
+            anchors.leftMargin: Style.space(6)
+            anchors.rightMargin: Style.space(6)
+            spacing: Style.space(4)
             Text {
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 3 ? root.accent : root.dim
@@ -704,11 +744,13 @@ FloatingWindow {
               font.pixelSize: Style.font.caption
             }
             Text {
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: "Switch Ports & PoE (" + (root.availableSwitches ? root.availableSwitches.length : 0) + ")"
               color: root.currentTab === 3 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
               font.bold: root.currentTab === 3
               elide: Text.ElideRight
             }
@@ -721,6 +763,12 @@ FloatingWindow {
             cursorShape: Qt.PointingHandCursor
             onClicked: { root.currentTab = 3 }
           }
+
+          PanelToolTip {
+            visible: tab3Mouse.containsMouse
+            text: "Switch Ports & PoE (" + (root.availableSwitches ? root.availableSwitches.length : 0) + ")"
+            fontFamily: root.fontFamily
+          }
         }
 
         // Tab 4: UniFi OS & Direct Connect
@@ -730,14 +778,18 @@ FloatingWindow {
           Layout.minimumWidth: 0
           Layout.preferredHeight: Style.space(34)
           radius: 6
+          clip: true
           color: root.currentTab === 4 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab4Mouse.containsMouse ? root.cardHover : root.track)
           border.width: 1
           border.color: root.currentTab === 4 ? root.accent : root.outline
 
           RowLayout {
-            anchors.centerIn: parent
-            spacing: Style.space(6)
+            anchors.fill: parent
+            anchors.leftMargin: Style.space(6)
+            anchors.rightMargin: Style.space(6)
+            spacing: Style.space(4)
             Text {
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 4 ? root.accent : root.dim
@@ -745,11 +797,13 @@ FloatingWindow {
               font.pixelSize: Style.font.caption
             }
             Text {
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: "UniFi OS & Direct Connect (" + (root.fleetConsoles ? root.fleetConsoles.length : 0) + ")"
               color: root.currentTab === 4 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
               font.bold: root.currentTab === 4
               elide: Text.ElideRight
             }
@@ -762,6 +816,12 @@ FloatingWindow {
             cursorShape: Qt.PointingHandCursor
             onClicked: { root.currentTab = 4 }
           }
+
+          PanelToolTip {
+            visible: tab4Mouse.containsMouse
+            text: "UniFi OS & Direct Connect (" + (root.fleetConsoles ? root.fleetConsoles.length : 0) + ")"
+            fontFamily: root.fontFamily
+          }
         }
 
         // Tab 5: WiFi & RF Spectrum
@@ -771,14 +831,18 @@ FloatingWindow {
           Layout.minimumWidth: 0
           Layout.preferredHeight: Style.space(34)
           radius: 6
+          clip: true
           color: root.currentTab === 5 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab5Mouse.containsMouse ? root.cardHover : root.track)
           border.width: 1
           border.color: root.currentTab === 5 ? root.accent : root.outline
 
           RowLayout {
-            anchors.centerIn: parent
-            spacing: Style.space(6)
+            anchors.fill: parent
+            anchors.leftMargin: Style.space(6)
+            anchors.rightMargin: Style.space(6)
+            spacing: Style.space(4)
             Text {
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 5 ? root.accent : root.dim
@@ -786,11 +850,13 @@ FloatingWindow {
               font.pixelSize: Style.font.caption
             }
             Text {
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: "WiFi & RF Spectrum (" + (root.fleetWlans ? root.fleetWlans.length : 0) + ")"
               color: root.currentTab === 5 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
               font.bold: root.currentTab === 5
               elide: Text.ElideRight
             }
@@ -803,6 +869,12 @@ FloatingWindow {
             cursorShape: Qt.PointingHandCursor
             onClicked: { root.currentTab = 5 }
           }
+
+          PanelToolTip {
+            visible: tab5Mouse.containsMouse
+            text: "WiFi & RF Spectrum (" + (root.fleetWlans ? root.fleetWlans.length : 0) + ")"
+            fontFamily: root.fontFamily
+          }
         }
 
         // Tab 6: Firmware & Backups
@@ -812,14 +884,18 @@ FloatingWindow {
           Layout.minimumWidth: 0
           Layout.preferredHeight: Style.space(34)
           radius: 6
+          clip: true
           color: root.currentTab === 6 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : (tab6Mouse.containsMouse ? root.cardHover : root.track)
           border.width: 1
           border.color: root.currentTab === 6 ? root.accent : root.outline
 
           RowLayout {
-            anchors.centerIn: parent
-            spacing: Style.space(6)
+            anchors.fill: parent
+            anchors.leftMargin: Style.space(6)
+            anchors.rightMargin: Style.space(6)
+            spacing: Style.space(4)
             Text {
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 6 ? root.accent : root.dim
@@ -827,11 +903,13 @@ FloatingWindow {
               font.pixelSize: Style.font.caption
             }
             Text {
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: "Firmware & Backups (" + (root.fleetUpdates ? root.fleetUpdates.length : 0) + ")"
               color: root.currentTab === 6 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
               font.bold: root.currentTab === 6
               elide: Text.ElideRight
             }
@@ -843,6 +921,12 @@ FloatingWindow {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: { root.currentTab = 6 }
+          }
+
+          PanelToolTip {
+            visible: tab6Mouse.containsMouse
+            text: "Firmware & Backups (" + (root.fleetUpdates ? root.fleetUpdates.length : 0) + ")"
+            fontFamily: root.fontFamily
           }
         }
       }
@@ -4523,7 +4607,7 @@ FloatingWindow {
         visible: root.currentTab === 5
         Layout.fillWidth: true
         Layout.fillHeight: true
-        spacing: Style.space(10)
+        spacing: Style.space(8)
 
         readonly property var rawWlans: root.fleetWlans || []
         readonly property var filteredWlans: {
@@ -4543,320 +4627,357 @@ FloatingWindow {
           return list
         }
 
-        // Top KPI Strip
-        RowLayout {
+        Flickable {
           Layout.fillWidth: true
-          spacing: Style.space(8)
+          Layout.fillHeight: true
+          contentWidth: width
+          contentHeight: tab5ContentCol.implicitHeight + Style.space(20)
+          clip: true
+          boundsBehavior: Flickable.StopAtBounds
 
-          // Metric 1: Total SSIDs
-          BorderSurface {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
-            color: root.card
-            radius: 6
-            borderSpec: Border.flat(root.outline, 1)
+          ColumnLayout {
+            id: tab5ContentCol
+            width: parent.width
+            spacing: Style.space(10)
 
+            // Top KPI Strip
             RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(8)
+              Layout.fillWidth: true
               spacing: Style.space(8)
 
-              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
-              ColumnLayout {
-                spacing: 1
-                Text { textFormat: Text.PlainText; text: "ACTIVE WLANS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                Text { textFormat: Text.PlainText; text: String(root.fleetWlans.length) + " SSIDs"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true }
-              }
-            }
-          }
-
-          // Metric 2: Connected WiFi Clients
-          BorderSurface {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
-            color: root.card
-            radius: 6
-            borderSpec: Border.flat(root.outline, 1)
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(8)
-              spacing: Style.space(8)
-
-              Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
-              ColumnLayout {
-                spacing: 1
-                Text { textFormat: Text.PlainText; text: "WIFI CLIENTS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                Text {
-                  textFormat: Text.PlainText;
-                  text: {
-                    var total = 0
-                    for (var i = 0; i < root.fleetWlans.length; i++) total += (root.fleetWlans[i].clientCount || 0)
-                    return total + " Clients"
-                  }
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                  font.bold: true
-                }
-              }
-            }
-          }
-
-          // Metric 3: Security & Roaming
-          BorderSurface {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
-            color: root.card
-            radius: 6
-            borderSpec: Border.flat(root.outline, 1)
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(8)
-              spacing: Style.space(8)
-
-              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
-              ColumnLayout {
-                spacing: 1
-                Text { textFormat: Text.PlainText; text: "SECURITY POSTURE"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                Text { textFormat: Text.PlainText; text: "WPA3 & 802.11k/v/r Active"; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
-              }
-            }
-          }
-
-          // Metric 4: Auto-RF Optimization
-          BorderSurface {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
-            color: root.card
-            radius: 6
-            borderSpec: Border.flat(root.outline, 1)
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(8)
-              spacing: Style.space(8)
-
-              Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
-              ColumnLayout {
-                spacing: 1
-                Text { textFormat: Text.PlainText; text: "NIGHTLY AUTO-RF"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                Text {
-                  textFormat: Text.PlainText;
-                  text: (root.fleetSpectrum && root.fleetSpectrum.autoRf) ? (root.fleetSpectrum.autoRf.status + " · " + root.fleetSpectrum.autoRf.lastRun) : "Optimized"
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                  font.bold: true
-                  elide: Text.ElideRight
-                }
-              }
-            }
-          }
-        }
-
-        // Sub-filters row
-        RowLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(8)
-
-          // Search Box
-          Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(30)
-            radius: 6
-            color: root.track
-            border.width: 1
-            border.color: root.outline
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(6)
-              spacing: Style.space(6)
-
-              Text { textFormat: Text.PlainText; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-              TextInput {
-                id: wlanSearchInput
+              // Metric 1: Total SSIDs
+              BorderSurface {
                 Layout.fillWidth: true
-                text: root.wlanSearch
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-                clip: true
-                onTextChanged: { root.wlanSearch = text }
-              }
-              Text {
-                textFormat: Text.PlainText;
-                visible: root.wlanSearch === ""
-                text: "Search SSIDs, security type, frequency bands..."
-                color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-              }
-            }
-          }
+                Layout.preferredHeight: Style.space(48)
+                color: root.card
+                radius: 6
+                borderSpec: Border.flat(root.outline, 1)
 
-          // Site filter pills
-          RowLayout {
-            spacing: Style.space(4)
-            Repeater {
-              model: ["All", "Main Office", "Home", "Warehouse"]
-              delegate: Rectangle {
-                required property string modelData
-                implicitHeight: Style.space(26)
-                implicitWidth: wlanSiteText.implicitWidth + Style.space(14)
-                radius: 4
-                color: root.wlanSiteFilter === modelData ? root.accent : (wSiteMouse.containsMouse ? root.cardHover : root.track)
-                border.width: 1
-                border.color: root.wlanSiteFilter === modelData ? root.accent : root.outline
-
-                Text {
-                  textFormat: Text.PlainText;
-                  id: wlanSiteText
-                  anchors.centerIn: parent
-                  text: modelData
-                  color: root.wlanSiteFilter === modelData ? "#ffffff" : root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption - 1
-                  font.bold: root.wlanSiteFilter === modelData
-                }
-
-                MouseArea {
-                  id: wSiteMouse
-                  anchors.fill: parent
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: { root.wlanSiteFilter = modelData }
-                }
-              }
-            }
-          }
-        }
-
-        // Section: Wireless Networks List
-        Text {
-          textFormat: Text.PlainText;
-          text: "FLEET WIRELESS NETWORKS & QR ONBOARDING (" + tab5View.filteredWlans.length + ")"
-          color: root.accent
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
-
-        // WLAN Cards Flow
-        Flow {
-          Layout.fillWidth: true
-          spacing: Style.space(8)
-
-          Repeater {
-            model: tab5View.filteredWlans
-            delegate: BorderSurface {
-              id: wlanCard
-              required property var modelData
-              width: Math.floor((tab5View.width - Style.space(8)) / 2)
-              implicitHeight: wlanCol.implicitHeight + Style.space(16)
-              color: root.card
-              radius: 6
-              borderSpec: Border.flat(root.outline, 1)
-
-              ColumnLayout {
-                id: wlanCol
-                anchors.fill: parent
-                anchors.margins: Style.space(10)
-                spacing: Style.space(6)
-
-                // Row 1: Icon + Name + Badges
                 RowLayout {
-                  Layout.fillWidth: true
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
+
+                  Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
+                  ColumnLayout {
+                    spacing: 1
+                    Text { textFormat: Text.PlainText; text: "ACTIVE WLANS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text { textFormat: Text.PlainText; text: String(root.fleetWlans.length) + " SSIDs"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true }
+                  }
+                }
+              }
+
+              // Metric 2: Connected WiFi Clients
+              BorderSurface {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Style.space(48)
+                color: root.card
+                radius: 6
+                borderSpec: Border.flat(root.outline, 1)
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
+
+                  Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
+                  ColumnLayout {
+                    spacing: 1
+                    Text { textFormat: Text.PlainText; text: "WIFI CLIENTS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: {
+                        var total = 0
+                        for (var i = 0; i < root.fleetWlans.length; i++) total += (root.fleetWlans[i].clientCount || 0)
+                        return total + " Clients"
+                      }
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.body
+                      font.bold: true
+                    }
+                  }
+                }
+              }
+
+              // Metric 3: Security & Roaming
+              BorderSurface {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Style.space(48)
+                color: root.card
+                radius: 6
+                borderSpec: Border.flat(root.outline, 1)
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
+
+                  Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
+                  ColumnLayout {
+                    spacing: 1
+                    Text { textFormat: Text.PlainText; text: "SECURITY POSTURE"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text { textFormat: Text.PlainText; text: "WPA3 & 802.11k/v/r Active"; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
+                  }
+                }
+              }
+
+              // Metric 4: Auto-RF Optimization
+              BorderSurface {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Style.space(48)
+                color: root.card
+                radius: 6
+                borderSpec: Border.flat(root.outline, 1)
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
+
+                  Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
+                  ColumnLayout {
+                    spacing: 1
+                    Text { textFormat: Text.PlainText; text: "NIGHTLY AUTO-RF"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: (root.fleetSpectrum && root.fleetSpectrum.autoRf) ? (root.fleetSpectrum.autoRf.status + " · " + root.fleetSpectrum.autoRf.lastRun) : "Optimized"
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                      elide: Text.ElideRight
+                    }
+                  }
+                }
+              }
+            }
+
+            // Sub-filters row
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(8)
+
+              // Search Box
+              Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Style.space(30)
+                radius: 6
+                color: root.track
+                border.width: 1
+                border.color: root.outline
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(6)
                   spacing: Style.space(6)
 
-                  Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.body }
-                  Text {
-                    textFormat: Text.PlainText;
-                    text: modelData.name
+                  Text { textFormat: Text.PlainText; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+                  TextInput {
+                    id: wlanSearchInput
+                    Layout.fillWidth: true
+                    text: root.wlanSearch
                     color: root.foreground
                     font.family: root.fontFamily
-                    font.pixelSize: Style.font.bodySmall
-                    font.bold: true
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true
+                    font.pixelSize: Style.font.caption
+                    clip: true
+                    onTextChanged: { root.wlanSearch = text }
                   }
-
-                  // Security Pill
-                  Rectangle {
-                    implicitHeight: Style.space(18)
-                    implicitWidth: secPillText.implicitWidth + Style.space(10)
-                    radius: 3
-                    color: modelData.security.indexOf("WPA3") >= 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2) : root.track
-                    border.width: 1
-                    border.color: modelData.security.indexOf("WPA3") >= 0 ? root.accent : root.outline
-                    Text { textFormat: Text.PlainText; id: secPillText; anchors.centerIn: parent; text: modelData.security; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
-                  }
-
-                  // Guest / IoT tag
-                  Rectangle {
-                    visible: modelData.guest === true || modelData.hidden === true
-                    implicitHeight: Style.space(18)
-                    implicitWidth: guestPillText.implicitWidth + Style.space(8)
-                    radius: 3
-                    color: modelData.guest ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2) : root.track
-                    border.width: 1
-                    border.color: modelData.guest ? root.backup : root.outline
-                    Text { textFormat: Text.PlainText; id: guestPillText; anchors.centerIn: parent; text: modelData.guest ? "Guest" : "Hidden"; color: modelData.guest ? root.backup : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                  Text {
+                    textFormat: Text.PlainText;
+                    visible: root.wlanSearch === ""
+                    text: "Search SSIDs, security type, frequency bands..."
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
                   }
                 }
+              }
 
-                // Row 2: Site, Band Pills, Client count
-                RowLayout {
-                  Layout.fillWidth: true
-                  spacing: Style.space(6)
-
-                  Text { textFormat: Text.PlainText; text: modelData.siteName + " · VLAN " + modelData.vlan + " · " + (modelData.radioProto || "WiFi"); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; elide: Text.ElideRight; Layout.fillWidth: true }
-
-                  // Client count badge
-                  Rectangle {
-                    implicitHeight: Style.space(18)
-                    implicitWidth: clientBadgeText.implicitWidth + Style.space(10)
-                    radius: 3
-                    color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15)
-                    Text { textFormat: Text.PlainText; id: clientBadgeText; anchors.centerIn: parent; text: " " + modelData.clientCount; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
-                  }
-                }
-
-                // Row 3: Passphrase + Share / QR Code button
-                RowLayout {
-                  Layout.fillWidth: true
-                  spacing: Style.space(6)
-
-                  Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: Style.space(24)
+              // Site filter pills
+              RowLayout {
+                spacing: Style.space(4)
+                Repeater {
+                  model: ["All", "Main Office", "Home", "Warehouse"]
+                  delegate: Rectangle {
+                    required property string modelData
+                    implicitHeight: Style.space(26)
+                    implicitWidth: wlanSiteText.implicitWidth + Style.space(14)
                     radius: 4
-                    color: root.track
+                    color: root.wlanSiteFilter === modelData ? root.accent : (wSiteMouse.containsMouse ? root.cardHover : root.track)
                     border.width: 1
-                    border.color: root.outline
+                    border.color: root.wlanSiteFilter === modelData ? root.accent : root.outline
 
-                    RowLayout {
+                    Text {
+                      textFormat: Text.PlainText;
+                      id: wlanSiteText
+                      anchors.centerIn: parent
+                      text: modelData
+                      color: root.wlanSiteFilter === modelData ? "#ffffff" : root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      font.bold: root.wlanSiteFilter === modelData
+                    }
+
+                    MouseArea {
+                      id: wSiteMouse
                       anchors.fill: parent
-                      anchors.margins: Style.space(4)
-                      spacing: Style.space(4)
-                      Text { textFormat: Text.PlainText; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: 8 }
+                      hoverEnabled: true
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: { root.wlanSiteFilter = modelData }
+                    }
+                  }
+                }
+              }
+            }
+
+            // Section: Wireless Networks List
+            Text {
+              textFormat: Text.PlainText;
+              text: "FLEET WIRELESS NETWORKS & QR ONBOARDING (" + tab5View.filteredWlans.length + ")"
+              color: root.accent
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+
+            // WLAN Cards Flow
+            Flow {
+              Layout.fillWidth: true
+              width: tab5ContentCol.width
+              spacing: Style.space(8)
+
+              Repeater {
+                model: tab5View.filteredWlans
+                delegate: BorderSurface {
+                  id: wlanCard
+                  required property var modelData
+                  width: Math.floor((tab5ContentCol.width - Style.space(8)) / 2)
+                  implicitHeight: wlanCol.implicitHeight + Style.space(16)
+                  color: root.card
+                  radius: 6
+                  borderSpec: Border.flat(root.outline, 1)
+
+                  ColumnLayout {
+                    id: wlanCol
+                    anchors.fill: parent
+                    anchors.margins: Style.space(10)
+                    spacing: Style.space(6)
+
+                    // Row 1: Icon + Name + Badges
+                    RowLayout {
+                      Layout.fillWidth: true
+                      spacing: Style.space(6)
+
+                      Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.body }
                       Text {
                         textFormat: Text.PlainText;
-                        text: modelData.passphrase || "None / Open"
+                        text: modelData.name
                         color: root.foreground
                         font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption - 1
+                        font.pixelSize: Style.font.bodySmall
+                        font.bold: true
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                       }
+
+                      // Security Pill
                       Rectangle {
                         implicitHeight: Style.space(18)
-                        implicitWidth: Style.space(20)
+                        implicitWidth: secPillText.implicitWidth + Style.space(10)
                         radius: 3
-                        color: copyPassMouse.containsMouse ? root.cardHover : "transparent"
-                        Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: "📋"; font.pixelSize: 8 }
+                        color: modelData.security.indexOf("WPA3") >= 0 ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2) : root.track
+                        border.width: 1
+                        border.color: modelData.security.indexOf("WPA3") >= 0 ? root.accent : root.outline
+                        Text { textFormat: Text.PlainText; id: secPillText; anchors.centerIn: parent; text: modelData.security; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
+                      }
+
+                      // Guest / IoT tag
+                      Rectangle {
+                        visible: modelData.guest === true || modelData.hidden === true
+                        implicitHeight: Style.space(18)
+                        implicitWidth: guestPillText.implicitWidth + Style.space(8)
+                        radius: 3
+                        color: modelData.guest ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2) : root.track
+                        border.width: 1
+                        border.color: modelData.guest ? root.backup : root.outline
+                        Text { textFormat: Text.PlainText; id: guestPillText; anchors.centerIn: parent; text: modelData.guest ? "Guest" : "Hidden"; color: modelData.guest ? root.backup : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                      }
+                    }
+
+                    // Row 2: Site, Band Pills, Client count
+                    RowLayout {
+                      Layout.fillWidth: true
+                      spacing: Style.space(6)
+
+                      Text { textFormat: Text.PlainText; text: modelData.siteName + " · VLAN " + modelData.vlan + " · " + (modelData.radioProto || "WiFi"); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; elide: Text.ElideRight; Layout.fillWidth: true }
+
+                      // Client count badge
+                      Rectangle {
+                        implicitHeight: Style.space(18)
+                        implicitWidth: clientBadgeText.implicitWidth + Style.space(10)
+                        radius: 3
+                        color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15)
+                        Text { textFormat: Text.PlainText; id: clientBadgeText; anchors.centerIn: parent; text: " " + modelData.clientCount; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
+                      }
+                    }
+
+                    // Row 3: Passphrase + Action Buttons
+                    RowLayout {
+                      Layout.fillWidth: true
+                      spacing: Style.space(6)
+
+                      // Passphrase Box
+                      Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: Style.space(24)
+                        radius: 4
+                        color: root.track
+                        border.width: 1
+                        border.color: root.outline
+
+                        RowLayout {
+                          anchors.fill: parent
+                          anchors.leftMargin: Style.space(6)
+                          anchors.rightMargin: Style.space(6)
+                          spacing: Style.space(4)
+                          Text {
+                            Layout.alignment: Qt.AlignVCenter
+                            textFormat: Text.PlainText;
+                            text: ""
+                            color: root.dim
+                            font.family: root.fontFamily
+                            font.pixelSize: 8
+                          }
+                          Text {
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+                            textFormat: Text.PlainText;
+                            text: modelData.passphrase || "None / Open"
+                            color: root.foreground
+                            font.family: root.fontFamily
+                            font.pixelSize: Style.font.caption - 1
+                            elide: Text.ElideRight
+                          }
+                        }
+                      }
+
+                      // Copy Password Button
+                      Rectangle {
+                        implicitHeight: Style.space(24)
+                        implicitWidth: copyPassText.implicitWidth + Style.space(16)
+                        radius: 4
+                        color: copyPassMouse.containsMouse ? root.cardHover : root.track
+                        border.width: 1
+                        border.color: copyPassMouse.containsMouse ? root.accent : root.outline
+
+                        RowLayout {
+                          anchors.centerIn: parent
+                          spacing: Style.space(4)
+                          Text { textFormat: Text.PlainText; text: ""; color: copyPassMouse.containsMouse ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: 8 }
+                          Text { textFormat: Text.PlainText; id: copyPassText; text: "Copy"; color: copyPassMouse.containsMouse ? root.accent : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                        }
+
                         MouseArea {
                           id: copyPassMouse
                           anchors.fill: parent
@@ -4864,316 +4985,348 @@ FloatingWindow {
                           cursorShape: Qt.PointingHandCursor
                           onClicked: { root.copyToClipboard(modelData.passphrase, modelData.name + " password") }
                         }
+
+                        PanelToolTip {
+                          visible: copyPassMouse.containsMouse
+                          text: "Copy " + modelData.name + " password to clipboard"
+                          fontFamily: root.fontFamily
+                        }
                       }
-                    }
-                  }
 
-                  // QR Code / Share Button
-                  Rectangle {
-                    implicitHeight: Style.space(24)
-                    implicitWidth: qrBtnText.implicitWidth + Style.space(14)
-                    radius: 4
-                    color: qrBtnMouse.containsMouse ? root.accent : root.cardHover
-                    border.width: 1
-                    border.color: root.accent
+                      // QR Code / Share Button
+                      Rectangle {
+                        implicitHeight: Style.space(24)
+                        implicitWidth: qrBtnText.implicitWidth + Style.space(16)
+                        radius: 4
+                        color: qrBtnMouse.containsMouse ? root.accent : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15)
+                        border.width: 1
+                        border.color: root.accent
 
-                    RowLayout {
-                      anchors.centerIn: parent
-                      spacing: Style.space(4)
-                      Text { textFormat: Text.PlainText; text: ""; color: qrBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
-                      Text { textFormat: Text.PlainText; id: qrBtnText; text: "Share QR"; color: qrBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                    }
+                        RowLayout {
+                          anchors.centerIn: parent
+                          spacing: Style.space(4)
+                          Text { textFormat: Text.PlainText; text: ""; color: qrBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
+                          Text { textFormat: Text.PlainText; id: qrBtnText; text: "Share QR"; color: qrBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                        }
 
-                    MouseArea {
-                      id: qrBtnMouse
-                      anchors.fill: parent
-                      hoverEnabled: true
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: {
-                        root.selectedWlanForQr = modelData
-                        root.showQrModal = true
+                        MouseArea {
+                          id: qrBtnMouse
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: {
+                            root.selectedWlanForQr = modelData
+                            root.showQrModal = true
+                          }
+                        }
+
+                        PanelToolTip {
+                          visible: qrBtnMouse.containsMouse
+                          text: "Show printable on-screen Wi-Fi onboarding QR code"
+                          fontFamily: root.fontFamily
+                        }
                       }
                     }
                   }
                 }
               }
             }
-          }
-        }
 
-        // QR Code Modal Card (if showQrModal is true)
-        BorderSurface {
-          visible: root.showQrModal && root.selectedWlanForQr !== null
-          Layout.fillWidth: true
-          implicitHeight: qrModalCol.implicitHeight + Style.space(16)
-          color: root.track
-          radius: 8
-          borderSpec: Border.flat(root.accent, 2)
-
-          ColumnLayout {
-            id: qrModalCol
-            anchors.fill: parent
-            anchors.margins: Style.space(12)
-            spacing: Style.space(8)
-
-            RowLayout {
+            // QR Code Modal Card (if showQrModal is true)
+            BorderSurface {
+              visible: root.showQrModal && root.selectedWlanForQr !== null
               Layout.fillWidth: true
-              Text { textFormat: Text.PlainText; text: " WIFI ONBOARDING QR CODE — " + (root.selectedWlanForQr ? root.selectedWlanForQr.name : ""); color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: true; Layout.fillWidth: true }
-              Rectangle {
-                implicitHeight: Style.space(20)
-                implicitWidth: Style.space(20)
-                radius: 3
-                color: closeQrMouse.containsMouse ? root.urgent : root.cardHover
-                Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: "✕"; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                MouseArea {
-                  id: closeQrMouse
-                  anchors.fill: parent
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: { root.showQrModal = false }
-                }
-              }
-            }
+              implicitHeight: qrModalCol.implicitHeight + Style.space(16)
+              color: root.track
+              radius: 8
+              borderSpec: Border.flat(root.accent, 2)
 
-            RowLayout {
-              Layout.fillWidth: true
-              spacing: Style.space(16)
-
-              // Stylized QR Matrix Canvas
-              Rectangle {
-                width: Style.space(120)
-                height: Style.space(120)
-                radius: 6
-                color: "#ffffff"
-                border.width: 1
-                border.color: root.outline
-
-                Canvas {
-                  id: qrCanvas
-                  anchors.fill: parent
-                  anchors.margins: Style.space(8)
-                  onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.fillStyle = "#ffffff"
-                    ctx.fillRect(0, 0, width, height)
-                    ctx.fillStyle = "#000000"
-
-                    var n = 15
-                    var cell = width / n
-                    var seedStr = root.selectedWlanForQr ? (root.selectedWlanForQr.name + root.selectedWlanForQr.passphrase) : "wifi"
-                    var hash = 0
-                    for (var k = 0; k < seedStr.length; k++) hash = (hash * 31 + seedStr.charCodeAt(k)) & 0x7fffffff
-
-                    // Corner 1
-                    ctx.fillRect(0, 0, cell * 4, cell * 4)
-                    ctx.fillStyle = "#ffffff"; ctx.fillRect(cell, cell, cell * 2, cell * 2); ctx.fillStyle = "#000000"
-                    // Corner 2
-                    ctx.fillRect(width - cell * 4, 0, cell * 4, cell * 4)
-                    ctx.fillStyle = "#ffffff"; ctx.fillRect(width - cell * 3, cell, cell * 2, cell * 2); ctx.fillStyle = "#000000"
-                    // Corner 3
-                    ctx.fillRect(0, height - cell * 4, cell * 4, cell * 4)
-                    ctx.fillStyle = "#ffffff"; ctx.fillRect(cell, height - cell * 3, cell * 2, cell * 2); ctx.fillStyle = "#000000"
-
-                    // Data matrix pseudo-bits
-                    for (var r = 0; r < n; r++) {
-                      for (var c = 0; c < n; c++) {
-                        if ((r < 4 && c < 4) || (r < 4 && c >= n - 4) || (r >= n - 4 && c < 4)) continue
-                        var bit = ((hash ^ (r * 13 + c * 23)) % 7) < 3
-                        if (bit) ctx.fillRect(c * cell, r * cell, cell - 0.5, cell - 0.5)
-                      }
-                    }
-                  }
-                }
-              }
-
-              // QR Code Details & Instructions
               ColumnLayout {
-                Layout.fillWidth: true
-                spacing: Style.space(4)
-
-                Text { textFormat: Text.PlainText; text: "SSID: " + (root.selectedWlanForQr ? root.selectedWlanForQr.name : ""); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
-                Text { textFormat: Text.PlainText; text: "Security: " + (root.selectedWlanForQr ? root.selectedWlanForQr.security : "") + " · Site: " + (root.selectedWlanForQr ? root.selectedWlanForQr.siteName : ""); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                Text { textFormat: Text.PlainText; text: "Password: " + (root.selectedWlanForQr ? root.selectedWlanForQr.passphrase : ""); color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
-                Text { textFormat: Text.PlainText; text: "Point phone camera or scanner at QR code to auto-connect to this Wi-Fi network."; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
+                id: qrModalCol
+                anchors.fill: parent
+                anchors.margins: Style.space(12)
+                spacing: Style.space(8)
 
                 RowLayout {
-                  spacing: Style.space(8)
+                  Layout.fillWidth: true
+                  Text { textFormat: Text.PlainText; text: " WIFI ONBOARDING QR CODE — " + (root.selectedWlanForQr ? root.selectedWlanForQr.name : ""); color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: true; Layout.fillWidth: true }
                   Rectangle {
-                    implicitHeight: Style.space(24)
-                    implicitWidth: copyUriBtnText.implicitWidth + Style.space(14)
-                    radius: 4
-                    color: copyUriMouse.containsMouse ? root.accent : root.card
-                    border.width: 1
-                    border.color: root.accent
-                    Text { textFormat: Text.PlainText; id: copyUriBtnText; anchors.centerIn: parent; text: "Copy WiFi URI"; color: copyUriMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                    implicitHeight: Style.space(20)
+                    implicitWidth: Style.space(20)
+                    radius: 3
+                    color: closeQrMouse.containsMouse ? root.urgent : root.cardHover
+                    Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: "✕"; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
                     MouseArea {
-                      id: copyUriMouse
+                      id: closeQrMouse
                       anchors.fill: parent
                       hoverEnabled: true
                       cursorShape: Qt.PointingHandCursor
-                      onClicked: {
-                        if (root.selectedWlanForQr) root.copyToClipboard(root.selectedWlanForQr.qrCode, "WiFi QR code URI")
+                      onClicked: { root.showQrModal = false }
+                    }
+                  }
+                }
+
+                RowLayout {
+                  Layout.fillWidth: true
+                  spacing: Style.space(16)
+
+                  // Stylized QR Matrix Canvas
+                  Rectangle {
+                    width: Style.space(120)
+                    height: Style.space(120)
+                    radius: 6
+                    color: "#ffffff"
+                    border.width: 1
+                    border.color: root.outline
+
+                    Canvas {
+                      id: qrCanvas
+                      anchors.fill: parent
+                      anchors.margins: Style.space(8)
+                      onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.fillStyle = "#ffffff"
+                        ctx.fillRect(0, 0, width, height)
+                        ctx.fillStyle = "#000000"
+
+                        var n = 15
+                        var cell = width / n
+                        var seedStr = root.selectedWlanForQr ? (root.selectedWlanForQr.name + root.selectedWlanForQr.passphrase) : "wifi"
+                        var hash = 0
+                        for (var k = 0; k < seedStr.length; k++) hash = (hash * 31 + seedStr.charCodeAt(k)) & 0x7fffffff
+
+                        // Corner 1
+                        ctx.fillRect(0, 0, cell * 4, cell * 4)
+                        ctx.fillStyle = "#ffffff"; ctx.fillRect(cell, cell, cell * 2, cell * 2); ctx.fillStyle = "#000000"
+                        // Corner 2
+                        ctx.fillRect(width - cell * 4, 0, cell * 4, cell * 4)
+                        ctx.fillStyle = "#ffffff"; ctx.fillRect(width - cell * 3, cell, cell * 2, cell * 2); ctx.fillStyle = "#000000"
+                        // Corner 3
+                        ctx.fillRect(0, height - cell * 4, cell * 4, cell * 4)
+                        ctx.fillStyle = "#ffffff"; ctx.fillRect(cell, height - cell * 3, cell * 2, cell * 2); ctx.fillStyle = "#000000"
+
+                        // Data matrix pseudo-bits
+                        for (var r = 0; r < n; r++) {
+                          for (var c = 0; c < n; c++) {
+                            if ((r < 4 && c < 4) || (r < 4 && c >= n - 4) || (r >= n - 4 && c < 4)) continue
+                            var bit = ((hash ^ (r * 13 + c * 23)) % 7) < 3
+                            if (bit) ctx.fillRect(c * cell, r * cell, cell - 0.5, cell - 0.5)
+                          }
+                        }
                       }
                     }
                   }
-                  Rectangle {
-                    implicitHeight: Style.space(24)
-                    implicitWidth: copyPassBtnText.implicitWidth + Style.space(14)
-                    radius: 4
-                    color: copyPassBtnMouse.containsMouse ? root.healthy : root.card
-                    border.width: 1
-                    border.color: root.healthy
-                    Text { textFormat: Text.PlainText; id: copyPassBtnText; anchors.centerIn: parent; text: "Copy Password"; color: copyPassBtnMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                    MouseArea {
-                      id: copyPassBtnMouse
-                      anchors.fill: parent
-                      hoverEnabled: true
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: {
-                        if (root.selectedWlanForQr) root.copyToClipboard(root.selectedWlanForQr.passphrase, "WiFi password")
+
+                  // QR Code Details & Instructions
+                  ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Style.space(4)
+
+                    Text { textFormat: Text.PlainText; text: "SSID: " + (root.selectedWlanForQr ? root.selectedWlanForQr.name : ""); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
+                    Text { textFormat: Text.PlainText; text: "Security: " + (root.selectedWlanForQr ? root.selectedWlanForQr.security : "") + " · Site: " + (root.selectedWlanForQr ? root.selectedWlanForQr.siteName : ""); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+                    Text { textFormat: Text.PlainText; text: "Password: " + (root.selectedWlanForQr ? root.selectedWlanForQr.passphrase : ""); color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
+                    Text { textFormat: Text.PlainText; text: "Point phone camera or scanner at QR code to auto-connect to this Wi-Fi network."; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
+
+                    RowLayout {
+                      spacing: Style.space(8)
+                      Rectangle {
+                        implicitHeight: Style.space(24)
+                        implicitWidth: copyUriBtnText.implicitWidth + Style.space(16)
+                        radius: 4
+                        color: copyUriMouse.containsMouse ? root.accent : root.card
+                        border.width: 1
+                        border.color: root.accent
+                        RowLayout {
+                          anchors.centerIn: parent
+                          spacing: Style.space(4)
+                          Text { textFormat: Text.PlainText; text: ""; color: copyUriMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
+                          Text { textFormat: Text.PlainText; id: copyUriBtnText; text: "Copy WiFi URI"; color: copyUriMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                        }
+                        MouseArea {
+                          id: copyUriMouse
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: {
+                            if (root.selectedWlanForQr) root.copyToClipboard(root.selectedWlanForQr.qrCode, "WiFi QR code URI")
+                          }
+                        }
+                        PanelToolTip {
+                          visible: copyUriMouse.containsMouse
+                          text: "Copy WIFI:S:... URI to clipboard"
+                          fontFamily: root.fontFamily
+                        }
+                      }
+                      Rectangle {
+                        implicitHeight: Style.space(24)
+                        implicitWidth: copyPassBtnText.implicitWidth + Style.space(16)
+                        radius: 4
+                        color: copyPassBtnMouse.containsMouse ? root.healthy : root.card
+                        border.width: 1
+                        border.color: root.healthy
+                        RowLayout {
+                          anchors.centerIn: parent
+                          spacing: Style.space(4)
+                          Text { textFormat: Text.PlainText; text: ""; color: copyPassBtnMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: 8 }
+                          Text { textFormat: Text.PlainText; id: copyPassBtnText; text: "Copy Password"; color: copyPassBtnMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                        }
+                        MouseArea {
+                          id: copyPassBtnMouse
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: {
+                            if (root.selectedWlanForQr) root.copyToClipboard(root.selectedWlanForQr.passphrase, "WiFi password")
+                          }
+                        }
+                        PanelToolTip {
+                          visible: copyPassBtnMouse.containsMouse
+                          text: "Copy raw passphrase to clipboard"
+                          fontFamily: root.fontFamily
+                        }
                       }
                     }
                   }
                 }
               }
             }
-          }
-        }
 
-        // Section: RF Spectrum & Channel Utilization
-        Text {
-          textFormat: Text.PlainText;
-          text: "RF SPECTRUM CONGESTION & CHANNEL UTILIZATION"
-          color: root.accent
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
+            // Section: RF Spectrum & Channel Utilization
+            Text {
+              textFormat: Text.PlainText;
+              text: "RF SPECTRUM CONGESTION & CHANNEL UTILIZATION"
+              color: root.accent
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
 
-        // 3 Band Utilization Cards
-        RowLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(8)
-
-          Repeater {
-            model: (root.fleetSpectrum && root.fleetSpectrum.bands) ? root.fleetSpectrum.bands : []
-            delegate: BorderSurface {
-              required property var modelData
+            // 3 Band Utilization Cards
+            RowLayout {
               Layout.fillWidth: true
-              implicitHeight: bandCol.implicitHeight + Style.space(16)
+              spacing: Style.space(8)
+
+              Repeater {
+                model: (root.fleetSpectrum && root.fleetSpectrum.bands) ? root.fleetSpectrum.bands : []
+                delegate: BorderSurface {
+                  required property var modelData
+                  Layout.fillWidth: true
+                  implicitHeight: bandCol.implicitHeight + Style.space(16)
+                  color: root.card
+                  radius: 6
+                  borderSpec: Border.flat(root.outline, 1)
+
+                  ColumnLayout {
+                    id: bandCol
+                    anchors.fill: parent
+                    anchors.margins: Style.space(8)
+                    spacing: Style.space(5)
+
+                    RowLayout {
+                      Layout.fillWidth: true
+                      Text { textFormat: Text.PlainText; text: modelData.band; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true; Layout.fillWidth: true }
+                      Rectangle {
+                        implicitHeight: Style.space(16)
+                        implicitWidth: bandStatusText.implicitWidth + Style.space(8)
+                        radius: 3
+                        color: modelData.status === "Pristine" ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2) : (modelData.status === "Optimal" ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2))
+                        Text { textFormat: Text.PlainText; id: bandStatusText; anchors.centerIn: parent; text: modelData.status; color: modelData.status === "Pristine" ? root.accent : (modelData.status === "Optimal" ? root.healthy : root.backup); font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
+                      }
+                    }
+
+                    // Utilization Progress Bar
+                    Rectangle {
+                      Layout.fillWidth: true
+                      height: Style.space(6)
+                      radius: 3
+                      color: root.track
+                      Rectangle {
+                        width: parent.width * Math.min(1.0, modelData.utilization / 100)
+                        height: parent.height
+                        radius: 3
+                        color: modelData.utilization > 50 ? root.urgent : (modelData.utilization > 25 ? root.backup : root.healthy)
+                      }
+                    }
+
+                    RowLayout {
+                      Layout.fillWidth: true
+                      Text { textFormat: Text.PlainText; text: "Utilization: " + modelData.utilization + "%"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                      Text { textFormat: Text.PlainText; text: "Interference: " + modelData.interference + "%"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                      Text { textFormat: Text.PlainText; text: "Noise: " + modelData.noiseFloor + "dBm"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    }
+
+                    // Channel badges row
+                    RowLayout {
+                      spacing: Style.space(4)
+                      Repeater {
+                        model: modelData.channels || []
+                        delegate: Rectangle {
+                          required property var modelData
+                          implicitHeight: Style.space(16)
+                          implicitWidth: chText.implicitWidth + Style.space(6)
+                          radius: 2
+                          color: root.track
+                          Text { textFormat: Text.PlainText; id: chText; anchors.centerIn: parent; text: "Ch " + modelData.channel + " (" + modelData.utilization + "%)"; color: root.dim; font.family: root.fontFamily; font.pixelSize: 8 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            // Section: AP Radio Channel Allocations Table
+            Text {
+              textFormat: Text.PlainText;
+              text: "ACCESS POINT RADIO ASSIGNMENTS & CLIENT LOAD"
+              color: root.accent
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+
+            BorderSurface {
+              Layout.fillWidth: true
+              implicitHeight: apRadioCol.implicitHeight + Style.space(14)
               color: root.card
               radius: 6
               borderSpec: Border.flat(root.outline, 1)
 
               ColumnLayout {
-                id: bandCol
+                id: apRadioCol
                 anchors.fill: parent
                 anchors.margins: Style.space(8)
-                spacing: Style.space(5)
+                spacing: Style.space(4)
 
+                // Header Row
                 RowLayout {
                   Layout.fillWidth: true
-                  Text { textFormat: Text.PlainText; text: modelData.band; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true; Layout.fillWidth: true }
-                  Rectangle {
-                    implicitHeight: Style.space(16)
-                    implicitWidth: bandStatusText.implicitWidth + Style.space(8)
-                    radius: 3
-                    color: modelData.status === "Pristine" ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2) : (modelData.status === "Optimal" ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2) : Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2))
-                    Text { textFormat: Text.PlainText; id: bandStatusText; anchors.centerIn: parent; text: modelData.status; color: modelData.status === "Pristine" ? root.accent : (modelData.status === "Optimal" ? root.healthy : root.backup); font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
+                  spacing: Style.space(8)
+                  Text { textFormat: Text.PlainText; text: "ACCESS POINT"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 160 }
+                  Text { textFormat: Text.PlainText; text: "SITE"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 100 }
+                  Text { textFormat: Text.PlainText; text: "2.4 GHZ"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 100 }
+                  Text { textFormat: Text.PlainText; text: "5 GHZ"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 100 }
+                  Text { textFormat: Text.PlainText; text: "6 GHZ"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 100 }
+                  Text { textFormat: Text.PlainText; text: "CLIENTS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.fillWidth: true }
+                }
+
+                Rectangle { Layout.fillWidth: true; height: 1; color: root.outline }
+
+                Repeater {
+                  model: (root.fleetSpectrum && root.fleetSpectrum.accessPoints) ? root.fleetSpectrum.accessPoints : []
+                  delegate: RowLayout {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    spacing: Style.space(8)
+
+                    Text { textFormat: Text.PlainText; text: modelData.name + " (" + modelData.model + ")"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true; elide: Text.ElideRight; Layout.preferredWidth: 160 }
+                    Text { textFormat: Text.PlainText; text: modelData.siteName; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; elide: Text.ElideRight; Layout.preferredWidth: 100 }
+                    Text { textFormat: Text.PlainText; text: "Ch " + modelData.ch24 + " · " + modelData.txPower24 + "dBm"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; Layout.preferredWidth: 100 }
+                    Text { textFormat: Text.PlainText; text: "Ch " + modelData.ch5 + " · " + modelData.txPower5 + "dBm"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; Layout.preferredWidth: 100 }
+                    Text { textFormat: Text.PlainText; text: modelData.ch6 ? ("Ch " + modelData.ch6 + " · " + modelData.txPower6 + "dBm") : "N/A"; color: modelData.ch6 ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; Layout.preferredWidth: 100 }
+                    Text { textFormat: Text.PlainText; text: " " + modelData.clients + " connected"; color: modelData.clients > 0 ? root.healthy : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: modelData.clients > 0; Layout.fillWidth: true }
                   }
                 }
-
-                // Utilization Progress Bar
-                Rectangle {
-                  Layout.fillWidth: true
-                  height: Style.space(6)
-                  radius: 3
-                  color: root.track
-                  Rectangle {
-                    width: parent.width * Math.min(1.0, modelData.utilization / 100)
-                    height: parent.height
-                    radius: 3
-                    color: modelData.utilization > 50 ? root.urgent : (modelData.utilization > 25 ? root.backup : root.healthy)
-                  }
-                }
-
-                RowLayout {
-                  Layout.fillWidth: true
-                  Text { textFormat: Text.PlainText; text: "Utilization: " + modelData.utilization + "%"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                  Text { textFormat: Text.PlainText; text: "Interference: " + modelData.interference + "%"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                  Text { textFormat: Text.PlainText; text: "Noise: " + modelData.noiseFloor + "dBm"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                }
-
-                // Channel badges row
-                RowLayout {
-                  spacing: Style.space(4)
-                  Repeater {
-                    model: modelData.channels || []
-                    delegate: Rectangle {
-                      required property var modelData
-                      implicitHeight: Style.space(16)
-                      implicitWidth: chText.implicitWidth + Style.space(6)
-                      radius: 2
-                      color: root.track
-                      Text { textFormat: Text.PlainText; id: chText; anchors.centerIn: parent; text: "Ch " + modelData.channel + " (" + modelData.utilization + "%)"; color: root.dim; font.family: root.fontFamily; font.pixelSize: 8 }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // Section: AP Radio Channel Allocations Table
-        Text {
-          textFormat: Text.PlainText;
-          text: "ACCESS POINT RADIO ASSIGNMENTS & CLIENT LOAD"
-          color: root.accent
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
-
-        BorderSurface {
-          Layout.fillWidth: true
-          implicitHeight: apRadioCol.implicitHeight + Style.space(14)
-          color: root.card
-          radius: 6
-          borderSpec: Border.flat(root.outline, 1)
-
-          ColumnLayout {
-            id: apRadioCol
-            anchors.fill: parent
-            anchors.margins: Style.space(8)
-            spacing: Style.space(4)
-
-            // Header Row
-            RowLayout {
-              Layout.fillWidth: true
-              spacing: Style.space(8)
-              Text { textFormat: Text.PlainText; text: "ACCESS POINT"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 160 }
-              Text { textFormat: Text.PlainText; text: "SITE"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 100 }
-              Text { textFormat: Text.PlainText; text: "2.4 GHZ"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 100 }
-              Text { textFormat: Text.PlainText; text: "5 GHZ"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 100 }
-              Text { textFormat: Text.PlainText; text: "6 GHZ"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.preferredWidth: 100 }
-              Text { textFormat: Text.PlainText; text: "CLIENTS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.fillWidth: true }
-            }
-
-            Rectangle { Layout.fillWidth: true; height: 1; color: root.outline }
-
-            Repeater {
-              model: (root.fleetSpectrum && root.fleetSpectrum.accessPoints) ? root.fleetSpectrum.accessPoints : []
-              delegate: RowLayout {
-                required property var modelData
-                Layout.fillWidth: true
-                spacing: Style.space(8)
-
-                Text { textFormat: Text.PlainText; text: modelData.name + " (" + modelData.model + ")"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true; elide: Text.ElideRight; Layout.preferredWidth: 160 }
-                Text { textFormat: Text.PlainText; text: modelData.siteName; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; elide: Text.ElideRight; Layout.preferredWidth: 100 }
-                Text { textFormat: Text.PlainText; text: "Ch " + modelData.ch24 + " · " + modelData.txPower24 + "dBm"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; Layout.preferredWidth: 100 }
-                Text { textFormat: Text.PlainText; text: "Ch " + modelData.ch5 + " · " + modelData.txPower5 + "dBm"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; Layout.preferredWidth: 100 }
-                Text { textFormat: Text.PlainText; text: modelData.ch6 ? ("Ch " + modelData.ch6 + " · " + modelData.txPower6 + "dBm") : "N/A"; color: modelData.ch6 ? root.accent : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; Layout.preferredWidth: 100 }
-                Text { textFormat: Text.PlainText; text: " " + modelData.clients + " connected"; color: modelData.clients > 0 ? root.healthy : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: modelData.clients > 0; Layout.fillWidth: true }
               }
             }
           }
@@ -5188,7 +5341,7 @@ FloatingWindow {
         visible: root.currentTab === 6
         Layout.fillWidth: true
         Layout.fillHeight: true
-        spacing: Style.space(10)
+        spacing: Style.space(8)
 
         readonly property var rawUpdates: root.fleetUpdates || []
         readonly property var filteredUpdates: {
@@ -5210,412 +5363,450 @@ FloatingWindow {
           return list
         }
 
-        // Top KPI Strip
-        RowLayout {
+        Flickable {
           Layout.fillWidth: true
-          spacing: Style.space(8)
+          Layout.fillHeight: true
+          contentWidth: width
+          contentHeight: tab6ContentCol.implicitHeight + Style.space(20)
+          clip: true
+          boundsBehavior: Flickable.StopAtBounds
 
-          // Metric 1: Pending Updates
-          BorderSurface {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
-            color: root.card
-            radius: 6
-            borderSpec: Border.flat(root.fleetUpdates.length > 0 ? root.backup : root.healthy, 1)
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(8)
-              spacing: Style.space(8)
-
-              Text { textFormat: Text.PlainText; text: ""; color: root.fleetUpdates.length > 0 ? root.backup : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
-              ColumnLayout {
-                spacing: 1
-                Text { textFormat: Text.PlainText; text: "PENDING UPDATES"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                Text { textFormat: Text.PlainText; text: String(root.fleetUpdates.length) + " Devices"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true }
-              }
-            }
-          }
-
-          // Metric 2: Release Channel
-          BorderSurface {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
-            color: root.card
-            radius: 6
-            borderSpec: Border.flat(root.outline, 1)
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(8)
-              spacing: Style.space(8)
-
-              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
-              ColumnLayout {
-                spacing: 1
-                Text { textFormat: Text.PlainText; text: "RELEASE CHANNEL"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                Text { textFormat: Text.PlainText; text: "Official (GA)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true }
-              }
-            }
-          }
-
-          // Metric 3: Automated Backups
-          BorderSurface {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
-            color: root.card
-            radius: 6
-            borderSpec: Border.flat(root.healthy, 1)
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(8)
-              spacing: Style.space(8)
-
-              Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
-              ColumnLayout {
-                spacing: 1
-                Text { textFormat: Text.PlainText; text: "CLOUD BACKUPS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                Text { textFormat: Text.PlainText; text: String(root.fleetBackups.length) + " Consoles Protected"; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
-              }
-            }
-          }
-
-          // Metric 4: Auto-Scheduled Maintenance
-          BorderSurface {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
-            color: root.card
-            radius: 6
-            borderSpec: Border.flat(root.outline, 1)
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(8)
-              spacing: Style.space(8)
-
-              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
-              ColumnLayout {
-                spacing: 1
-                Text { textFormat: Text.PlainText; text: "MAINTENANCE WINDOW"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                Text { textFormat: Text.PlainText; text: "Sundays at 03:00"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: true }
-              }
-            }
-          }
-        }
-
-        // Bulk Action Banner
-        BorderSurface {
-          Layout.fillWidth: true
-          implicitHeight: bulkRow.implicitHeight + Style.space(16)
-          color: root.track
-          radius: 6
-          borderSpec: Border.flat(root.accent, 1)
-
-          RowLayout {
-            id: bulkRow
-            anchors.fill: parent
-            anchors.margins: Style.space(10)
+          ColumnLayout {
+            id: tab6ContentCol
+            width: parent.width
             spacing: Style.space(10)
 
-            Rectangle {
-              width: Style.space(32)
-              height: Style.space(32)
-              radius: 6
-              color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)
-              Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.body }
-            }
-
-            ColumnLayout {
+            // Top KPI Strip
+            RowLayout {
               Layout.fillWidth: true
-              spacing: 1
-              Text { textFormat: Text.PlainText; text: "FLEET FIRMWARE BATCH DEPLOYMENT"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
-              Text { textFormat: Text.PlainText; text: root.fleetUpdates.length + " hardware devices have official UniFi firmware updates ready to install."; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-            }
+              spacing: Style.space(8)
 
-            // Update All Button
-            Rectangle {
-              implicitHeight: Style.space(28)
-              implicitWidth: updateAllBtnText.implicitWidth + Style.space(18)
-              radius: 4
-              color: root.bulkUpdateConfirm ? root.urgent : (updateAllMouse.containsMouse ? root.cardHover : root.accent)
-              border.width: 1
-              border.color: root.bulkUpdateConfirm ? root.urgent : root.accent
+              // Metric 1: Pending Updates
+              BorderSurface {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Style.space(48)
+                color: root.card
+                radius: 6
+                borderSpec: Border.flat(root.fleetUpdates.length > 0 ? root.backup : root.healthy, 1)
 
-              RowLayout {
-                anchors.centerIn: parent
-                spacing: Style.space(5)
-                Text { textFormat: Text.PlainText; text: root.bulkUpdateConfirm ? "" : ""; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                Text { textFormat: Text.PlainText; id: updateAllBtnText; text: root.bulkUpdateConfirm ? "Confirm Update All" : "Update All Devices"; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
+
+                  Text { textFormat: Text.PlainText; text: ""; color: root.fleetUpdates.length > 0 ? root.backup : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
+                  ColumnLayout {
+                    spacing: 1
+                    Text { textFormat: Text.PlainText; text: "PENDING UPDATES"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text { textFormat: Text.PlainText; text: String(root.fleetUpdates.length) + " Devices"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true }
+                  }
+                }
               }
 
-              MouseArea {
-                id: updateAllMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  if (!root.bulkUpdateConfirm) {
-                    root.bulkUpdateConfirm = true
-                  } else {
-                    root.bulkUpdateConfirm = false
-                    root.upgradeAllDevices()
+              // Metric 2: Release Channel
+              BorderSurface {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Style.space(48)
+                color: root.card
+                radius: 6
+                borderSpec: Border.flat(root.outline, 1)
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
+
+                  Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
+                  ColumnLayout {
+                    spacing: 1
+                    Text { textFormat: Text.PlainText; text: "RELEASE CHANNEL"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text { textFormat: Text.PlainText; text: "Official (GA)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true }
+                  }
+                }
+              }
+
+              // Metric 3: Automated Backups
+              BorderSurface {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Style.space(48)
+                color: root.card
+                radius: 6
+                borderSpec: Border.flat(root.healthy, 1)
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
+
+                  Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
+                  ColumnLayout {
+                    spacing: 1
+                    Text { textFormat: Text.PlainText; text: "CLOUD BACKUPS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text { textFormat: Text.PlainText; text: String(root.fleetBackups.length) + " Consoles Protected"; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
+                  }
+                }
+              }
+
+              // Metric 4: Auto-Scheduled Maintenance
+              BorderSurface {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Style.space(48)
+                color: root.card
+                radius: 6
+                borderSpec: Border.flat(root.outline, 1)
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(8)
+                  spacing: Style.space(8)
+
+                  Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
+                  ColumnLayout {
+                    spacing: 1
+                    Text { textFormat: Text.PlainText; text: "MAINTENANCE WINDOW"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text { textFormat: Text.PlainText; text: "Sundays at 03:00"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: true }
                   }
                 }
               }
             }
-          }
-        }
 
-        // Filters row
-        RowLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(8)
-
-          // Search Box
-          Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(30)
-            radius: 6
-            color: root.track
-            border.width: 1
-            border.color: root.outline
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.margins: Style.space(6)
-              spacing: Style.space(6)
-
-              Text { textFormat: Text.PlainText; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-              TextInput {
-                id: updateSearchInput
-                Layout.fillWidth: true
-                text: root.updateSearch
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-                clip: true
-                onTextChanged: { root.updateSearch = text }
-              }
-              Text {
-                textFormat: Text.PlainText;
-                visible: root.updateSearch === ""
-                text: "Search by device model, site, or version..."
-                color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-              }
-            }
-          }
-
-          // Category filter pills
-          RowLayout {
-            spacing: Style.space(4)
-            Repeater {
-              model: ["All", "Gateways", "Switches", "APs", "Cameras"]
-              delegate: Rectangle {
-                required property string modelData
-                implicitHeight: Style.space(26)
-                implicitWidth: catFilterText.implicitWidth + Style.space(12)
-                radius: 4
-                color: root.updateSeverityFilter === modelData ? root.accent : (catMouse.containsMouse ? root.cardHover : root.track)
-                border.width: 1
-                border.color: root.updateSeverityFilter === modelData ? root.accent : root.outline
-
-                Text {
-                  textFormat: Text.PlainText;
-                  id: catFilterText
-                  anchors.centerIn: parent
-                  text: modelData
-                  color: root.updateSeverityFilter === modelData ? "#ffffff" : root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption - 1
-                  font.bold: root.updateSeverityFilter === modelData
-                }
-
-                MouseArea {
-                  id: catMouse
-                  anchors.fill: parent
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: { root.updateSeverityFilter = modelData }
-                }
-              }
-            }
-          }
-        }
-
-        // Section: Pending Updates List
-        Text {
-          textFormat: Text.PlainText;
-          text: "PENDING FIRMWARE UPDATES (" + tab6View.filteredUpdates.length + ")"
-          color: root.accent
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
-
-        ColumnLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(6)
-
-          Repeater {
-            model: tab6View.filteredUpdates
-            delegate: BorderSurface {
-              required property var modelData
+            // Bulk Action Banner
+            BorderSurface {
               Layout.fillWidth: true
-              implicitHeight: upRow.implicitHeight + Style.space(16)
-              color: root.card
+              implicitHeight: bulkRow.implicitHeight + Style.space(16)
+              color: root.track
               radius: 6
-              borderSpec: Border.flat(modelData.severity === "critical" ? root.urgent : (modelData.severity === "important" ? root.backup : root.accent), 1)
+              borderSpec: Border.flat(root.accent, 1)
 
               RowLayout {
-                id: upRow
+                id: bulkRow
                 anchors.fill: parent
                 anchors.margins: Style.space(10)
                 spacing: Style.space(10)
 
-                Text { textFormat: Text.PlainText; text: ""; color: modelData.severity === "critical" ? root.urgent : (modelData.severity === "important" ? root.backup : root.accent); font.family: root.fontFamily; font.pixelSize: Style.font.body }
+                Rectangle {
+                  width: Style.space(32)
+                  height: Style.space(32)
+                  radius: 6
+                  color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)
+                  Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.body }
+                }
 
                 ColumnLayout {
                   Layout.fillWidth: true
-                  spacing: 2
-
-                  RowLayout {
-                    spacing: Style.space(6)
-                    Text { textFormat: Text.PlainText; text: modelData.name + " (" + modelData.model + ")"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
-                    Rectangle {
-                      implicitHeight: Style.space(16)
-                      implicitWidth: upSiteText.implicitWidth + Style.space(8)
-                      radius: 3
-                      color: root.track
-                      Text { textFormat: Text.PlainText; id: upSiteText; anchors.centerIn: parent; text: modelData.siteName; color: root.dim; font.family: root.fontFamily; font.pixelSize: 8 }
-                    }
-                    Rectangle {
-                      implicitHeight: Style.space(16)
-                      implicitWidth: sevText.implicitWidth + Style.space(8)
-                      radius: 3
-                      color: modelData.severity === "critical" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2) : (modelData.severity === "important" ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2))
-                      Text { textFormat: Text.PlainText; id: sevText; anchors.centerIn: parent; text: modelData.severity.toUpperCase(); color: modelData.severity === "critical" ? root.urgent : (modelData.severity === "important" ? root.backup : root.accent); font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
-                    }
-                  }
-
-                  Text {
-                    textFormat: Text.PlainText;
-                    text: "Current: " + modelData.currentVersion + "  ➜  Target: " + modelData.targetVersion + " (" + modelData.releaseChannel + ")"
-                    color: root.foreground
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                    font.bold: true
-                  }
-
-                  Text {
-                    textFormat: Text.PlainText;
-                    text: modelData.releaseNotes
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption - 1
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true
-                  }
+                  spacing: 1
+                  Text { textFormat: Text.PlainText; text: "FLEET FIRMWARE BATCH DEPLOYMENT"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
+                  Text { textFormat: Text.PlainText; text: root.fleetUpdates.length + " hardware devices have official UniFi firmware updates ready to install."; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
                 }
 
-                // Update Device Button
+                // Update All Button
                 Rectangle {
-                  implicitHeight: Style.space(26)
-                  implicitWidth: upBtnText.implicitWidth + Style.space(16)
+                  implicitHeight: Style.space(28)
+                  implicitWidth: updateAllBtnText.implicitWidth + Style.space(18)
                   radius: 4
-                  color: upBtnMouse.containsMouse ? root.accent : root.track
+                  color: root.bulkUpdateConfirm ? root.urgent : (updateAllMouse.containsMouse ? root.cardHover : root.accent)
                   border.width: 1
-                  border.color: root.accent
-
-                  RowLayout {
-                    anchors.centerIn: parent
-                    spacing: Style.space(4)
-                    Text { textFormat: Text.PlainText; text: ""; color: upBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
-                    Text { textFormat: Text.PlainText; id: upBtnText; text: "Update Device"; color: upBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
-                  }
-
-                  MouseArea {
-                    id: upBtnMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: { root.upgradeDevice(modelData.hostId, modelData.mac, modelData.name) }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // Section: Automated Cloud Configuration Backups
-        Text {
-          textFormat: Text.PlainText;
-          text: "AUTOMATED CLOUD CONFIGURATION BACKUPS (" + root.fleetBackups.length + ")"
-          color: root.accent
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
-
-        RowLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(8)
-
-          Repeater {
-            model: root.fleetBackups
-            delegate: BorderSurface {
-              required property var modelData
-              Layout.fillWidth: true
-              implicitHeight: bkCol.implicitHeight + Style.space(16)
-              color: root.card
-              radius: 6
-              borderSpec: Border.flat(root.outline, 1)
-
-              ColumnLayout {
-                id: bkCol
-                anchors.fill: parent
-                anchors.margins: Style.space(10)
-                spacing: Style.space(6)
-
-                RowLayout {
-                  Layout.fillWidth: true
-                  Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.body }
-                  Text { textFormat: Text.PlainText; text: modelData.consoleName; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-                  Rectangle {
-                    implicitHeight: Style.space(16)
-                    implicitWidth: bkStatusText.implicitWidth + Style.space(8)
-                    radius: 3
-                    color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
-                    Text { textFormat: Text.PlainText; id: bkStatusText; anchors.centerIn: parent; text: "PROTECTED"; color: root.healthy; font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
-                  }
-                }
-
-                Text { textFormat: Text.PlainText; text: modelData.siteName + " · UniFi OS " + modelData.unifiOsVersion; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                Text { textFormat: Text.PlainText; text: "Last Backup: " + modelData.lastBackup + " (" + modelData.sizeText + ")"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: true }
-
-                Rectangle {
-                  Layout.fillWidth: true
-                  implicitHeight: Style.space(24)
-                  radius: 4
-                  color: createBkMouse.containsMouse ? root.healthy : root.track
-                  border.width: 1
-                  border.color: root.healthy
+                  border.color: root.bulkUpdateConfirm ? root.urgent : root.accent
 
                   RowLayout {
                     anchors.centerIn: parent
                     spacing: Style.space(5)
-                    Text { textFormat: Text.PlainText; text: ""; color: createBkMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: 8 }
-                    Text { textFormat: Text.PlainText; id: createBkText; text: "Create Backup Now"; color: createBkMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                    Text { textFormat: Text.PlainText; text: root.bulkUpdateConfirm ? "" : ""; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+                    Text { textFormat: Text.PlainText; id: updateAllBtnText; text: root.bulkUpdateConfirm ? "Confirm Update All" : "Update All Devices"; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
                   }
 
                   MouseArea {
-                    id: createBkMouse
+                    id: updateAllMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: { root.triggerBackup(modelData.hostId, modelData.consoleName) }
+                    onClicked: {
+                      if (!root.bulkUpdateConfirm) {
+                        root.bulkUpdateConfirm = true
+                      } else {
+                        root.bulkUpdateConfirm = false
+                        root.upgradeAllDevices()
+                      }
+                    }
+                  }
+
+                  PanelToolTip {
+                    visible: updateAllMouse.containsMouse
+                    text: root.bulkUpdateConfirm ? "Click again to confirm batch upgrade of " + root.fleetUpdates.length + " devices" : "Batch deploy official firmware to all " + root.fleetUpdates.length + " devices"
+                    fontFamily: root.fontFamily
+                  }
+                }
+              }
+            }
+
+            // Filters row
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(8)
+
+              // Search Box
+              Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Style.space(30)
+                radius: 6
+                color: root.track
+                border.width: 1
+                border.color: root.outline
+
+                RowLayout {
+                  anchors.fill: parent
+                  anchors.margins: Style.space(6)
+                  spacing: Style.space(6)
+
+                  Text { textFormat: Text.PlainText; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+                  TextInput {
+                    id: updateSearchInput
+                    Layout.fillWidth: true
+                    text: root.updateSearch
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    clip: true
+                    onTextChanged: { root.updateSearch = text }
+                  }
+                  Text {
+                    textFormat: Text.PlainText;
+                    visible: root.updateSearch === ""
+                    text: "Search by device model, site, or version..."
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+                }
+              }
+
+              // Category filter pills
+              RowLayout {
+                spacing: Style.space(4)
+                Repeater {
+                  model: ["All", "Gateways", "Switches", "APs", "Cameras"]
+                  delegate: Rectangle {
+                    required property string modelData
+                    implicitHeight: Style.space(26)
+                    implicitWidth: catFilterText.implicitWidth + Style.space(12)
+                    radius: 4
+                    color: root.updateSeverityFilter === modelData ? root.accent : (catMouse.containsMouse ? root.cardHover : root.track)
+                    border.width: 1
+                    border.color: root.updateSeverityFilter === modelData ? root.accent : root.outline
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      id: catFilterText
+                      anchors.centerIn: parent
+                      text: modelData
+                      color: root.updateSeverityFilter === modelData ? "#ffffff" : root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      font.bold: root.updateSeverityFilter === modelData
+                    }
+
+                    MouseArea {
+                      id: catMouse
+                      anchors.fill: parent
+                      hoverEnabled: true
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: { root.updateSeverityFilter = modelData }
+                    }
+                  }
+                }
+              }
+            }
+
+            // Section: Pending Updates List
+            Text {
+              textFormat: Text.PlainText;
+              text: "PENDING FIRMWARE UPDATES (" + tab6View.filteredUpdates.length + ")"
+              color: root.accent
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+
+            ColumnLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(6)
+
+              Repeater {
+                model: tab6View.filteredUpdates
+                delegate: BorderSurface {
+                  required property var modelData
+                  Layout.fillWidth: true
+                  implicitHeight: upRow.implicitHeight + Style.space(16)
+                  color: root.card
+                  radius: 6
+                  borderSpec: Border.flat(modelData.severity === "critical" ? root.urgent : (modelData.severity === "important" ? root.backup : root.accent), 1)
+
+                  RowLayout {
+                    id: upRow
+                    anchors.fill: parent
+                    anchors.margins: Style.space(10)
+                    spacing: Style.space(10)
+
+                    Text { textFormat: Text.PlainText; text: ""; color: modelData.severity === "critical" ? root.urgent : (modelData.severity === "important" ? root.backup : root.accent); font.family: root.fontFamily; font.pixelSize: Style.font.body }
+
+                    ColumnLayout {
+                      Layout.fillWidth: true
+                      spacing: 2
+
+                      RowLayout {
+                        spacing: Style.space(6)
+                        Text { textFormat: Text.PlainText; text: modelData.name + " (" + modelData.model + ")"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
+                        Rectangle {
+                          implicitHeight: Style.space(16)
+                          implicitWidth: upSiteText.implicitWidth + Style.space(8)
+                          radius: 3
+                          color: root.track
+                          Text { textFormat: Text.PlainText; id: upSiteText; anchors.centerIn: parent; text: modelData.siteName; color: root.dim; font.family: root.fontFamily; font.pixelSize: 8 }
+                        }
+                        Rectangle {
+                          implicitHeight: Style.space(16)
+                          implicitWidth: sevText.implicitWidth + Style.space(8)
+                          radius: 3
+                          color: modelData.severity === "critical" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2) : (modelData.severity === "important" ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2))
+                          Text { textFormat: Text.PlainText; id: sevText; anchors.centerIn: parent; text: modelData.severity.toUpperCase(); color: modelData.severity === "critical" ? root.urgent : (modelData.severity === "important" ? root.backup : root.accent); font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
+                        }
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: "Current: " + modelData.currentVersion + "  ➜  Target: " + modelData.targetVersion + " (" + modelData.releaseChannel + ")"
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption
+                        font.bold: true
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.releaseNotes
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+                    }
+
+                    // Update Device Button
+                    Rectangle {
+                      implicitHeight: Style.space(26)
+                      implicitWidth: upBtnText.implicitWidth + Style.space(16)
+                      radius: 4
+                      color: upBtnMouse.containsMouse ? root.accent : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15)
+                      border.width: 1
+                      border.color: root.accent
+
+                      RowLayout {
+                        anchors.centerIn: parent
+                        spacing: Style.space(4)
+                        Text { textFormat: Text.PlainText; text: ""; color: upBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
+                        Text { textFormat: Text.PlainText; id: upBtnText; text: "Update Device"; color: upBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                      }
+
+                      MouseArea {
+                        id: upBtnMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { root.upgradeDevice(modelData.hostId, modelData.mac, modelData.name) }
+                      }
+
+                      PanelToolTip {
+                        visible: upBtnMouse.containsMouse
+                        text: "Install target firmware version " + modelData.targetVersion + " on " + modelData.name
+                        fontFamily: root.fontFamily
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            // Section: Automated Cloud Configuration Backups
+            Text {
+              textFormat: Text.PlainText;
+              text: "AUTOMATED CLOUD CONFIGURATION BACKUPS (" + root.fleetBackups.length + ")"
+              color: root.accent
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(8)
+
+              Repeater {
+                model: root.fleetBackups
+                delegate: BorderSurface {
+                  required property var modelData
+                  Layout.fillWidth: true
+                  implicitHeight: bkCol.implicitHeight + Style.space(16)
+                  color: root.card
+                  radius: 6
+                  borderSpec: Border.flat(root.outline, 1)
+
+                  ColumnLayout {
+                    id: bkCol
+                    anchors.fill: parent
+                    anchors.margins: Style.space(10)
+                    spacing: Style.space(6)
+
+                    RowLayout {
+                      Layout.fillWidth: true
+                      Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.body }
+                      Text { textFormat: Text.PlainText; text: modelData.consoleName; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                      Rectangle {
+                        implicitHeight: Style.space(16)
+                        implicitWidth: bkStatusText.implicitWidth + Style.space(8)
+                        radius: 3
+                        color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
+                        Text { textFormat: Text.PlainText; id: bkStatusText; anchors.centerIn: parent; text: "PROTECTED"; color: root.healthy; font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
+                      }
+                    }
+
+                    Text { textFormat: Text.PlainText; text: modelData.siteName + " · UniFi OS " + modelData.unifiOsVersion; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
+                    Text { textFormat: Text.PlainText; text: "Last Backup: " + modelData.lastBackup + " (" + modelData.sizeText + ")"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: true }
+
+                    RowLayout {
+                      Layout.fillWidth: true
+                      Item { Layout.fillWidth: true }
+
+                      Rectangle {
+                        implicitHeight: Style.space(26)
+                        implicitWidth: createBkText.implicitWidth + Style.space(18)
+                        radius: 4
+                        color: createBkMouse.containsMouse ? root.healthy : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15)
+                        border.width: 1
+                        border.color: root.healthy
+
+                        RowLayout {
+                          anchors.centerIn: parent
+                          spacing: Style.space(5)
+                          Text { textFormat: Text.PlainText; text: ""; color: createBkMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: 8 }
+                          Text { textFormat: Text.PlainText; id: createBkText; text: "Create Backup Now"; color: createBkMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                        }
+
+                        MouseArea {
+                          id: createBkMouse
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: { root.triggerBackup(modelData.hostId, modelData.consoleName) }
+                        }
+
+                        PanelToolTip {
+                          visible: createBkMouse.containsMouse
+                          text: "Trigger immediate cloud configuration backup for " + modelData.consoleName
+                          fontFamily: root.fontFamily
+                        }
+                      }
+                    }
                   }
                 }
               }
