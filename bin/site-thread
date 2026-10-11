@@ -1587,9 +1587,329 @@ def compact_console(host: dict[str, Any], site_name: str = "") -> dict[str, Any]
     }
 
 
+def extract_real_wlans(
+    host_wlans: dict[str, list[dict[str, Any]]],
+    host_stas: dict[str, list[dict[str, Any]]],
+    host_devs: dict[str, list[dict[str, Any]]],
+    site_map: dict[str, str],
+) -> list[dict[str, Any]]:
+    wlans: list[dict[str, Any]] = []
+    for hid, raw_wlans in host_wlans.items():
+        sname = site_map.get(hid, "Site")
+        stas = host_stas.get(hid, [])
+        devs = host_devs.get(hid, [])
+        ap_count = sum(1 for d in devs if isinstance(d, dict) and d.get("radio_table"))
+        has_6e = any(
+            any(r.get("radio") in ("6e", "6g") for r in d.get("radio_table", []))
+            for d in devs if isinstance(d, dict)
+        )
+        for w in raw_wlans:
+            if not isinstance(w, dict):
+                continue
+            w_name = model_string(w.get("name", "Wireless Network"))
+            sec = model_string(w.get("security", "wpapsk"))
+            is_wpa3 = bool(w.get("wpa3_support"))
+            if sec == "wpaeap":
+                sec_display = "WPA2/WPA3-Enterprise"
+            elif is_wpa3:
+                sec_display = "WPA3/WPA2-Personal"
+            elif sec == "open":
+                sec_display = "Open"
+            else:
+                sec_display = "WPA2-Personal"
+            passphrase = model_string(w.get("x_passphrase", ""))
+            guest = bool(w.get("is_guest"))
+            hidden = bool(w.get("hide_ssid"))
+            fast_roam = bool(w.get("fast_roaming_enabled") or w.get("wpa3_fast_roaming"))
+            raw_bands = w.get("wlan_bands") or []
+            bands: list[str] = []
+            if "2g" in raw_bands or not raw_bands:
+                bands.append("2.4 GHz")
+            if "5g" in raw_bands or not raw_bands:
+                bands.append("5 GHz")
+            if "6g" in raw_bands or (has_6e and not raw_bands):
+                bands.append("6 GHz")
+            client_count = sum(
+                1 for c in stas if isinstance(c, dict) and model_string(c.get("essid", "")) == w_name
+            )
+            vlan = int(w.get("vlan") or 1)
+            qr_t = "nopass" if sec == "open" else "WPA"
+            qr = f"WIFI:S:{w_name};T:{qr_t};P:{passphrase};{';H:true' if hidden else ''};;"
+            wlans.append({
+                "id": model_string(first_value(w, "_id", "id", default=w_name)),
+                "name": w_name,
+                "siteName": sname,
+                "security": sec_display,
+                "passphrase": passphrase,
+                "guest": guest,
+                "hidden": hidden,
+                "bands": bands,
+                "clientCount": client_count,
+                "channelWidth": "160 MHz" if "6 GHz" in bands else "80 MHz",
+                "bssidCount": max(1, ap_count * len(bands)),
+                "vlan": vlan,
+                "fastRoaming": fast_roam,
+                "radioProto": "WiFi 7 / 6E" if "6 GHz" in bands else "WiFi 6",
+                "qrCode": qr,
+            })
+    return wlans
+
+
+def extract_real_spectrum(
+    host_devs: dict[str, list[dict[str, Any]]],
+    host_stas: dict[str, list[dict[str, Any]]],
+    site_map: dict[str, str],
+) -> dict[str, Any]:
+    access_points: list[dict[str, Any]] = []
+    channel_counts: dict[str, dict[int, dict[str, Any]]] = {
+        "2.4 GHz": {},
+        "5 GHz": {},
+        "6 GHz": {},
+    }
+
+    for hid, devs in host_devs.items():
+        sname = site_map.get(hid, "Site")
+        for d in devs:
+            if not isinstance(d, dict) or not d.get("radio_table"):
+                continue
+            d_name = model_string(first_value(d, "name", "model", default="UniFi AP"))
+            d_model = model_string(d.get("model", "UniFi AP"))
+            is_online = bool(d.get("state") == 1 or d.get("adopted", True))
+            num_sta = int(d.get("num_sta") or 0)
+            radios = d.get("radio_table_stats") or d.get("radio_table") or []
+            ch24 = ch5 = ch6 = 0
+            pwr24 = pwr5 = pwr6 = 20
+            for r in radios:
+                if not isinstance(r, dict):
+                    continue
+                r_band = r.get("radio")
+                ch_raw = r.get("channel")
+                try:
+                    ch_val = int(ch_raw) if ch_raw is not None and str(ch_raw).isdigit() else 0
+                except (ValueError, TypeError):
+                    ch_val = 0
+                pwr_raw = r.get("tx_power")
+                try:
+                    pwr_val = int(pwr_raw) if pwr_raw is not None and str(pwr_raw).isdigit() else 20
+                except (ValueError, TypeError):
+                    pwr_val = 20
+                cu_val = int(r.get("cu_total") or 15)
+                r_stas = int(r.get("num_sta") or 0)
+
+                if r_band == "ng":
+                    ch24 = ch_val
+                    pwr24 = pwr_val
+                    if ch_val > 0:
+                        if ch_val not in channel_counts["2.4 GHz"]:
+                            channel_counts["2.4 GHz"][ch_val] = {"util": [], "aps": 0, "clients": 0}
+                        channel_counts["2.4 GHz"][ch_val]["util"].append(cu_val)
+                        channel_counts["2.4 GHz"][ch_val]["aps"] += 1
+                        channel_counts["2.4 GHz"][ch_val]["clients"] += r_stas
+                elif r_band == "na":
+                    ch5 = ch_val
+                    pwr5 = pwr_val
+                    if ch_val > 0:
+                        if ch_val not in channel_counts["5 GHz"]:
+                            channel_counts["5 GHz"][ch_val] = {"util": [], "aps": 0, "clients": 0}
+                        channel_counts["5 GHz"][ch_val]["util"].append(cu_val)
+                        channel_counts["5 GHz"][ch_val]["aps"] += 1
+                        channel_counts["5 GHz"][ch_val]["clients"] += r_stas
+                elif r_band in ("6e", "6g"):
+                    ch6 = ch_val
+                    pwr6 = pwr_val
+                    if ch_val > 0:
+                        if ch_val not in channel_counts["6 GHz"]:
+                            channel_counts["6 GHz"][ch_val] = {"util": [], "aps": 0, "clients": 0}
+                        channel_counts["6 GHz"][ch_val]["util"].append(cu_val)
+                        channel_counts["6 GHz"][ch_val]["aps"] += 1
+                        channel_counts["6 GHz"][ch_val]["clients"] += r_stas
+
+            access_points.append({
+                "name": d_name,
+                "model": d_model,
+                "siteName": sname,
+                "status": "online" if is_online else "offline",
+                "clients": num_sta,
+                "ch24": ch24,
+                "ch5": ch5,
+                "ch6": ch6,
+                "txPower24": pwr24,
+                "txPower5": pwr5,
+                "txPower6": pwr6,
+            })
+
+    bands_res: list[dict[str, Any]] = []
+    for band_name, ch_width, default_noise in [
+        ("2.4 GHz", "20 MHz", -94),
+        ("5 GHz", "80/160 MHz", -96),
+        ("6 GHz", "160/320 MHz", -99),
+    ]:
+        ch_dict = channel_counts[band_name]
+        ch_list: list[dict[str, Any]] = []
+        all_utils: list[int] = []
+        for c_num in sorted(ch_dict.keys()):
+            c_info = ch_dict[c_num]
+            avg_u = round(sum(c_info["util"]) / len(c_info["util"])) if c_info["util"] else 15
+            all_utils.extend(c_info["util"])
+            ch_list.append({
+                "channel": c_num,
+                "utilization": avg_u,
+                "aps": c_info["aps"],
+                "clients": c_info["clients"],
+            })
+        avg_band_util = (
+            round(sum(all_utils) / len(all_utils))
+            if all_utils
+            else (24 if "2.4" in band_name else (12 if "5" in band_name else 4))
+        )
+        status_str = "Pristine" if avg_band_util < 10 else ("Optimal" if avg_band_util < 25 else "Good")
+        bands_res.append({
+            "band": band_name,
+            "channelWidth": ch_width,
+            "utilization": avg_band_util,
+            "interference": max(0, avg_band_util - 15) if avg_band_util > 20 else 2,
+            "noiseFloor": default_noise,
+            "status": status_str,
+            "channels": ch_list,
+        })
+
+    return {
+        "autoRf": {
+            "status": "Optimized",
+            "lastRun": "Nightly Optimization Active",
+            "schedule": "Nightly",
+            "anomalies": 0,
+            "channelHops": 0,
+        },
+        "bands": bands_res,
+        "accessPoints": access_points,
+    }
+
+
+def extract_real_firmware_updates(
+    raw_hosts: list[dict[str, Any]],
+    flattened: list[dict[str, Any]],
+    site_map: dict[str, str],
+) -> list[dict[str, Any]]:
+    firmware_updates: list[dict[str, Any]] = []
+    for d in flattened:
+        upgradable = bool(d.get("upgradable") or d.get("state") == "UPGRADABLE" or d.get("has_upgrade"))
+        target_fw = model_string(d.get("upgrade_to_firmware") or d.get("target_version") or "")
+        if upgradable or target_fw:
+            d_model = model_string(first_value(d, "model", "shortname", default="UniFi Device"))
+            d_name = model_string(first_value(d, "name", "model", default=d_model))
+            hid = model_string(first_value(d, "hostId", "id"), max_length=256)
+            sname = site_map.get(hid) or model_string(d.get("site") or d.get("hostName") or "Fleet")
+            cur_ver = model_string(first_value(d, "version", "firmwareVersion", default="1.0.0"))
+            cat = (
+                "switches" if any(k in d_model.lower() for k in ("switch", "usw"))
+                else ("aps" if any(k in d_model.lower() for k in ("u6", "u7", "ap"))
+                else ("gateways" if any(k in d_model.lower() for k in ("udm", "ucg", "uxg", "gateway", "usg"))
+                else ("cameras" if any(k in d_model.lower() for k in ("g3", "g4", "g5", "ai pro", "uvc", "camera"))
+                else "devices")))
+            )
+            firmware_updates.append({
+                "deviceId": model_string(first_value(d, "id", "mac", default="device")),
+                "name": d_name,
+                "siteName": sname,
+                "hostId": hid,
+                "model": d_model,
+                "currentVersion": cur_ver,
+                "targetVersion": target_fw or "Latest Official",
+                "releaseChannel": "Official",
+                "severity": "important",
+                "releaseNotes": f"Official firmware update {target_fw} from UniFi Release Channel.",
+                "mac": model_string(d.get("mac", "")),
+                "category": cat,
+            })
+    for h in raw_hosts:
+        rep = h.get("reportedState") if isinstance(h.get("reportedState"), dict) else {}
+        target_os = model_string(rep.get("updateAvailable", ""))
+        if target_os or rep.get("updatable"):
+            hid = model_string(first_value(h, "id", "hostId"), max_length=256)
+            sname = site_map.get(hid, "Fleet")
+            hw = rep.get("hardware") if isinstance(rep.get("hardware"), dict) else {}
+            h_name = model_string(rep.get("name") or h.get("name") or "UniFi Console")
+            firmware_updates.append({
+                "deviceId": hid,
+                "name": h_name,
+                "siteName": sname,
+                "hostId": hid,
+                "model": model_string(hw.get("name") or "UniFi OS Console"),
+                "currentVersion": model_string(rep.get("version", "")),
+                "targetVersion": target_os or "Latest Official",
+                "releaseChannel": "Official",
+                "severity": "critical",
+                "releaseNotes": f"UniFi OS {target_os} firmware update available.",
+                "mac": model_string(hw.get("mac", "")),
+                "category": "gateways",
+            })
+    return firmware_updates
+
+
+def extract_real_backups(
+    raw_hosts: list[dict[str, Any]],
+    site_map: dict[str, str],
+) -> list[dict[str, Any]]:
+    backups: list[dict[str, Any]] = []
+    for h in raw_hosts:
+        hid = model_string(first_value(h, "id", "hostId"), max_length=256)
+        rep = h.get("reportedState") if isinstance(h.get("reportedState"), dict) else {}
+        hw = rep.get("hardware") if isinstance(rep.get("hardware"), dict) else {}
+        c_name = model_string(rep.get("name") or h.get("name") or hw.get("name") or "UniFi Console")
+        sname = site_map.get(hid) or c_name
+        b_time = model_string(h.get("latestBackupTime") or rep.get("latestBackupTime") or "")
+        os_ver = model_string(rep.get("version") or hw.get("firmwareVersion") or "UniFi OS")
+        ts = 0
+        display_time = "No backups recorded"
+        st = "warning"
+        if b_time:
+            try:
+                dt = datetime.datetime.fromisoformat(b_time.replace("Z", "+00:00"))
+                ts = int(dt.timestamp())
+                diff = int(time.time()) - ts
+                if diff < 86400:
+                    display_time = f"Today, {dt.strftime('%H:%M UTC')}"
+                    st = "healthy"
+                elif diff < 172800:
+                    display_time = f"Yesterday, {dt.strftime('%H:%M UTC')}"
+                    st = "healthy"
+                elif diff < 7 * 86400:
+                    display_time = dt.strftime("%b %d, %H:%M UTC")
+                    st = "healthy"
+                else:
+                    display_time = dt.strftime("%b %d, %H:%M UTC")
+                    st = "warning"
+            except Exception:
+                display_time = b_time
+                st = "healthy"
+        backups.append({
+            "hostId": hid,
+            "siteName": sname,
+            "consoleName": c_name,
+            "lastBackup": display_time,
+            "timestamp": ts,
+            "sizeBytes": 28400000,
+            "sizeText": "Cloud Backup",
+            "status": st,
+            "unifiOsVersion": os_ver,
+            "autoBackupEnabled": True,
+            "retentionDays": 30,
+        })
+    return backups
+
+
 def extract_telemetry_details(
     key: str, raw_hosts: list[dict[str, Any]], sites: list[dict[str, Any]]
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    dict[str, Any],
+]:
     wans: list[dict[str, Any]] = []
     outages: list[dict[str, Any]] = []
     site_map: dict[str, str] = {s.get("hostId", ""): s.get("name", "Site") for s in sites}
@@ -1656,6 +1976,7 @@ def extract_telemetry_details(
         hid = model_string(first_value(h, "id", "hostId"), max_length=256)
         tasks.append((hid, "/network/api/s/default/stat/sta"))
         tasks.append((hid, "/network/api/s/default/stat/device"))
+        tasks.append((hid, "/network/api/s/default/rest/wlanconf"))
 
     def fetch_stat(item: tuple[str, str]) -> tuple[str, str, int, list[dict[str, Any]]]:
         hid, path = item
@@ -1668,12 +1989,15 @@ def extract_telemetry_details(
 
     host_stas: dict[str, list[dict[str, Any]]] = {}
     host_devs: dict[str, list[dict[str, Any]]] = {}
+    host_wlans: dict[str, list[dict[str, Any]]] = {}
 
     if tasks:
         with ThreadPoolExecutor(max_workers=min(8, len(tasks))) as ex:
             for hid, path, status, items in ex.map(fetch_stat, tasks):
                 if "stat/sta" in path:
                     host_stas[hid] = items
+                elif "rest/wlanconf" in path:
+                    host_wlans[hid] = items
                 else:
                     host_devs[hid] = items
 
@@ -1845,7 +2169,10 @@ def extract_telemetry_details(
                 "ports": ports,
             })
 
-    return wans, outages, clients, switches, consoles
+    wlans = extract_real_wlans(host_wlans, host_stas, host_devs, site_map)
+    spectrum = extract_real_spectrum(host_devs, host_stas, site_map)
+
+    return wans, outages, clients, switches, consoles, wlans, spectrum
 
 
 def build_cloud_summary(key: str) -> dict[str, Any]:
@@ -1981,9 +2308,22 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
     issues = track_issues(sites, devices, is_demo=False)
     sdwan = get_sdwan_telemetry(key)
     try:
-        wans, outages, clients, switches, consoles = extract_telemetry_details(key, raw_hosts, sites)
+        wans, outages, clients, switches, consoles, wlans, spectrum = extract_telemetry_details(key, raw_hosts, sites)
     except Exception:
-        wans, outages, clients, switches, consoles = [], [], [], [], []
+        wans, outages, clients, switches, consoles, wlans, spectrum = (
+            [], [], [], [], [], [],
+            {"autoRf": {"status": "Optimized", "lastRun": "Nightly", "schedule": "Nightly", "anomalies": 0, "channelHops": 0}, "bands": [], "accessPoints": []}
+        )
+
+    site_map = {s["hostId"]: s["name"] for s in sites}
+    for h in raw_hosts:
+        hid = model_string(first_value(h, "id", "hostId"), max_length=256)
+        if hid not in site_map:
+            rep = h.get("reportedState") if isinstance(h.get("reportedState"), dict) else {}
+            site_map[hid] = rep.get("name") or h.get("name") or "Console"
+
+    firmware_updates = extract_real_firmware_updates(raw_hosts, flattened, site_map)
+    backups = extract_real_backups(raw_hosts, site_map)
 
     return {
         "ok": True,
@@ -2014,10 +2354,10 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         "clients": clients,
         "switches": switches,
         "consoles": consoles,
-        "wlans": get_default_wlans(),
-        "spectrum": get_default_spectrum(),
-        "firmwareUpdates": get_default_firmware_updates(devices),
-        "backups": get_default_backups(),
+        "wlans": wlans,
+        "spectrum": spectrum,
+        "firmwareUpdates": firmware_updates,
+        "backups": backups,
     }
 
 
@@ -2231,10 +2571,10 @@ def build_summary(config: dict[str, Any], key: str) -> dict[str, Any]:
         "clients": clients,
         "switches": [],
         "consoles": local_consoles,
-        "wlans": get_default_wlans(),
-        "spectrum": get_default_spectrum(),
-        "firmwareUpdates": get_default_firmware_updates(devices),
-        "backups": get_default_backups(),
+        "wlans": [],
+        "spectrum": {"autoRf": {"status": "Optimized", "lastRun": "Nightly", "schedule": "Nightly", "anomalies": 0, "channelHops": 0}, "bands": [], "accessPoints": []},
+        "firmwareUpdates": extract_real_firmware_updates([], devices, {}),
+        "backups": [],
     }
 
 

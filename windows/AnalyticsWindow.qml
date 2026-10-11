@@ -15,6 +15,10 @@ FloatingWindow {
   implicitWidth: 1080
   implicitHeight: 740
 
+  signal closed()
+  signal refreshRequested()
+  property bool isRefreshing: false
+
   property var fleetData: null
   property color foreground: (Color.popups && Color.popups.foreground) ? Color.popups.foreground : (Color.foreground || "#D8DEE9")
   property color background: (Color.popups && Color.popups.background) ? Color.popups.background : (Color.background || "#1E1E2E")
@@ -374,22 +378,7 @@ FloatingWindow {
     root.selectedSiteIds = []
   }
 
-  readonly property var siteThroughputProfiles: ({
-    "Catalyse Office": {
-      rx: [7.2, 8.1, 5.8, 14.5, 27.8, 26.2, 37.9, 54.1, 58.4, 42.1, 30.2, 34.0, 44.2, 48.1, 36.0, 28.3, 31.8, 24.1, 16.2, 12.0, 10.1, 14.2, 18.0, 22.1],
-      tx: [2.1, 2.8, 2.0, 5.1, 8.9, 7.8, 11.2, 14.0, 15.2, 12.1, 9.2, 9.8, 12.1, 13.2, 10.1, 8.2, 8.9, 7.1, 5.0, 4.1, 3.2, 4.0, 5.1, 6.2]
-    },
-    "Lough Stanley Home": {
-      rx: [4.8, 9.9, 8.2, 10.5, 14.2, 11.8, 17.1, 23.9, 25.6, 19.9, 14.8, 18.0, 23.8, 25.9, 22.0, 19.7, 30.2, 29.9, 23.8, 20.0, 17.9, 20.8, 24.0, 27.9],
-      tx: [1.9, 3.2, 3.0, 2.9, 3.1, 3.2, 4.8, 6.0, 6.8, 5.9, 4.8, 5.2, 6.9, 7.8, 5.9, 5.8, 8.1, 7.9, 7.0, 5.9, 4.8, 5.0, 5.9, 7.8]
-    }
-  })
-
   function getSiteThroughput(site) {
-    var name = (site && site.name) ? site.name : ""
-    if (root.siteThroughputProfiles[name]) {
-      return root.siteThroughputProfiles[name]
-    }
     var baseClients = (site && site.clientCount) ? site.clientCount : 10
     var ratio = Math.max(0.1, baseClients / 27.0)
     var rx = []
@@ -525,30 +514,85 @@ FloatingWindow {
           }
         }
 
-        // Close button
-        Rectangle {
-          radius: 4
-          color: closeMouse.containsMouse ? root.cardHover : root.track
-          Layout.preferredWidth: Style.space(26)
-          Layout.preferredHeight: Style.space(26)
+        // Action buttons: Refresh and Close
+        RowLayout {
+          spacing: Style.space(6)
 
-          Text {
-            textFormat: Text.PlainText;
-            anchors.centerIn: parent
-            text: "✕"
-            color: root.foreground
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
+          // Refresh button
+          Rectangle {
+            id: refBtn
+            radius: 4
+            color: refMouse.containsMouse ? root.cardHover : root.track
+            Layout.preferredWidth: Style.space(26)
+            Layout.preferredHeight: Style.space(26)
+
+            Text {
+              id: refBtnIcon
+              textFormat: Text.PlainText;
+              anchors.centerIn: parent
+              text: ""
+              color: root.isRefreshing ? root.accent : (refMouse.containsMouse ? root.foreground : root.dim)
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              transformOrigin: Item.Center
+
+              RotationAnimation on rotation {
+                running: root.isRefreshing
+                loops: Animation.Infinite
+                from: 0
+                to: 360
+                duration: 800
+              }
+            }
+
+            MouseArea {
+              id: refMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                root.refreshRequested()
+              }
+            }
+
+            PanelToolTip {
+              visible: refMouse.containsMouse
+              text: "Refresh fleet telemetry & analytics"
+              fontFamily: root.fontFamily
+            }
           }
 
-          MouseArea {
-            id: closeMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-              root.visible = false
-              root.closed()
+          // Close button
+          Rectangle {
+            radius: 4
+            color: closeMouse.containsMouse ? root.cardHover : root.track
+            Layout.preferredWidth: Style.space(26)
+            Layout.preferredHeight: Style.space(26)
+
+            Text {
+              textFormat: Text.PlainText;
+              anchors.centerIn: parent
+              text: "✕"
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+            }
+
+            MouseArea {
+              id: closeMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                root.visible = false
+                root.closed()
+              }
+            }
+
+            PanelToolTip {
+              visible: closeMouse.containsMouse
+              text: "Close analytics window"
+              fontFamily: root.fontFamily
             }
           }
         }
@@ -980,18 +1024,18 @@ FloatingWindow {
 
           StatBlock {
             label: "WAN FLEET HEALTH"
-            value: "100%"
-            subvalue: "0 Failovers active"
-            valColor: root.healthy
-            subColor: root.healthy
+            value: (root.fleetData && root.fleetData.severity === "critical") ? "Degraded" : ((root.fleetData && root.fleetData.severity === "warning") ? "Warning" : "100%")
+            subvalue: (root.fleetData && root.fleetData.message) ? root.fleetData.message : "0 Failovers active"
+            valColor: (root.fleetData && root.fleetData.severity === "critical") ? root.urgent : ((root.fleetData && root.fleetData.severity === "warning") ? root.backup : root.healthy)
+            subColor: valColor
             fontFamily: root.fontFamily
             iconText: ""
           }
 
           StatBlock {
             label: "FLEET CLIENTS"
-            value: String(root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 26)
-            subvalue: String(root.fleetData && root.fleetData.network ? root.fleetData.network.wifiClients : 14) + " WiFi · " + String(root.fleetData && root.fleetData.network ? root.fleetData.network.wiredClients : 12) + " Wired"
+            value: String(root.fleetData && root.fleetData.network && root.fleetData.network.clientCount !== undefined ? root.fleetData.network.clientCount : 0)
+            subvalue: String(root.fleetData && root.fleetData.network && root.fleetData.network.wifiClients !== undefined ? root.fleetData.network.wifiClients : 0) + " WiFi · " + String(root.fleetData && root.fleetData.network && root.fleetData.network.wiredClients !== undefined ? root.fleetData.network.wiredClients : 0) + " Wired"
             valColor: root.accent
             fontFamily: root.fontFamily
             iconText: ""
@@ -999,8 +1043,8 @@ FloatingWindow {
 
           StatBlock {
             label: "HARDWARE FLEET"
-            value: String(root.fleetData && root.fleetData.network ? root.fleetData.network.deviceCount : 11)
-            subvalue: "0 Offline · 0 Updates"
+            value: String(root.fleetData && root.fleetData.network && root.fleetData.network.deviceCount !== undefined ? root.fleetData.network.deviceCount : 0)
+            subvalue: String(root.fleetData && root.fleetData.network ? (root.fleetData.network.offlineCount || 0) : 0) + " Offline · " + String(root.fleetData && root.fleetData.network ? (root.fleetData.network.updateCount || 0) : 0) + " Updates"
             valColor: root.foreground
             fontFamily: root.fontFamily
             iconText: ""
@@ -1008,10 +1052,10 @@ FloatingWindow {
 
           StatBlock {
             label: "SITES OPERATIONAL"
-            value: String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 2) + "/" + String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 2)
-            subvalue: "All gateways online"
-            valColor: root.healthy
-            subColor: root.healthy
+            value: String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.filter(function(s) { return s.status === "online" || s.online !== false; }).length : 0) + "/" + String(root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 0)
+            subvalue: (root.fleetData && root.fleetData.sites && root.fleetData.sites.some(function(s) { return s.status === "down"; })) ? "Sites offline" : "All gateways online"
+            valColor: (root.fleetData && root.fleetData.sites && root.fleetData.sites.some(function(s) { return s.status === "down"; })) ? root.urgent : root.healthy
+            subColor: valColor
             fontFamily: root.fontFamily
             iconText: ""
           }
@@ -1378,7 +1422,7 @@ FloatingWindow {
           // Client Density Breakdown
           SectionCard {
             title: "CLIENT DENSITY BY BAND & SITE"
-            subtitle: String(root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 27) + " clients across " + String(root.fleetData && root.fleetData.network ? root.fleetData.network.deviceCount : 11) + " managed devices"
+            subtitle: String(root.fleetData && root.fleetData.network ? (root.fleetData.network.clientCount || 0) : 0) + " clients across " + String(root.fleetData && root.fleetData.network ? (root.fleetData.network.deviceCount || 0) : 0) + " managed devices"
             iconText: ""
             titleColor: root.foreground
             fontFamily: root.fontFamily
@@ -1392,13 +1436,13 @@ FloatingWindow {
               Layout.margins: Style.space(8)
               spacing: Style.space(6)
 
-              readonly property int totalClients: root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 27
-              readonly property int wifiClients: root.fleetData && root.fleetData.network ? root.fleetData.network.wifiClients : 15
-              readonly property int wiredClients: root.fleetData && root.fleetData.network ? root.fleetData.network.wiredClients : 12
+              readonly property int totalClients: root.fleetData && root.fleetData.network && root.fleetData.network.clientCount !== undefined ? root.fleetData.network.clientCount : 0
+              readonly property int wifiClients: root.fleetData && root.fleetData.network && root.fleetData.network.wifiClients !== undefined ? root.fleetData.network.wifiClients : 0
+              readonly property int wiredClients: root.fleetData && root.fleetData.network && root.fleetData.network.wiredClients !== undefined ? root.fleetData.network.wiredClients : 0
 
               Text {
                 textFormat: Text.PlainText;
-                text: "WiFi Wireless Clients (" + parent.wifiClients + " clients · " + (parent.totalClients > 0 ? Math.round(parent.wifiClients / parent.totalClients * 100) : 56) + "%)"
+                text: "WiFi Wireless Clients (" + parent.wifiClients + " clients · " + (parent.totalClients > 0 ? Math.round(parent.wifiClients / parent.totalClients * 100) : 0) + "%)"
                 color: root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
@@ -1410,7 +1454,7 @@ FloatingWindow {
                 radius: 4
                 color: root.track
                 Rectangle {
-                  width: Math.max(8, parent.width * (parent.parent.totalClients > 0 ? (parent.parent.wifiClients / parent.parent.totalClients) : 0.56))
+                  width: Math.max(0, parent.width * (parent.parent.totalClients > 0 ? (parent.parent.wifiClients / parent.parent.totalClients) : 0))
                   height: parent.height
                   radius: 4
                   color: root.accent
@@ -1419,7 +1463,7 @@ FloatingWindow {
 
               Text {
                 textFormat: Text.PlainText;
-                text: "Wired Ethernet Clients (" + parent.wiredClients + " clients · " + (parent.totalClients > 0 ? Math.round(parent.wiredClients / parent.totalClients * 100) : 44) + "%)"
+                text: "Wired Ethernet Clients (" + parent.wiredClients + " clients · " + (parent.totalClients > 0 ? Math.round(parent.wiredClients / parent.totalClients * 100) : 0) + "%)"
                 color: root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
@@ -1431,7 +1475,7 @@ FloatingWindow {
                 radius: 4
                 color: root.track
                 Rectangle {
-                  width: Math.max(8, parent.width * (parent.parent.totalClients > 0 ? (parent.parent.wiredClients / parent.parent.totalClients) : 0.44))
+                  width: Math.max(0, parent.width * (parent.parent.totalClients > 0 ? (parent.parent.wiredClients / parent.parent.totalClients) : 0))
                   height: parent.height
                   radius: 4
                   color: root.backup
@@ -1454,7 +1498,7 @@ FloatingWindow {
           SectionCard {
             visible: Boolean(root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.available)
             title: "SITE MAGIC SD-WAN"
-            subtitle: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.name ? root.fleetData.sdwan.name : "Catalyse-Mesh") + " · Zero-Trust Inter-Site Mesh"
+            subtitle: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.name ? root.fleetData.sdwan.name : ((root.fleetData && root.fleetData.sites && root.fleetData.sites.length > 0) ? root.fleetData.sites[0].name + " Mesh" : "Inter-Site Mesh")) + " · Zero-Trust Inter-Site Mesh"
             iconText: ""
             titleColor: root.foreground
             fontFamily: root.fontFamily
@@ -1490,7 +1534,7 @@ FloatingWindow {
                       Rectangle { width: 6; height: 6; radius: 3; color: root.healthy }
                       Text {
                         textFormat: Text.PlainText;
-                        text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].siteA : "Catalyse Office"
+                        text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].siteA : (root.fleetData && root.fleetData.sites && root.fleetData.sites.length > 0 ? root.fleetData.sites[0].name : "Primary Site")
                         color: root.foreground
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 1
@@ -1501,7 +1545,7 @@ FloatingWindow {
                     }
                     Text {
                       textFormat: Text.PlainText;
-                      text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].subnetA : "192.168.15.0/24"
+                      text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].subnetA : (root.fleetData && root.fleetData.sites && root.fleetData.sites.length > 0 && root.fleetData.sites[0].gatewayIp ? root.fleetData.sites[0].gatewayIp + "/24" : "Direct Gateway Link")
                       color: root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 3
@@ -1544,7 +1588,7 @@ FloatingWindow {
                       Rectangle { width: 6; height: 6; radius: 3; color: root.healthy }
                       Text {
                         textFormat: Text.PlainText;
-                        text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].siteB : "Lough Stanley Home"
+                        text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].siteB : (root.fleetData && root.fleetData.sites && root.fleetData.sites.length > 1 ? root.fleetData.sites[1].name : "Secondary Site")
                         color: root.foreground
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 1
@@ -1555,7 +1599,7 @@ FloatingWindow {
                     }
                     Text {
                       textFormat: Text.PlainText;
-                      text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].subnetB : "192.168.22.0/24"
+                      text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0) ? root.fleetData.sdwan.connections[0].subnetB : (root.fleetData && root.fleetData.sites && root.fleetData.sites.length > 1 && root.fleetData.sites[1].gatewayIp ? root.fleetData.sites[1].gatewayIp + "/24" : "Direct Gateway Link")
                       color: root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 3
@@ -4610,6 +4654,24 @@ FloatingWindow {
         spacing: Style.space(8)
 
         readonly property var rawWlans: root.fleetWlans || []
+        readonly property var siteFilterOptions: {
+          var list = ["All"]
+          if (root.fleetData && root.fleetData.sites) {
+            for (var i = 0; i < root.fleetData.sites.length; i++) {
+              var s = root.fleetData.sites[i]
+              if (s && s.name && list.indexOf(s.name) === -1) {
+                list.push(s.name)
+              }
+            }
+          }
+          for (var j = 0; j < rawWlans.length; j++) {
+            var w = rawWlans[j]
+            if (w && w.siteName && list.indexOf(w.siteName) === -1) {
+              list.push(w.siteName)
+            }
+          }
+          return list
+        }
         readonly property var filteredWlans: {
           var list = []
           for (var i = 0; i < rawWlans.length; i++) {
@@ -4798,7 +4860,7 @@ FloatingWindow {
               RowLayout {
                 spacing: Style.space(4)
                 Repeater {
-                  model: ["All", "Main Office", "Home", "Warehouse"]
+                  model: tab5View.siteFilterOptions
                   delegate: Rectangle {
                     required property string modelData
                     implicitHeight: Style.space(26)
@@ -5496,31 +5558,53 @@ FloatingWindow {
                   Layout.fillWidth: true
                   spacing: 1
                   Text { textFormat: Text.PlainText; text: "FLEET FIRMWARE BATCH DEPLOYMENT"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
-                  Text { textFormat: Text.PlainText; text: root.fleetUpdates.length + " hardware devices have official UniFi firmware updates ready to install."; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: root.fleetUpdates.length > 0 ? (root.fleetUpdates.length + " hardware devices have official UniFi firmware updates ready to install.") : "All fleet devices are current on official UniFi firmware releases."
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                  }
                 }
 
                 // Update All Button
                 Rectangle {
+                  readonly property bool hasUpdates: root.fleetUpdates.length > 0
                   implicitHeight: Style.space(28)
                   implicitWidth: updateAllBtnText.implicitWidth + Style.space(18)
                   radius: 4
-                  color: root.bulkUpdateConfirm ? root.urgent : (updateAllMouse.containsMouse ? root.cardHover : root.accent)
+                  color: !hasUpdates ? root.track : (root.bulkUpdateConfirm ? root.urgent : (updateAllMouse.containsMouse ? root.cardHover : root.accent))
                   border.width: 1
-                  border.color: root.bulkUpdateConfirm ? root.urgent : root.accent
+                  border.color: !hasUpdates ? root.outline : (root.bulkUpdateConfirm ? root.urgent : root.accent)
 
                   RowLayout {
                     anchors.centerIn: parent
                     spacing: Style.space(5)
-                    Text { textFormat: Text.PlainText; text: root.bulkUpdateConfirm ? "" : ""; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                    Text { textFormat: Text.PlainText; id: updateAllBtnText; text: root.bulkUpdateConfirm ? "Confirm Update All" : "Update All Devices"; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: !parent.parent.hasUpdates ? "" : (root.bulkUpdateConfirm ? "" : "")
+                      color: !parent.parent.hasUpdates ? root.healthy : "#ffffff"
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                    }
+                    Text {
+                      textFormat: Text.PlainText;
+                      id: updateAllBtnText
+                      text: !parent.parent.hasUpdates ? "All Devices Up to Date" : (root.bulkUpdateConfirm ? "Confirm Update All" : "Update All Devices")
+                      color: !parent.parent.hasUpdates ? root.dim : "#ffffff"
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      font.bold: true
+                    }
                   }
 
                   MouseArea {
                     id: updateAllMouse
                     anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: parent.hasUpdates
+                    cursorShape: parent.hasUpdates ? Qt.PointingHandCursor : Qt.ArrowCursor
                     onClicked: {
+                      if (!parent.hasUpdates) return
                       if (!root.bulkUpdateConfirm) {
                         root.bulkUpdateConfirm = true
                       } else {
@@ -5532,7 +5616,7 @@ FloatingWindow {
 
                   PanelToolTip {
                     visible: updateAllMouse.containsMouse
-                    text: root.bulkUpdateConfirm ? "Click again to confirm batch upgrade of " + root.fleetUpdates.length + " devices" : "Batch deploy official firmware to all " + root.fleetUpdates.length + " devices"
+                    text: !parent.hasUpdates ? "All fleet devices are running current firmware" : (root.bulkUpdateConfirm ? "Click again to confirm batch upgrade of " + root.fleetUpdates.length + " devices" : "Batch deploy official firmware to all " + root.fleetUpdates.length + " devices")
                     fontFamily: root.fontFamily
                   }
                 }
@@ -5630,6 +5714,35 @@ FloatingWindow {
             ColumnLayout {
               Layout.fillWidth: true
               spacing: Style.space(6)
+
+              BorderSurface {
+                visible: tab6View.filteredUpdates.length === 0
+                Layout.fillWidth: true
+                implicitHeight: Style.space(56)
+                color: root.card
+                radius: 6
+                borderSpec: Border.flat(root.outline, 1)
+
+                RowLayout {
+                  anchors.centerIn: parent
+                  spacing: Style.space(8)
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: ""
+                    color: root.healthy
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                  }
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: "All fleet hardware devices are up to date on official firmware"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    font.bold: true
+                  }
+                }
+              }
 
               Repeater {
                 model: tab6View.filteredUpdates

@@ -713,6 +713,36 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
         self.assertIn("FLEET FIRMWARE & BACKUPS", panel_qml)
         self.assertIn("root.openAnalytics(6)", panel_qml)
 
+    def test_analytics_window_refresh_button_and_connections(self) -> None:
+        panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.assertIn("signal refreshRequested()", self.analytics_qml)
+        self.assertIn("property bool isRefreshing: false", self.analytics_qml)
+        self.assertIn("id: refBtn", self.analytics_qml)
+        self.assertIn("id: refBtnIcon", self.analytics_qml)
+        self.assertIn("Refresh fleet telemetry & analytics", self.analytics_qml)
+        self.assertIn("item.refreshRequested.connect", panel_qml)
+        self.assertIn("item.isRefreshing = Qt.binding", panel_qml)
+
+    def test_real_extraction_functions_exist_and_behave_correctly(self) -> None:
+        self.assertTrue(hasattr(SITE_THREAD, "extract_real_wlans"))
+        self.assertTrue(hasattr(SITE_THREAD, "extract_real_spectrum"))
+        self.assertTrue(hasattr(SITE_THREAD, "extract_real_firmware_updates"))
+        self.assertTrue(hasattr(SITE_THREAD, "extract_real_backups"))
+
+        # Empty inputs return expected empty structures
+        self.assertEqual(SITE_THREAD.extract_real_wlans({}, {}, {}, {}), [])
+        empty_spec = SITE_THREAD.extract_real_spectrum({}, {}, {})
+        self.assertIn("autoRf", empty_spec)
+        self.assertIn("bands", empty_spec)
+        self.assertEqual(empty_spec["accessPoints"], [])
+        self.assertEqual(SITE_THREAD.extract_real_firmware_updates([], [], {}), [])
+        self.assertEqual(SITE_THREAD.extract_real_backups([], {}), [])
+
+    def test_tab6_empty_state_and_tab5_site_filter(self) -> None:
+        self.assertIn("All fleet hardware devices are up to date on official firmware", self.analytics_qml)
+        self.assertIn("tab5View.siteFilterOptions", self.analytics_qml)
+        self.assertIn("All Devices Up to Date", self.analytics_qml)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2506,7 +2506,7 @@ Panel {
 
                     Text {
                       textFormat: Text.PlainText;
-                      text: "Site Magic SD-WAN: " + (root.data && root.data.sdwan && root.data.sdwan.name ? root.data.sdwan.name : "Catalyse-Mesh")
+                      text: "Site Magic SD-WAN: " + (root.data && root.data.sdwan && root.data.sdwan.name ? root.data.sdwan.name : ((root.data && root.data.sites && root.data.sites.length > 0) ? root.data.sites[0].name + " Mesh" : "Inter-Site Mesh"))
                       color: root.foreground
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption
@@ -3720,6 +3720,10 @@ Panel {
         item.fleetData = Qt.binding(function() { return root.data })
         item.currentTab = root.analyticsTab
         item.visible = Qt.binding(function() { return root.analyticsOpen })
+        item.isRefreshing = Qt.binding(function() { return root.loading })
+        item.refreshRequested.connect(function() {
+          root.refresh()
+        })
         item.closed.connect(function() {
           root.analyticsOpen = false
         })
