@@ -594,6 +594,12 @@ class WiFiAndRfSpectrumTests(unittest.TestCase):
         self.assertIn("id: qrCanvas", self.analytics_qml)
         self.assertIn("WiFi password", self.analytics_qml)
 
+    def test_panel_overview_has_wifi_spectrum_card(self) -> None:
+        panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.assertIn("id: wifiSpectrumCard", panel_qml)
+        self.assertIn("WIFI & RF SPECTRUM HEALTH", panel_qml)
+        self.assertIn("root.openAnalytics(5)", panel_qml)
+
 
 class LinuxDesktopIntegrationTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -700,6 +706,12 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
         self.assertIn("property bool bulkUpdateConfirm:", self.analytics_qml)
         self.assertIn("Update All Devices", self.analytics_qml)
         self.assertIn("Create Backup Now", self.analytics_qml)
+
+    def test_panel_overview_has_firmware_card(self) -> None:
+        panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.assertIn("id: firmwareCard", panel_qml)
+        self.assertIn("FLEET FIRMWARE & BACKUPS", panel_qml)
+        self.assertIn("root.openAnalytics(6)", panel_qml)
 
 
 if __name__ == "__main__":

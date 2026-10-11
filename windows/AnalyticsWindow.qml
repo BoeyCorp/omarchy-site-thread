@@ -4561,7 +4561,7 @@ FloatingWindow {
               anchors.margins: Style.space(8)
               spacing: Style.space(8)
 
-              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.bodyLarge }
+              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
               ColumnLayout {
                 spacing: 1
                 Text { textFormat: Text.PlainText; text: "ACTIVE WLANS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
@@ -4583,7 +4583,7 @@ FloatingWindow {
               anchors.margins: Style.space(8)
               spacing: Style.space(8)
 
-              Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodyLarge }
+              Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
               ColumnLayout {
                 spacing: 1
                 Text { textFormat: Text.PlainText; text: "WIFI CLIENTS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
@@ -4616,7 +4616,7 @@ FloatingWindow {
               anchors.margins: Style.space(8)
               spacing: Style.space(8)
 
-              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.bodyLarge }
+              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
               ColumnLayout {
                 spacing: 1
                 Text { textFormat: Text.PlainText; text: "SECURITY POSTURE"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
@@ -4638,7 +4638,7 @@ FloatingWindow {
               anchors.margins: Style.space(8)
               spacing: Style.space(8)
 
-              Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodyLarge }
+              Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
               ColumnLayout {
                 spacing: 1
                 Text { textFormat: Text.PlainText; text: "NIGHTLY AUTO-RF"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
@@ -5228,7 +5228,7 @@ FloatingWindow {
               anchors.margins: Style.space(8)
               spacing: Style.space(8)
 
-              Text { textFormat: Text.PlainText; text: ""; color: root.fleetUpdates.length > 0 ? root.backup : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodyLarge }
+              Text { textFormat: Text.PlainText; text: ""; color: root.fleetUpdates.length > 0 ? root.backup : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
               ColumnLayout {
                 spacing: 1
                 Text { textFormat: Text.PlainText; text: "PENDING UPDATES"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
@@ -5250,7 +5250,7 @@ FloatingWindow {
               anchors.margins: Style.space(8)
               spacing: Style.space(8)
 
-              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.bodyLarge }
+              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
               ColumnLayout {
                 spacing: 1
                 Text { textFormat: Text.PlainText; text: "RELEASE CHANNEL"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
@@ -5272,7 +5272,7 @@ FloatingWindow {
               anchors.margins: Style.space(8)
               spacing: Style.space(8)
 
-              Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodyLarge }
+              Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
               ColumnLayout {
                 spacing: 1
                 Text { textFormat: Text.PlainText; text: "CLOUD BACKUPS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
@@ -5294,7 +5294,7 @@ FloatingWindow {
               anchors.margins: Style.space(8)
               spacing: Style.space(8)
 
-              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.bodyLarge }
+              Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
               ColumnLayout {
                 spacing: 1
                 Text { textFormat: Text.PlainText; text: "MAINTENANCE WINDOW"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }

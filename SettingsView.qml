@@ -389,29 +389,30 @@ ColumnLayout {
 
           // Toggle Button
           Rectangle {
-            readonly property bool isEnabled: root.settings.enableNotifications !== false
+            id: notifyToggleBtn
+            readonly property bool isEnabled: root.settings ? (root.settings.enableNotifications !== false) : true
             implicitHeight: Style.space(24)
             implicitWidth: notifyToggleText.implicitWidth + Style.space(16)
             radius: 4
-            color: isEnabled ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.22) : root.track
+            color: notifyToggleBtn.isEnabled ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.22) : root.track
             border.width: 1
-            border.color: isEnabled ? root.healthy : root.outline
+            border.color: notifyToggleBtn.isEnabled ? root.healthy : root.outline
 
             RowLayout {
               anchors.centerIn: parent
               spacing: Style.space(5)
               Text {
                 textFormat: Text.PlainText;
-                text: isEnabled ? "" : ""
-                color: isEnabled ? root.healthy : root.dim
+                text: notifyToggleBtn.isEnabled ? "" : ""
+                color: notifyToggleBtn.isEnabled ? root.healthy : root.dim
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 2
               }
               Text {
                 textFormat: Text.PlainText;
                 id: notifyToggleText
-                text: isEnabled ? "Notifications: Enabled" : "Notifications: Disabled"
-                color: isEnabled ? root.healthy : root.foreground
+                text: notifyToggleBtn.isEnabled ? "Notifications: Enabled" : "Notifications: Disabled"
+                color: notifyToggleBtn.isEnabled ? root.healthy : root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
                 font.bold: true
@@ -422,7 +423,7 @@ ColumnLayout {
               anchors.fill: parent
               hoverEnabled: true
               cursorShape: Qt.PointingHandCursor
-              onClicked: root.settingChanged("enableNotifications", !(root.settings.enableNotifications !== false))
+              onClicked: root.settingChanged("enableNotifications", !notifyToggleBtn.isEnabled)
             }
           }
 
