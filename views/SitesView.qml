@@ -68,7 +68,7 @@ Column {
 
             // Sub-navigation: Sites / Devices toggle
             RowLayout {
-              width: parent.width
+              width: root.width
               spacing: Style.space(4)
 
               Rectangle {
@@ -166,15 +166,15 @@ Column {
             // SITES SUB-VIEW
             Column {
               visible: root.sitesSubView === "sites"
-              width: parent.width
+              width: root.width
               spacing: Style.space(8)
 
-              PanelSectionHeader { width: parent.width; text: root.cloudMode ? "ALL SITES (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "SITES"; foreground: root.foreground; fontFamily: root.fontFamily }
+              PanelSectionHeader { width: root.width; text: root.cloudMode ? "ALL SITES (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "SITES"; foreground: root.foreground; fontFamily: root.fontFamily }
 
               // Site Magic SD-WAN Mesh Banner
             BorderSurface {
               visible: Boolean(root.data && root.data.sdwan && root.data.sdwan.available)
-              width: parent.width
+              width: root.width
               implicitHeight: sdwanRow.implicitHeight + Style.space(16)
               color: root.track
               radius: Style.cornerRadius
@@ -298,7 +298,7 @@ Column {
             // WiFi & RF Spectrum Health Cockpit Card
             BorderSurface {
               id: wifiSpectrumCard
-              width: content.width
+              width: root.width
               implicitHeight: wifiCardRow.implicitHeight + Style.space(16)
               color: wifiCardMouse.containsMouse ? root.cardHover : root.card
               radius: Style.cornerRadius
@@ -427,7 +427,7 @@ Column {
             // Fleet Firmware & Lifecycle Cockpit Card
             BorderSurface {
               id: firmwareCard
-              width: content.width
+              width: root.width
               implicitHeight: fwCardRow.implicitHeight + Style.space(16)
               color: fwCardMouse.containsMouse ? root.cardHover : root.card
               radius: Style.cornerRadius
@@ -559,10 +559,9 @@ Column {
                 : (root.data.network && root.data.network.devices ? root.data.network.devices : [])
               SiteRow {
                 id: siteCardSurface
-                required property var modelData
-                width: content.width
+                width: root.width
                 cloudMode: root.cloudMode
-                siteConsole: root.getSiteConsole(modelData.hostId)
+                siteConsole: (modelData && modelData.hostId) ? root.getSiteConsole(modelData.hostId) : null
                 foreground: root.foreground
                 dim: root.dim
                 accent: root.accent
@@ -586,7 +585,7 @@ Column {
           // DEVICES SUB-VIEW (FLEET HARDWARE INVENTORY VIEW)
           DeviceInventoryView {
               visible: root.sitesSubView === "devices"
-              width: parent.width
+              width: root.width
               devices: root.getAllFleetDevices()
               currentFilter: root.deviceFilter
               foreground: root.foreground

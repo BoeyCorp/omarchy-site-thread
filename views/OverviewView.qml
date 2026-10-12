@@ -48,7 +48,7 @@ Column {
 
             // 4-Card Cockpit Metric Row using StatBlock
             RowLayout {
-              width: parent.width
+              width: root.width
               spacing: Style.space(6)
 
               StatBlock {
@@ -105,7 +105,7 @@ Column {
 
             // 3D VECTOR GLOBE (OMAGLOBE CANVAS INTEGRATION)
             BorderSurface {
-              width: parent.width
+              width: root.width
               implicitHeight: globeCardColumn.implicitHeight + Style.space(20)
               color: root.card
               radius: Style.cornerRadius
@@ -484,16 +484,16 @@ Column {
             // Attention Sites List (if any site or device needs attention)
             Column {
               visible: root.activeIssuesCount > 0
-              width: parent.width
+              width: root.width
               spacing: Style.space(6)
 
-              PanelSectionHeader { width: parent.width; text: "ATTENTION REQUIRED (" + root.activeIssuesCount + ")"; foreground: root.urgent; fontFamily: root.fontFamily }
+              PanelSectionHeader { width: root.width; text: "ATTENTION REQUIRED (" + root.activeIssuesCount + ")"; foreground: root.urgent; fontFamily: root.fontFamily }
 
               Repeater {
                 model: root.issuesList.filter(function(i) { return i.active === true })
                 BorderSurface {
                   required property var modelData
-                  width: content.width
+                  width: root.width
                   implicitHeight: activeIssueRow.implicitHeight + Style.space(12)
                   color: activeIssueMouse.containsMouse ? root.cardHover : root.card
                   radius: Style.cornerRadius

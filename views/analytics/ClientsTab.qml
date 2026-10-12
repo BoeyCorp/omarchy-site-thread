@@ -3,8 +3,9 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
 import qs.Ui
-import ".."
+import "../.."
 import "../../components"
+import "../../Model.js" as Model
 
 ColumnLayout {
   id: root

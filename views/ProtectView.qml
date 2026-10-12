@@ -28,11 +28,11 @@ Column {
   }
 
             spacing: Style.space(8)
-            PanelSectionHeader { width: parent.width; text: root.cloudMode ? "PROTECT ACROSS ALL SITES" : "PROTECT CAMERAS"; foreground: root.foreground; fontFamily: root.fontFamily }
+            PanelSectionHeader { width: root.width; text: root.cloudMode ? "PROTECT ACROSS ALL SITES" : "PROTECT CAMERAS"; foreground: root.foreground; fontFamily: root.fontFamily }
 
             Rectangle {
               visible: root.selectedCameraId !== ""
-              width: parent.width
+              width: root.width
               height: Math.round(width * 9 / 16)
               radius: Style.cornerRadius
               color: Qt.rgba(0, 0, 0, 0.35)
@@ -52,7 +52,7 @@ Column {
             }
 
             Flickable {
-              width: parent.width
+              width: root.width
               implicitHeight: Style.space(48)
               contentWidth: cameraCardsRow.implicitWidth
               clip: true
@@ -82,5 +82,5 @@ Column {
                 }
               }
             }
-            Text { textFormat: Text.PlainText; visible: !root.data.protect || !root.data.protect.available; width: parent.width; text: root.cloudMode ? "Site Manager did not report Protect devices for this account" : "UniFi Protect is unavailable for this connection"; horizontalAlignment: Text.AlignHCenter; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
+            Text { textFormat: Text.PlainText; visible: !root.data.protect || !root.data.protect.available; width: root.width; text: root.cloudMode ? "Site Manager did not report Protect devices for this account" : "UniFi Protect is unavailable for this connection"; horizontalAlignment: Text.AlignHCenter; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
           }

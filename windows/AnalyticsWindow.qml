@@ -18,7 +18,6 @@ FloatingWindow {
   implicitWidth: 1080
   implicitHeight: 740
 
-  signal closed()
   signal refreshRequested()
   property bool isRefreshing: false
 
@@ -32,6 +31,11 @@ FloatingWindow {
   property string fontFamily: Style.font.family
 
   property int currentTab: 0
+  onVisibleChanged: {
+    if (!visible) {
+      root.currentTab = 0
+    }
+  }
   property string clientSearch: ""
   property string clientSiteFilter: "All"
   property string clientMediumFilter: "All"
@@ -400,6 +404,17 @@ FloatingWindow {
     toastTimer.restart()
   }
 
+  function toggleSiteSelection(site) {
+    if (tab0View && typeof tab0View.toggleSiteSelection === "function") {
+      tab0View.toggleSiteSelection(site)
+    }
+  }
+
+  function clearSiteSelection() {
+    if (tab0View && typeof tab0View.clearSiteSelection === "function") {
+      tab0View.clearSiteSelection()
+    }
+  }
 
   FocusScope {
     id: windowFocusScope
@@ -935,6 +950,10 @@ FloatingWindow {
 
         fleetData: root.fleetData
         isLightTheme: root.isLightTheme
+        selectedSiteIds: root.selectedSiteIds
+        chartHoverIndex: root.chartHoverIndex
+        chartHoverMouseX: root.chartHoverMouseX
+        chartHoverMouseY: root.chartHoverMouseY
 
         foreground: root.foreground
         dim: root.dim
@@ -974,9 +993,9 @@ FloatingWindow {
         outline: root.outline
         fontFamily: root.fontFamily
 
-        onClientSearchChanged: function(val) { root.clientSearch = val }
-        onClientSiteFilterChanged: function(val) { root.clientSiteFilter = val }
-        onClientMediumFilterChanged: function(val) { root.clientMediumFilter = val }
+        onClientSearchChanged: { root.clientSearch = tab1View.clientSearch }
+        onClientSiteFilterChanged: { root.clientSiteFilter = tab1View.clientSiteFilter }
+        onClientMediumFilterChanged: { root.clientMediumFilter = tab1View.clientMediumFilter }
         onPingHostRequested: function(host, label) { root.pingHost(host, label) }
       }
 
@@ -1033,8 +1052,8 @@ FloatingWindow {
         outline: root.outline
         fontFamily: root.fontFamily
 
-        onSelectedSwitchSiteChanged: function(val) { root.selectedSwitchSite = val }
-        onSelectedSwitchMacChanged: function(val) { root.selectedSwitchMac = val }
+        onSelectedSwitchSiteChanged: { root.selectedSwitchSite = tab3View.selectedSwitchSite }
+        onSelectedSwitchMacChanged: { root.selectedSwitchMac = tab3View.selectedSwitchMac }
         onSwitchSiteSelected: function(site) { root.selectedSwitchSite = site }
         onSwitchMacSelected: function(mac) { root.selectedSwitchMac = mac }
         onCyclePortRequested: function(hId, mac, pIdx, name) { root.cyclePort(hId, mac, pIdx, name) }
@@ -1067,9 +1086,9 @@ FloatingWindow {
         outline: root.outline
         fontFamily: root.fontFamily
 
-        onConsoleSearchChanged: function(val) { root.consoleSearch = val }
-        onConsoleSiteFilterChanged: function(val) { root.consoleSiteFilter = val }
-        onSelectedConsoleIndexChanged: function(val) { root.selectedConsoleIndex = val }
+        onConsoleSearchChanged: { root.consoleSearch = tab4View.consoleSearch }
+        onConsoleSiteFilterChanged: { root.consoleSiteFilter = tab4View.consoleSiteFilter }
+        onSelectedConsoleIndexChanged: { root.selectedConsoleIndex = tab4View.selectedConsoleIndex }
         onOpenExternalUrlRequested: function(url) { root.openExternalUrl(url) }
         onCopyToClipboardRequested: function(text, label) { root.copyToClipboard(text, label) }
       }
@@ -1105,10 +1124,10 @@ FloatingWindow {
         outline: root.outline
         fontFamily: root.fontFamily
 
-        onWlanSearchChanged: function(val) { root.wlanSearch = val }
-        onWlanSiteFilterChanged: function(val) { root.wlanSiteFilter = val }
-        onSelectedWlanForQrChanged: function(val) { root.selectedWlanForQr = val }
-        onShowQrModalChanged: function(val) { root.showQrModal = val }
+        onWlanSearchChanged: { root.wlanSearch = tab5View.wlanSearch }
+        onWlanSiteFilterChanged: { root.wlanSiteFilter = tab5View.wlanSiteFilter }
+        onSelectedWlanForQrChanged: { root.selectedWlanForQr = tab5View.selectedWlanForQr }
+        onShowQrModalChanged: { root.showQrModal = tab5View.showQrModal }
         onCopyToClipboardRequested: function(text, label) { root.copyToClipboard(text, label) }
       }
 
@@ -1147,7 +1166,7 @@ FloatingWindow {
         onUpgradeDeviceRequested: function(hId, mac, name) { root.upgradeDevice(hId, mac, name) }
         onUpgradeAllRequested: root.upgradeAllDevices()
         onTriggerBackupRequested: function(hId, name) { root.triggerBackup(hId, name) }
-        onBulkUpdateConfirmChanged: function(val) { root.bulkUpdateConfirm = val }
+        onBulkUpdateConfirmChanged: { root.bulkUpdateConfirm = tab6View.bulkUpdateConfirm }
       }
     }
   }

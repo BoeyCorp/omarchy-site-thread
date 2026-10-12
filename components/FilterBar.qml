@@ -19,7 +19,7 @@ RowLayout {
   property int fontPixelSize: Style.font.caption - 1
   property int pillRadius: 4
 
-  signal selectedChanged(string option)
+  signal filterSelected(string option)
 
   spacing: Style.space(4)
 
@@ -52,7 +52,7 @@ RowLayout {
         cursorShape: Qt.PointingHandCursor
         onClicked: {
           root.selected = modelData
-          root.selectedChanged(modelData)
+          root.filterSelected(modelData)
         }
       }
     }

@@ -9,7 +9,8 @@ import "../Model.js" as Model
 
 BorderSurface {
   id: siteCardSurface
-  required property var modelData
+  property var modelData: ({})
+  readonly property var rowData: siteCardSurface.modelData || ({})
   property bool cloudMode: false
   property var siteConsole: null
 
@@ -62,14 +63,14 @@ BorderSurface {
         height: Style.space(8)
         radius: width / 2
         color: siteCardSurface.cloudMode
-          ? Model.siteColor(siteCardSurface.modelData.status, siteCardSurface.healthy, siteCardSurface.backup, siteCardSurface.urgent)
-          : (siteCardSurface.modelData.online ? siteCardSurface.healthy : siteCardSurface.urgent)
+          ? Model.siteColor(siteCardSurface.rowData.status, siteCardSurface.healthy, siteCardSurface.backup, siteCardSurface.urgent)
+          : (siteCardSurface.rowData.online ? siteCardSurface.healthy : siteCardSurface.urgent)
         Layout.alignment: Qt.AlignVCenter
       }
 
       Text {
         textFormat: Text.PlainText;
-        text: Model.safe(siteCardSurface.modelData.name, "UniFi Site")
+        text: Model.safe(siteCardSurface.rowData.name, "UniFi Site")
         color: siteCardSurface.foreground
         font.family: siteCardSurface.fontFamily
         font.pixelSize: Style.font.caption
@@ -80,7 +81,7 @@ BorderSurface {
       }
 
       Rectangle {
-        visible: siteCardSurface.cloudMode && siteCardSurface.modelData.gatewayModel !== undefined && siteCardSurface.modelData.gatewayModel !== ""
+        visible: siteCardSurface.cloudMode && siteCardSurface.rowData.gatewayModel !== undefined && siteCardSurface.rowData.gatewayModel !== ""
         radius: 3
         implicitHeight: Style.space(16)
         implicitWidth: gwBadgeText.implicitWidth + Style.space(8)
@@ -92,7 +93,7 @@ BorderSurface {
           textFormat: Text.PlainText;
           id: gwBadgeText
           anchors.centerIn: parent
-          text: Model.safe(siteCardSurface.modelData.gatewayModel)
+          text: Model.safe(siteCardSurface.rowData.gatewayModel)
           color: siteCardSurface.foreground
           font.family: siteCardSurface.fontFamily
           font.pixelSize: Style.font.caption - 2
@@ -104,23 +105,23 @@ BorderSurface {
         implicitHeight: Style.space(16)
         implicitWidth: siteStatusLabel.implicitWidth + Style.space(8)
         color: siteCardSurface.cloudMode
-          ? (siteCardSurface.modelData.status === "down" ? Qt.rgba(siteCardSurface.urgent.r, siteCardSurface.urgent.g, siteCardSurface.urgent.b, 0.18) : (siteCardSurface.modelData.status === "backup" ? Qt.rgba(siteCardSurface.backup.r, siteCardSurface.backup.g, siteCardSurface.backup.b, 0.18) : Qt.rgba(siteCardSurface.healthy.r, siteCardSurface.healthy.g, siteCardSurface.healthy.b, 0.18)))
-          : (siteCardSurface.modelData.online ? siteCardSurface.track : Qt.rgba(siteCardSurface.urgent.r, siteCardSurface.urgent.g, siteCardSurface.urgent.b, 0.18))
+          ? (siteCardSurface.rowData.status === "down" ? Qt.rgba(siteCardSurface.urgent.r, siteCardSurface.urgent.g, siteCardSurface.urgent.b, 0.18) : (siteCardSurface.rowData.status === "backup" ? Qt.rgba(siteCardSurface.backup.r, siteCardSurface.backup.g, siteCardSurface.backup.b, 0.18) : Qt.rgba(siteCardSurface.healthy.r, siteCardSurface.healthy.g, siteCardSurface.healthy.b, 0.18)))
+          : (siteCardSurface.rowData.online ? siteCardSurface.track : Qt.rgba(siteCardSurface.urgent.r, siteCardSurface.urgent.g, siteCardSurface.urgent.b, 0.18))
         border.width: 1
         border.color: siteCardSurface.cloudMode
-          ? Model.siteColor(siteCardSurface.modelData.status, siteCardSurface.healthy, siteCardSurface.backup, siteCardSurface.urgent)
-          : (siteCardSurface.modelData.online ? siteCardSurface.outline : siteCardSurface.urgent)
+          ? Model.siteColor(siteCardSurface.rowData.status, siteCardSurface.healthy, siteCardSurface.backup, siteCardSurface.urgent)
+          : (siteCardSurface.rowData.online ? siteCardSurface.outline : siteCardSurface.urgent)
         Layout.alignment: Qt.AlignVCenter
         Text {
           textFormat: Text.PlainText;
           id: siteStatusLabel
           anchors.centerIn: parent
           text: siteCardSurface.cloudMode
-            ? String(siteCardSurface.modelData.statusText || "Online").toUpperCase()
-            : (siteCardSurface.modelData.online ? "ONLINE" : "OFFLINE")
+            ? String(siteCardSurface.rowData.statusText || "Online").toUpperCase()
+            : (siteCardSurface.rowData.online ? "ONLINE" : "OFFLINE")
           color: siteCardSurface.cloudMode
-            ? Model.siteColor(siteCardSurface.modelData.status, siteCardSurface.healthy, siteCardSurface.backup, siteCardSurface.urgent)
-            : (siteCardSurface.modelData.online ? siteCardSurface.dim : siteCardSurface.urgent)
+            ? Model.siteColor(siteCardSurface.rowData.status, siteCardSurface.healthy, siteCardSurface.backup, siteCardSurface.urgent)
+            : (siteCardSurface.rowData.online ? siteCardSurface.dim : siteCardSurface.urgent)
           font.family: siteCardSurface.fontFamily
           font.pixelSize: Style.font.caption - 2
           font.bold: true
@@ -136,8 +137,8 @@ BorderSurface {
       Text {
         textFormat: Text.PlainText;
         text: siteCardSurface.cloudMode
-          ? (String(siteCardSurface.modelData.deviceCount || 0) + " dev · " + String(siteCardSurface.modelData.clientCount || 0) + " cli ( " + (siteCardSurface.modelData.wifiClients || 0) + " / 󰈀 " + (siteCardSurface.modelData.wiredClients || 0) + ")" + (siteCardSurface.modelData.isp ? " · " + Model.safe(siteCardSurface.modelData.isp) : "") + " · WAN " + Number(siteCardSurface.modelData.wanUptime || 100).toFixed(1) + "%")
-          : (Model.safe(siteCardSurface.modelData.model, "") + (siteCardSurface.modelData.ip ? " · " + Model.safe(siteCardSurface.modelData.ip) : ""))
+          ? (String(siteCardSurface.rowData.deviceCount || 0) + " dev · " + String(siteCardSurface.rowData.clientCount || 0) + " cli ( " + (siteCardSurface.rowData.wifiClients || 0) + " / 󰈀 " + (siteCardSurface.rowData.wiredClients || 0) + ")" + (siteCardSurface.rowData.isp ? " · " + Model.safe(siteCardSurface.rowData.isp) : "") + " · WAN " + Number(siteCardSurface.rowData.wanUptime || 100).toFixed(1) + "%")
+          : (Model.safe(siteCardSurface.rowData.model, "") + (siteCardSurface.rowData.ip ? " · " + Model.safe(siteCardSurface.rowData.ip) : ""))
         color: siteCardSurface.dim
         font.family: siteCardSurface.fontFamily
         font.pixelSize: Style.font.caption - 2
@@ -190,7 +191,7 @@ BorderSurface {
 
         // SSH to Gateway Action Button
         Rectangle {
-          visible: siteCardSurface.cloudMode && siteCardSurface.modelData.gatewayIp !== undefined && siteCardSurface.modelData.gatewayIp !== ""
+          visible: siteCardSurface.cloudMode && siteCardSurface.rowData.gatewayIp !== undefined && siteCardSurface.rowData.gatewayIp !== ""
           implicitWidth: sshBtnText.implicitWidth + Style.space(14)
           implicitHeight: Style.space(20)
           radius: 3
@@ -212,7 +213,7 @@ BorderSurface {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: siteCardSurface.launchSshRequested(siteCardSurface.modelData.gatewayIp, "root")
+            onClicked: siteCardSurface.launchSshRequested(siteCardSurface.rowData.gatewayIp, "root")
           }
 
           PanelToolTip {
@@ -224,7 +225,7 @@ BorderSurface {
 
         // Ping Gateway Action Button
         Rectangle {
-          visible: siteCardSurface.cloudMode && siteCardSurface.modelData.gatewayIp !== undefined && siteCardSurface.modelData.gatewayIp !== ""
+          visible: siteCardSurface.cloudMode && siteCardSurface.rowData.gatewayIp !== undefined && siteCardSurface.rowData.gatewayIp !== ""
           implicitWidth: pingBtnText.implicitWidth + Style.space(14)
           implicitHeight: Style.space(20)
           radius: 3
@@ -246,7 +247,7 @@ BorderSurface {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: siteCardSurface.launchPingRequested(siteCardSurface.modelData.gatewayIp)
+            onClicked: siteCardSurface.launchPingRequested(siteCardSurface.rowData.gatewayIp)
           }
 
           PanelToolTip {

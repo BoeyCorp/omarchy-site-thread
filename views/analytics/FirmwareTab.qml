@@ -3,7 +3,9 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
 import qs.Ui
+import "../.."
 import "../../components"
+import "../../Model.js" as Model
 
 ColumnLayout {
   id: root
@@ -34,7 +36,6 @@ ColumnLayout {
   signal upgradeDeviceRequested(string hostId, string mac, string deviceName)
   signal upgradeAllRequested()
   signal triggerBackupRequested(string hostId, string consoleName)
-  signal bulkUpdateConfirmChanged(bool confirm)
 
   spacing: Style.space(8)
 
@@ -240,10 +241,8 @@ ColumnLayout {
                 if (!parent.hasUpdates) return
                 if (!root.bulkUpdateConfirm) {
                   root.bulkUpdateConfirm = true
-                  root.bulkUpdateConfirmChanged(true)
                 } else {
                   root.bulkUpdateConfirm = false
-                  root.bulkUpdateConfirmChanged(false)
                   root.upgradeAllRequested()
                 }
               }
@@ -286,7 +285,7 @@ ColumnLayout {
           track: root.track
           outline: root.outline
           fontFamily: root.fontFamily
-          onSelectedChanged: function(opt) { root.updateSeverityFilter = opt }
+          onFilterSelected: function(opt) { root.updateSeverityFilter = opt }
         }
       }
 
@@ -405,11 +404,12 @@ ColumnLayout {
 
               // Update Device Button
               Rectangle {
+                id: updateBtnRect
                 implicitHeight: Style.space(26)
                 implicitWidth: upBtnText.implicitWidth + Style.space(16)
                 radius: 4
                 property bool isPending: Boolean(modelData.upgrading || modelData.status === "upgrading")
-                color: isPending ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15) : (upBtnMouse.containsMouse ? root.accent : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15))
+                color: updateBtnRect.isPending ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15) : (upBtnMouse.containsMouse ? root.accent : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15))
                 border.width: 1
                 border.color: root.accent
 
@@ -418,16 +418,16 @@ ColumnLayout {
                   spacing: Style.space(4)
                   Text {
                     textFormat: Text.PlainText;
-                    text: isPending ? "" : "";
-                    color: isPending ? root.accent : (upBtnMouse.containsMouse ? root.accentForeground : root.accent);
+                    text: updateBtnRect.isPending ? "" : "";
+                    color: updateBtnRect.isPending ? root.accent : (upBtnMouse.containsMouse ? root.accentForeground : root.accent);
                     font.family: root.fontFamily;
                     font.pixelSize: 8
                   }
                   Text {
                     textFormat: Text.PlainText;
                     id: upBtnText;
-                    text: isPending ? "Request Accepted" : "Update Device";
-                    color: isPending ? root.accent : (upBtnMouse.containsMouse ? root.accentForeground : root.accent);
+                    text: updateBtnRect.isPending ? "Request Accepted" : "Update Device";
+                    color: updateBtnRect.isPending ? root.accent : (upBtnMouse.containsMouse ? root.accentForeground : root.accent);
                     font.family: root.fontFamily;
                     font.pixelSize: Style.font.caption - 1;
                     font.bold: true
@@ -437,10 +437,10 @@ ColumnLayout {
                 MouseArea {
                   id: upBtnMouse
                   anchors.fill: parent
-                  hoverEnabled: !parent.isPending
-                  cursorShape: parent.isPending ? Qt.ArrowCursor : Qt.PointingHandCursor
+                  hoverEnabled: !updateBtnRect.isPending
+                  cursorShape: updateBtnRect.isPending ? Qt.ArrowCursor : Qt.PointingHandCursor
                   onClicked: {
-                    if (!parent.isPending) {
+                    if (!updateBtnRect.isPending) {
                       root.upgradeDeviceRequested(modelData.hostId, modelData.mac, modelData.name)
                     }
                   }
@@ -448,7 +448,7 @@ ColumnLayout {
 
                 PanelToolTip {
                   visible: upBtnMouse.containsMouse
-                  text: parent.isPending ? ("Upgrade request accepted for " + modelData.name + " · Status updates on refresh") : ("Submit firmware upgrade request (" + modelData.targetVersion + ") for " + modelData.name + " · Status updates on refresh")
+                  text: updateBtnRect.isPending ? ("Upgrade request accepted for " + modelData.name + " · Status updates on refresh") : ("Submit firmware upgrade request (" + modelData.targetVersion + ") for " + modelData.name + " · Status updates on refresh")
                   fontFamily: root.fontFamily
                 }
               }
@@ -518,29 +518,30 @@ ColumnLayout {
                 Item { Layout.fillWidth: true }
 
                 Rectangle {
+                  id: createBkBtnRect
                   implicitHeight: Style.space(26)
                   implicitWidth: createBkText.implicitWidth + Style.space(18)
                   radius: 4
                   property bool isPending: modelData.status === "in_progress"
-                  color: isPending ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15) : (createBkMouse.containsMouse ? root.healthy : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15))
+                  color: createBkBtnRect.isPending ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15) : (createBkMouse.containsMouse ? root.healthy : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15))
                   border.width: 1
-                  border.color: isPending ? root.accent : root.healthy
+                  border.color: createBkBtnRect.isPending ? root.accent : root.healthy
 
                   RowLayout {
                     anchors.centerIn: parent
                     spacing: Style.space(5)
                     Text {
                       textFormat: Text.PlainText;
-                      text: isPending ? "" : "";
-                      color: isPending ? root.accent : (createBkMouse.containsMouse ? root.healthyForeground : root.healthy);
+                      text: createBkBtnRect.isPending ? "" : "";
+                      color: createBkBtnRect.isPending ? root.accent : (createBkMouse.containsMouse ? root.healthyForeground : root.healthy);
                       font.family: root.fontFamily;
                       font.pixelSize: 8
                     }
                     Text {
                       textFormat: Text.PlainText;
                       id: createBkText;
-                      text: isPending ? "Request Accepted" : "Create Backup Now";
-                      color: isPending ? root.accent : (createBkMouse.containsMouse ? root.healthyForeground : root.healthy);
+                      text: createBkBtnRect.isPending ? "Request Accepted" : "Create Backup Now";
+                      color: createBkBtnRect.isPending ? root.accent : (createBkMouse.containsMouse ? root.healthyForeground : root.healthy);
                       font.family: root.fontFamily;
                       font.pixelSize: Style.font.caption - 1;
                       font.bold: true
@@ -550,10 +551,10 @@ ColumnLayout {
                   MouseArea {
                     id: createBkMouse
                     anchors.fill: parent
-                    hoverEnabled: !parent.isPending
-                    cursorShape: parent.isPending ? Qt.ArrowCursor : Qt.PointingHandCursor
+                    hoverEnabled: !createBkBtnRect.isPending
+                    cursorShape: createBkBtnRect.isPending ? Qt.ArrowCursor : Qt.PointingHandCursor
                     onClicked: {
-                      if (!parent.isPending) {
+                      if (!createBkBtnRect.isPending) {
                         root.triggerBackupRequested(modelData.hostId, modelData.consoleName)
                       }
                     }
@@ -561,7 +562,7 @@ ColumnLayout {
 
                   PanelToolTip {
                     visible: createBkMouse.containsMouse
-                    text: parent.isPending ? ("Backup request accepted for " + modelData.consoleName + " · Status updates on refresh") : ("Submit cloud configuration backup request for " + modelData.consoleName + " · Status updates on refresh")
+                    text: createBkBtnRect.isPending ? ("Backup request accepted for " + modelData.consoleName + " · Status updates on refresh") : ("Submit cloud configuration backup request for " + modelData.consoleName + " · Status updates on refresh")
                     fontFamily: root.fontFamily
                   }
                 }

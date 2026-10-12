@@ -1935,8 +1935,8 @@ Panel {
             outline: root.outline
             fontFamily: root.fontFamily
 
-            onActiveTabChanged: function(val) { root.activeTab = val }
-            onSitesSubViewChanged: function(val) { root.sitesSubView = val }
+            onActiveTabChanged: { if (overviewView.activeTab !== undefined) root.activeTab = overviewView.activeTab }
+            onSitesSubViewChanged: { if (overviewView.sitesSubView !== undefined) root.sitesSubView = overviewView.sitesSubView }
             onOpenSiteRequested: function(site) { root.openSite(site) }
             onOpenAnalyticsRequested: function(tabIndex) { root.openAnalytics(tabIndex) }
           }
@@ -1966,7 +1966,7 @@ Panel {
             outline: root.outline
             fontFamily: root.fontFamily
 
-            onSitesSubViewChanged: function(val) { root.sitesSubView = val }
+            onSitesSubViewChanged: { if (sitesView.sitesSubView !== undefined) root.sitesSubView = sitesView.sitesSubView }
             onOpenSiteRequested: function(site) { root.openSite(site) }
             onOpenAnalyticsRequested: function(tabIndex) { root.openAnalytics(tabIndex) }
             onLaunchSshRequested: function(ip, user) { root.launchSsh(ip, user) }
@@ -1996,7 +1996,7 @@ Panel {
             outline: root.outline
             fontFamily: root.fontFamily
 
-            onIssueFilterChanged: function(val) { root.issueFilter = val }
+            onIssueFilterChanged: { if (issuesView.issueFilter !== undefined) root.issueFilter = issuesView.issueFilter }
             onClearHistoryRequested: root.clearHistory()
           }
 
@@ -2472,6 +2472,8 @@ Panel {
         opened: root.opened,
         settingsMode: root.settingsMode,
         analyticsOpen: root.analyticsOpen,
+        analyticsTab: root.analyticsTab,
+        analyticsCurrentTab: (analyticsWindowLoader.item ? analyticsWindowLoader.item.currentTab : -1),
         activeTab: root.activeTab,
         sitesSubView: root.sitesSubView,
         inSite: root.inSite,

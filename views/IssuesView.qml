@@ -42,7 +42,7 @@ Column {
 
             // Header & Filter bar
             RowLayout {
-              width: parent.width
+              width: root.width
               spacing: Style.space(4)
 
               Text {
@@ -120,7 +120,7 @@ Column {
               BorderSurface {
                 required property var modelData
                 readonly property bool isResolved: modelData.active !== true
-                width: content.width
+                width: root.width
                 implicitHeight: issueRow.implicitHeight + Style.space(12)
                 color: root.card
                 radius: Style.cornerRadius

@@ -932,6 +932,48 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
         badge_field = next(f for f in schema if f["key"] == "badgeMode")
         self.assertIn("updates", badge_field["options"])
 
+    def test_extracted_views_and_navigation_integrity(self) -> None:
+        # 1. FirmwareTab signal and scoping integrity
+        fw_tab = (ROOT / "views" / "analytics" / "FirmwareTab.qml").read_text(encoding="utf-8")
+        self.assertNotIn("signal bulkUpdateConfirmChanged", fw_tab)
+        self.assertIn("updateBtnRect.isPending", fw_tab)
+        self.assertIn("createBkBtnRect.isPending", fw_tab)
+        self.assertIn('import "../.."', fw_tab)
+
+        # 2. AnalyticsWindow superclass signals and reset behavior
+        analytics = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+        self.assertNotIn("signal closed()", analytics)
+        self.assertIn("root.currentTab = 0", analytics)
+
+        # 3. All 7 analytics tabs import root properly
+        for tab_name in [
+            "OverviewTab.qml",
+            "ClientsTab.qml",
+            "WanTab.qml",
+            "SwitchesTab.qml",
+            "ConsolesTab.qml",
+            "WifiTab.qml",
+            "FirmwareTab.qml",
+        ]:
+            tab_path = ROOT / "views" / "analytics" / tab_name
+            self.assertTrue(tab_path.exists(), f"{tab_name} missing")
+            content = tab_path.read_text(encoding="utf-8")
+            self.assertIn('import "../.."', content, f"{tab_name} missing root import")
+
+        # 4. FilterBar doesn't override property change signals
+        filter_bar = (ROOT / "components" / "FilterBar.qml").read_text(encoding="utf-8")
+        self.assertNotIn("signal selectedChanged", filter_bar)
+        self.assertIn("signal filterSelected", filter_bar)
+
+        # 5. Core panel views exist
+        for view_name in [
+            "OverviewView.qml",
+            "SitesView.qml",
+            "IssuesView.qml",
+            "ProtectView.qml",
+        ]:
+            self.assertTrue((ROOT / "views" / view_name).exists(), f"{view_name} missing")
+
 
 if __name__ == "__main__":
     unittest.main()

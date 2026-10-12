@@ -6,7 +6,8 @@ import qs.Ui
 
 Rectangle {
   id: root
-  required property var modelData
+  property var modelData: ({})
+  readonly property var devData: root.modelData || ({})
   property int index: 0
   property string category: ""
 
@@ -55,13 +56,13 @@ Rectangle {
         width: Style.space(8)
         height: Style.space(8)
         radius: width / 2
-        color: root.modelData.online ? root.healthy : root.urgent
+        color: root.devData.online ? root.healthy : root.urgent
         Layout.alignment: Qt.AlignVCenter
       }
 
       Text {
         textFormat: Text.PlainText;
-        text: root.modelData.name || root.modelData.model || "UniFi Device"
+        text: root.devData.name || root.devData.model || "UniFi Device"
         color: root.foreground
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
@@ -73,8 +74,8 @@ Rectangle {
 
       Text {
         textFormat: Text.PlainText;
-        visible: !!(root.modelData.model && root.modelData.name !== root.modelData.model)
-        text: "· " + (root.modelData.model || "")
+        visible: !!(root.devData.model && root.devData.name !== root.devData.model)
+        text: "· " + (root.devData.model || "")
         color: root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption - 1
@@ -83,7 +84,7 @@ Rectangle {
 
       // Site Badge
       Rectangle {
-        visible: !!root.modelData.site
+        visible: !!root.devData.site
         height: Style.space(16)
         implicitWidth: siteBadgeText.implicitWidth + Style.space(10)
         radius: 3
@@ -96,7 +97,7 @@ Rectangle {
           textFormat: Text.PlainText;
           id: siteBadgeText
           anchors.centerIn: parent
-          text: root.modelData.site || ""
+          text: root.devData.site || ""
           color: root.foreground
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption - 2
@@ -112,7 +113,7 @@ Rectangle {
 
       Text {
         textFormat: Text.PlainText;
-        text: "IP: " + (root.modelData.ip || "DHCP") + (root.modelData.id ? " · MAC: " + root.modelData.id : "")
+        text: "IP: " + (root.devData.ip || "DHCP") + (root.devData.id ? " · MAC: " + root.devData.id : "")
         color: root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption - 2
@@ -128,7 +129,7 @@ Rectangle {
 
         // SSH Button
         Rectangle {
-          visible: !!root.modelData.ip && (root.category === "gateways" || root.category === "switches")
+          visible: !!root.devData.ip && (root.category === "gateways" || root.category === "switches")
           implicitHeight: Style.space(20)
           implicitWidth: sshBtnRow.implicitWidth + Style.space(12)
           radius: 3
@@ -164,19 +165,19 @@ Rectangle {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.sshRequested(root.modelData.ip, "root")
+            onClicked: root.sshRequested(root.devData.ip, "root")
           }
 
           PanelToolTip {
             visible: devSshMouse.containsMouse
-            text: "Open SSH terminal to " + (root.modelData.name || root.modelData.ip)
+            text: "Open SSH terminal to " + (root.devData.name || root.devData.ip)
             fontFamily: root.fontFamily
           }
         }
 
         // Ping Button
         Rectangle {
-          visible: !!root.modelData.ip
+          visible: !!root.devData.ip
           implicitHeight: Style.space(20)
           implicitWidth: pingBtnRow.implicitWidth + Style.space(12)
           radius: 3
@@ -212,19 +213,19 @@ Rectangle {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.pingRequested(root.modelData.ip)
+            onClicked: root.pingRequested(root.devData.ip)
           }
 
           PanelToolTip {
             visible: devPingMouse.containsMouse
-            text: "Ping " + root.modelData.ip + " in floating terminal"
+            text: "Ping " + root.devData.ip + " in floating terminal"
             fontFamily: root.fontFamily
           }
         }
 
         // Web GUI Button
         Rectangle {
-          visible: !!root.modelData.ip && root.category === "gateways"
+          visible: !!root.devData.ip && root.category === "gateways"
           implicitHeight: Style.space(20)
           implicitWidth: Style.space(24)
           radius: 3
@@ -246,12 +247,12 @@ Rectangle {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.webRequested(root.modelData.ip)
+            onClicked: root.webRequested(root.devData.ip)
           }
 
           PanelToolTip {
             visible: devWebMouse.containsMouse
-            text: "Open Web UI (https://" + root.modelData.ip + ")"
+            text: "Open Web UI (https://" + root.devData.ip + ")"
             fontFamily: root.fontFamily
           }
         }
