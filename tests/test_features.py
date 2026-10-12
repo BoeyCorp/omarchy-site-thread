@@ -818,6 +818,64 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
         self.assertIn("apiReachable", data)
         self.assertIn("cacheDir", data)
         self.assertIn("cachedSites", data)
+        self.assertIn("scope", data)
+        self.assertIn("operations", data)
+        self.assertIn("diagAgeSec", settings_qml)
+        self.assertIn("STALE (> 2m)", settings_qml)
+        self.assertIn("RECENT OPERATIONS & ACTION OUTCOMES", settings_qml)
+
+    def test_operations_history_tracking_and_lifecycle(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+        import subprocess
+
+        # Test CLI operations command
+        res = subprocess.run(
+            [str(ROOT / "bin" / "site-thread"), "operations"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        data = json.loads(res.stdout)
+        self.assertTrue(data.get("ok"))
+        self.assertIn("operations", data)
+
+        # Test record_operation directly
+        op = SITE_THREAD.record_operation(
+            "upgrade",
+            "74:83:c2:55:66:77",
+            "accepted",
+            "Upgrade request accepted for device 74:83:c2:55:66:77.",
+        )
+        self.assertEqual(op["status"], "accepted")
+        self.assertEqual(op["type"], "upgrade")
+
+        # Test PoE power-cycle request output
+        out = io.StringIO()
+        with redirect_stdout(out):
+            with self.assertRaises(SystemExit) as cm:
+                SITE_THREAD.command_power_cycle("console-home", "74:83:c2:22:33:44", 4)
+            self.assertEqual(cm.exception.code, 0)
+        p_res = json.loads(out.getvalue())
+        self.assertTrue(p_res.get("ok"))
+        self.assertTrue(p_res.get("accepted"))
+        self.assertIn("Port restarting; link status updates on refresh", p_res.get("message", ""))
+
+    def test_action_observability_and_non_generic_toasts(self) -> None:
+        analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+        self.assertIn("pendingCycleTarget", analytics_qml)
+        self.assertIn("pendingPingTarget", analytics_qml)
+        self.assertIn("pendingUpgradeDeviceTarget", analytics_qml)
+        self.assertIn("pendingBackupConsoleTarget", analytics_qml)
+        self.assertIn("Submitting PoE power cycle request for ", analytics_qml)
+        self.assertIn("PoE power cycle request accepted for ", analytics_qml)
+        self.assertIn("Port restarting; link status updates on refresh", analytics_qml)
+        self.assertIn("Submitting upgrade request for ", analytics_qml)
+        self.assertIn("Submitting fleet upgrade batch request for ", analytics_qml)
+        self.assertIn("Submitting backup request for console: ", analytics_qml)
+        self.assertIn("Pinging target host ", analytics_qml)
+        self.assertIn("RECENT OPERATIONS & ACTION OUTCOMES", analytics_qml)
+
     def test_reusable_components_and_schema_alignment(self) -> None:
         search_qml = (ROOT / "SearchField.qml").read_text(encoding="utf-8")
         toast_qml = (ROOT / "StatusToast.qml").read_text(encoding="utf-8")

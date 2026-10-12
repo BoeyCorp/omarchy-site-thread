@@ -62,6 +62,11 @@ FloatingWindow {
   readonly property var fleetSpectrum: root.fleetData && root.fleetData.spectrum ? root.fleetData.spectrum : null
   readonly property var fleetUpdates: root.fleetData && root.fleetData.firmwareUpdates ? root.fleetData.firmwareUpdates : []
   readonly property var fleetBackups: root.fleetData && root.fleetData.backups ? root.fleetData.backups : []
+  readonly property var fleetOperations: root.fleetData && root.fleetData.operations ? root.fleetData.operations : []
+  property string pendingCycleTarget: ""
+  property string pendingPingTarget: ""
+  property string pendingUpgradeDeviceTarget: ""
+  property string pendingBackupConsoleTarget: ""
 
   readonly property string helper: Qt.resolvedUrl("../bin/site-thread").toString().replace(/^file:\/\//, "")
 
@@ -207,14 +212,16 @@ FloatingWindow {
     stdout: StdioCollector { id: powerCycleOut; waitForEnd: true }
     stderr: StdioCollector { id: powerCycleErr; waitForEnd: true }
     onExited: function(code) {
+      var target = root.pendingCycleTarget || "port"
       if (code === 0) {
         var pSuccess = Model.parse(powerCycleOut.text, null)
-        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "PoE power cycle initiated successfully!"
-        root.toastType = "success"
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : ("PoE power cycle request accepted for " + target + ". Port restarting; link status updates on refresh.")
+        root.toastType = "info"
+        root.refreshRequested()
       } else {
         var pFail = Model.parse(powerCycleOut.text, null)
         var msg = (pFail && pFail.error) ? pFail.error : (powerCycleErr.text ? powerCycleErr.text.trim() : ("code " + code))
-        root.statusToast = "PoE power cycle failed: " + msg
+        root.statusToast = "PoE power cycle request rejected for " + target + ": " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -226,11 +233,12 @@ FloatingWindow {
     stdout: StdioCollector { id: pingOut; waitForEnd: true }
     stderr: StdioCollector { id: pingErr; waitForEnd: true }
     onExited: function(code) {
+      var target = root.pendingPingTarget || "Host"
       if (code === 0) {
-        root.statusToast = "Ping test completed: Host reachable (<5ms)"
+        root.statusToast = "Ping test completed: " + target + " reachable (<5ms)"
         root.toastType = "success"
       } else {
-        root.statusToast = "Ping test completed: Host unreachable or timeout"
+        root.statusToast = "Ping test completed: " + target + " unreachable or timeout"
         root.toastType = "warning"
       }
       toastTimer.restart()
@@ -242,15 +250,16 @@ FloatingWindow {
     stdout: StdioCollector { id: upgradeDevOut; waitForEnd: true }
     stderr: StdioCollector { id: upgradeDevErr; waitForEnd: true }
     onExited: function(code) {
+      var target = root.pendingUpgradeDeviceTarget || "device"
       if (code === 0) {
         var pSuccess = Model.parse(upgradeDevOut.text, null)
-        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Upgrade request accepted. Refresh to monitor device status."
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : ("Upgrade request accepted for " + target + ". Refresh to monitor device status.")
         root.toastType = "info"
         root.refreshRequested()
       } else {
         var pFail = Model.parse(upgradeDevOut.text, null)
         var msg = (pFail && pFail.error) ? pFail.error : (upgradeDevErr.text ? upgradeDevErr.text.trim() : ("code " + code))
-        root.statusToast = "Upgrade request rejected: " + msg
+        root.statusToast = "Upgrade request rejected for " + target + ": " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -282,15 +291,16 @@ FloatingWindow {
     stdout: StdioCollector { id: backupOut; waitForEnd: true }
     stderr: StdioCollector { id: backupErr; waitForEnd: true }
     onExited: function(code) {
+      var target = root.pendingBackupConsoleTarget || "console"
       if (code === 0) {
         var pSuccess = Model.parse(backupOut.text, null)
-        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Backup request accepted. Refresh to verify backup completion."
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : ("Backup request accepted for " + target + ". Refresh to verify backup completion.")
         root.toastType = "info"
         root.refreshRequested()
       } else {
         var pFail = Model.parse(backupOut.text, null)
         var msg = (pFail && pFail.error) ? pFail.error : (backupErr.text ? backupErr.text.trim() : ("code " + code))
-        root.statusToast = "Backup request rejected: " + msg
+        root.statusToast = "Backup request rejected for " + target + ": " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -321,21 +331,27 @@ FloatingWindow {
 
   function upgradeDevice(hostId, mac, deviceName) {
     if (!mac) return
-    root.statusToast = "Submitting upgrade request for " + (deviceName || mac) + "..."
+    var targetLabel = (deviceName || mac)
+    root.pendingUpgradeDeviceTarget = targetLabel
+    root.statusToast = "Submitting upgrade request for " + targetLabel + "..."
     root.toastType = "info"
     upgradeDevProc.command = [root.helper, "upgrade-device", String(hostId || "console-home"), String(mac)]
     upgradeDevProc.running = true
   }
 
   function upgradeAllDevices() {
-    root.statusToast = "Submitting fleet upgrade batch request..."
+    var count = (root.fleetUpdates && root.fleetUpdates.length) ? root.fleetUpdates.length : 0
+    var targetLabel = count > 0 ? (count + " pending devices") : "all devices"
+    root.statusToast = "Submitting fleet upgrade batch request for " + targetLabel + "..."
     root.toastType = "info"
     upgradeAllProc.command = [root.helper, "upgrade-all"]
     upgradeAllProc.running = true
   }
 
   function triggerBackup(hostId, consoleName) {
-    root.statusToast = "Submitting backup request for " + (consoleName || hostId) + "..."
+    var cName = consoleName || hostId || "console"
+    root.pendingBackupConsoleTarget = cName
+    root.statusToast = "Submitting backup request for console: " + cName + "..."
     root.toastType = "info"
     backupProc.command = [root.helper, "backup", String(hostId || "console-home")]
     backupProc.running = true
@@ -348,7 +364,10 @@ FloatingWindow {
 
   function cyclePort(hostId, mac, portIdx, portName) {
     if (!hostId || !mac) return
-    root.statusToast = "Power cycling " + portName + "..."
+    var swName = (root.currentSwitch && root.currentSwitch.name) ? root.currentSwitch.name : mac
+    var pName = portName || ("Port " + portIdx)
+    root.pendingCycleTarget = pName + " on " + swName
+    root.statusToast = "Submitting PoE power cycle request for " + pName + " on " + swName + "..."
     root.toastType = "info"
     powerCycleProc.command = [root.helper, "power-cycle", String(hostId), String(mac), String(portIdx)]
     powerCycleProc.running = true
@@ -356,7 +375,8 @@ FloatingWindow {
 
   function pingHost(ip) {
     if (!ip) return
-    root.statusToast = "Pinging " + ip + "..."
+    root.pendingPingTarget = String(ip)
+    root.statusToast = "Pinging target host " + ip + "..."
     root.toastType = "info"
     pingProc.command = ["ping", "-c", "3", "-W", "2", String(ip)]
     pingProc.running = true
@@ -5876,6 +5896,130 @@ FloatingWindow {
                     }
                   }
                 }
+              }
+            }
+
+            // Section: Operations & Action Outcomes History
+            Text {
+              textFormat: Text.PlainText;
+              text: "RECENT OPERATIONS & ACTION OUTCOMES (" + (root.fleetOperations ? root.fleetOperations.length : 0) + ")"
+              color: root.accent
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+
+            ColumnLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(6)
+
+              Repeater {
+                model: root.fleetOperations || []
+                delegate: BorderSurface {
+                  required property var modelData
+                  Layout.fillWidth: true
+                  implicitHeight: opHistCol.implicitHeight + Style.space(16)
+                  color: root.card
+                  radius: 6
+                  borderSpec: Border.flat(
+                    modelData.status === "completed" ? root.healthy :
+                    (modelData.status === "failed" ? root.urgent : root.accent),
+                    1
+                  )
+
+                  ColumnLayout {
+                    id: opHistCol
+                    anchors.fill: parent
+                    anchors.margins: Style.space(10)
+                    spacing: Style.space(4)
+
+                    RowLayout {
+                      Layout.fillWidth: true
+                      spacing: Style.space(6)
+
+                      Rectangle {
+                        implicitHeight: Style.space(18)
+                        implicitWidth: opTagText.implicitWidth + Style.space(10)
+                        radius: 3
+                        color: {
+                          if (modelData.status === "completed") return Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
+                          if (modelData.status === "failed") return Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2)
+                          return Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)
+                        }
+
+                        Text {
+                          id: opTagText
+                          anchors.centerIn: parent
+                          textFormat: Text.PlainText;
+                          text: {
+                            if (modelData.status === "completed") return "COMPLETED"
+                            if (modelData.status === "failed") return "FAILED"
+                            if (modelData.status === "accepted") return "REQUEST ACCEPTED"
+                            if (modelData.status === "in_progress") return "IN PROGRESS"
+                            return String(modelData.status || "UNKNOWN").toUpperCase()
+                          }
+                          color: {
+                            if (modelData.status === "completed") return root.healthy
+                            if (modelData.status === "failed") return root.urgent
+                            return root.accent
+                          }
+                          font.family: root.fontFamily
+                          font.pixelSize: 8
+                          font.bold: true
+                        }
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.title || modelData.target
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption
+                        font.bold: true
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.relativeTime || modelData.timeText || ""
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                      }
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: modelData.message || ""
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 1
+                      wrapMode: Text.WordWrap
+                      Layout.fillWidth: true
+                    }
+
+                    Text {
+                      visible: !!modelData.error
+                      textFormat: Text.PlainText;
+                      text: "Error details: " + modelData.error
+                      color: root.urgent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                      wrapMode: Text.WordWrap
+                      Layout.fillWidth: true
+                    }
+                  }
+                }
+              }
+
+              Text {
+                visible: !(root.fleetOperations && root.fleetOperations.length > 0)
+                textFormat: Text.PlainText;
+                text: "No recent operations recorded in this session."
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 1
               }
             }
           }

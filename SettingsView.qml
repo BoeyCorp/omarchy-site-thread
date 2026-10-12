@@ -33,6 +33,29 @@ ColumnLayout {
   property var diagnostics: null
   property string lastErrorText: ""
   property bool diagnosticsRunning: false
+  property int diagAgeSec: 0
+
+  Timer {
+    id: diagAgeTimer
+    interval: 1000
+    repeat: true
+    running: true
+    onTriggered: {
+      if (root.diagnostics && root.diagnostics.timestamp) {
+        root.diagAgeSec = Math.max(0, Math.floor(Date.now() / 1000) - root.diagnostics.timestamp)
+      } else {
+        root.diagAgeSec = 0
+      }
+    }
+  }
+
+  Timer {
+    id: diagAutoRefreshTimer
+    interval: 60000
+    repeat: true
+    running: root.visible
+    onTriggered: root.runDiagnosticsRequested()
+  }
 
   spacing: Style.space(12)
 
@@ -484,13 +507,57 @@ ColumnLayout {
         Layout.fillWidth: true
         spacing: Style.space(4)
 
-        Text {
-          textFormat: Text.PlainText;
-          text: "SYSTEM HEALTH & DIAGNOSTICS"
-          color: root.foreground
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption - 1
-          font.bold: true
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Style.space(6)
+
+          Text {
+            textFormat: Text.PlainText;
+            text: "SYSTEM HEALTH & DIAGNOSTICS"
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption - 1
+            font.bold: true
+          }
+
+          Item { Layout.fillWidth: true }
+
+          // Staleness badge if age > 120s
+          Rectangle {
+            visible: !!(root.diagnostics && root.diagAgeSec > 120)
+            implicitHeight: Style.space(16)
+            implicitWidth: staleBadgeText.implicitWidth + Style.space(8)
+            radius: 3
+            color: Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2)
+            border.width: 1
+            border.color: root.urgent
+
+            Text {
+              id: staleBadgeText
+              anchors.centerIn: parent
+              textFormat: Text.PlainText;
+              text: "STALE (> 2m)"
+              color: root.urgent
+              font.family: root.fontFamily
+              font.pixelSize: 8
+              font.bold: true
+            }
+          }
+
+          // Freshness relative age text
+          Text {
+            textFormat: Text.PlainText;
+            text: {
+              if (!root.diagnostics) return ""
+              if (root.diagAgeSec < 15) return "Checked: Just now"
+              if (root.diagAgeSec < 60) return "Checked: " + root.diagAgeSec + "s ago"
+              var mins = Math.floor(root.diagAgeSec / 60)
+              return "Checked: " + mins + "m ago"
+            }
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption - 2
+          }
         }
 
         Rectangle {
@@ -589,6 +656,28 @@ ColumnLayout {
               }
             }
 
+            // Scope & Probe Disclaimer
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(5)
+              Text {
+                textFormat: Text.PlainText;
+                text: ""
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+              }
+              Text {
+                textFormat: Text.PlainText;
+                text: (root.diagnostics && root.diagnostics.scope) ? root.diagnostics.scope : "Point-in-time endpoint probe. Does not verify role permissions or live telemetry streaming."
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: 8
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+              }
+            }
+
             // Error Display (if any error occurred)
             Rectangle {
               visible: !!(root.lastErrorText || (root.diagnostics && root.diagnostics.apiError))
@@ -624,6 +713,139 @@ ColumnLayout {
                   wrapMode: Text.WordWrap
                   Layout.fillWidth: true
                 }
+              }
+            }
+
+            // Recent Operations & Action Outcomes
+            ColumnLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(4)
+
+              Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: root.outline
+              }
+
+              Text {
+                textFormat: Text.PlainText;
+                text: "RECENT OPERATIONS & ACTION OUTCOMES"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+                font.bold: true
+              }
+
+              Repeater {
+                model: (root.diagnostics && root.diagnostics.operations && root.diagnostics.operations.length > 0) ? root.diagnostics.operations : []
+                delegate: Rectangle {
+                  required property var modelData
+                  Layout.fillWidth: true
+                  implicitHeight: opCol.implicitHeight + Style.space(8)
+                  radius: 3
+                  color: root.card
+                  border.width: 1
+                  border.color: {
+                    if (modelData.status === "completed") return root.healthy
+                    if (modelData.status === "failed") return root.urgent
+                    return root.accent
+                  }
+
+                  ColumnLayout {
+                    id: opCol
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Style.space(6)
+                    spacing: Style.space(2)
+
+                    RowLayout {
+                      Layout.fillWidth: true
+                      spacing: Style.space(6)
+
+                      Rectangle {
+                        implicitHeight: Style.space(16)
+                        implicitWidth: opStatusText.implicitWidth + Style.space(8)
+                        radius: 2
+                        color: {
+                          if (modelData.status === "completed") return Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
+                          if (modelData.status === "failed") return Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2)
+                          return Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)
+                        }
+
+                        Text {
+                          id: opStatusText
+                          anchors.centerIn: parent
+                          textFormat: Text.PlainText;
+                          text: {
+                            if (modelData.status === "completed") return "COMPLETED"
+                            if (modelData.status === "failed") return "FAILED"
+                            if (modelData.status === "accepted") return "REQUEST ACCEPTED"
+                            if (modelData.status === "in_progress") return "IN PROGRESS"
+                            return String(modelData.status || "UNKNOWN").toUpperCase()
+                          }
+                          color: {
+                            if (modelData.status === "completed") return root.healthy
+                            if (modelData.status === "failed") return root.urgent
+                            return root.accent
+                          }
+                          font.family: root.fontFamily
+                          font.pixelSize: 8
+                          font.bold: true
+                        }
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.title || modelData.target
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                        font.bold: true
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        text: modelData.relativeTime || modelData.timeText || ""
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: 8
+                      }
+                    }
+
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: modelData.message || ""
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                      wrapMode: Text.WordWrap
+                      Layout.fillWidth: true
+                    }
+
+                    Text {
+                      visible: !!modelData.error
+                      textFormat: Text.PlainText;
+                      text: "Error detail: " + modelData.error
+                      color: root.urgent
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                      wrapMode: Text.WordWrap
+                      Layout.fillWidth: true
+                    }
+                  }
+                }
+              }
+
+              Text {
+                visible: !(root.diagnostics && root.diagnostics.operations && root.diagnostics.operations.length > 0)
+                textFormat: Text.PlainText;
+                text: "No recent operations recorded. Action outcomes will appear here."
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
               }
             }
           }

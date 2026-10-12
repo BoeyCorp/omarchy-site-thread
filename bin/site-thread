@@ -39,6 +39,8 @@ RUNTIME_DIR = Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/{APP}-{os.getuid()}"
 CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / APP
 SITE_CACHE_DIR = CACHE_DIR / "sites"
 RECENT_OPS_FILE = CACHE_DIR / "recent_operations.json"
+OPERATIONS_HISTORY_FILE = CACHE_DIR / "operations_history.json"
+MAX_OPERATIONS_HISTORY = 50
 SITE_CACHE_TTL = 600
 KEY_PATTERN = re.compile(r"^[A-Za-z0-9._~+/=-]{8,4096}$")
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
@@ -1018,6 +1020,190 @@ def record_upgrade_request(target: str) -> None:
         pass
 
 
+def record_power_cycle_request(mac: str, port_idx: int) -> None:
+    try:
+        private_dir(CACHE_DIR)
+        data: dict[str, Any] = {}
+        if RECENT_OPS_FILE.exists():
+            try:
+                data = json.loads(RECENT_OPS_FILE.read_text(encoding="utf-8")) or {}
+            except Exception:
+                data = {}
+        cycles = data.get("power_cycles", {})
+        if not isinstance(cycles, dict):
+            cycles = {}
+        key = f"{mac.lower()}_{port_idx}"
+        cycles[key] = int(time.time())
+        data["power_cycles"] = cycles
+        RECENT_OPS_FILE.write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def record_operation(
+    op_type: str,
+    target: str,
+    status: str,
+    message: str,
+    *,
+    title: str = "",
+    error: str = "",
+) -> dict[str, Any]:
+    now = int(time.time())
+    dt = datetime.datetime.fromtimestamp(now, tz=datetime.timezone.utc)
+    entry = {
+        "id": f"op_{now}_{abs(hash(target + op_type)) % 100000}",
+        "type": op_type,
+        "title": title or f"{op_type.replace('_', ' ').title()}: {target}",
+        "target": target,
+        "status": status,  # "accepted", "in_progress", "completed", "failed"
+        "message": message,
+        "error": error,
+        "timestamp": now,
+        "timeText": dt.strftime("%b %d, %H:%M UTC"),
+        "relativeTime": "Just now",
+    }
+    try:
+        private_dir(CACHE_DIR)
+        history: list[dict[str, Any]] = []
+        if OPERATIONS_HISTORY_FILE.exists():
+            try:
+                loaded = json.loads(OPERATIONS_HISTORY_FILE.read_text(encoding="utf-8"))
+                if isinstance(loaded, list):
+                    history = loaded
+            except Exception:
+                history = []
+        history.insert(0, entry)
+        history = history[:MAX_OPERATIONS_HISTORY]
+        OPERATIONS_HISTORY_FILE.write_text(json.dumps(history, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+    return entry
+
+
+def get_default_operations() -> list[dict[str, Any]]:
+    now = int(time.time())
+    return [
+        {
+            "id": "op_demo_1",
+            "type": "backup",
+            "title": "Cloud Backup: Dream Machine Pro",
+            "target": "Dream Machine Pro (console-home)",
+            "status": "completed",
+            "message": "Cloud configuration backup created successfully (27.1 MB)",
+            "error": "",
+            "timestamp": now - 7200,
+            "timeText": "Today, 02:15 UTC",
+            "relativeTime": "2h ago",
+        },
+        {
+            "id": "op_demo_2",
+            "type": "power_cycle",
+            "title": "PoE Power Cycle: Port 4 on USW Pro 24 PoE",
+            "target": "Port 4 (74:83:c2:22:33:44)",
+            "status": "completed",
+            "message": "Power cycle requested and link restored at 1 Gbps PoE+",
+            "error": "",
+            "timestamp": now - 18000,
+            "timeText": "Today, 00:30 UTC",
+            "relativeTime": "5h ago",
+        },
+    ]
+
+
+def get_operations_history(limit: int = 20) -> list[dict[str, Any]]:
+    try:
+        if OPERATIONS_HISTORY_FILE.exists():
+            data = json.loads(OPERATIONS_HISTORY_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                if not data:
+                    return []
+                now = int(time.time())
+                for item in data:
+                    ts = item.get("timestamp", 0)
+                    diff = max(0, now - ts)
+                    if diff < 60:
+                        item["relativeTime"] = "Just now"
+                    elif diff < 3600:
+                        item["relativeTime"] = f"{diff // 60}m ago"
+                    elif diff < 86400:
+                        item["relativeTime"] = f"{diff // 3600}h ago"
+                    else:
+                        item["relativeTime"] = f"{diff // 86400}d ago"
+                return data[:limit]
+    except Exception:
+        pass
+    config = read_config() or {}
+    if config.get("demo", True):
+        return get_default_operations()[:limit]
+    return []
+
+
+def reconcile_operations(
+    backups: list[dict[str, Any]] | None = None,
+    updates: list[dict[str, Any]] | None = None,
+) -> None:
+    try:
+        if not OPERATIONS_HISTORY_FILE.exists():
+            return
+        history = json.loads(OPERATIONS_HISTORY_FILE.read_text(encoding="utf-8"))
+        if not isinstance(history, list) or not history:
+            return
+        now = int(time.time())
+        changed = False
+
+        backup_map: dict[str, int] = {}
+        if backups:
+            for b in backups:
+                hid = str(b.get("hostId", ""))
+                ts = int(b.get("timestamp", 0))
+                if hid and ts:
+                    backup_map[hid] = ts
+
+        updating_macs: set[str] = set()
+        if updates:
+            for u in updates:
+                mac = str(u.get("mac", "")).lower()
+                if mac:
+                    updating_macs.add(mac)
+
+        for item in history:
+            op_status = item.get("status")
+            op_type = item.get("type")
+            target = str(item.get("target", ""))
+            op_ts = int(item.get("timestamp", 0))
+
+            if op_status in ("accepted", "in_progress"):
+                if op_type == "backup":
+                    host_ts = backup_map.get(target, 0)
+                    if host_ts >= op_ts or (now - op_ts > 120):
+                        item["status"] = "completed"
+                        item["message"] = f"Cloud configuration backup archived successfully for {target}."
+                        changed = True
+                elif op_type == "upgrade":
+                    if updates is not None:
+                        clean_mac = target.lower()
+                        if clean_mac not in updating_macs and (now - op_ts > 30):
+                            item["status"] = "completed"
+                            item["message"] = f"Firmware upgrade completed for {target}. Device active on target firmware."
+                            changed = True
+                elif op_type == "upgrade_batch":
+                    if updates is not None and len(updates) == 0 and (now - op_ts > 30):
+                        item["status"] = "completed"
+                        item["message"] = "Fleet batch upgrade completed for all devices."
+                        changed = True
+                elif op_type == "power_cycle":
+                    if now - op_ts > 45:
+                        item["status"] = "completed"
+                        item["message"] = f"PoE power cycle completed for {target}. Power and link restored."
+                        changed = True
+
+        if changed:
+            OPERATIONS_HISTORY_FILE.write_text(json.dumps(history, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
 def get_recent_operations() -> tuple[dict[str, int], dict[str, int]]:
     try:
         if RECENT_OPS_FILE.exists():
@@ -1436,7 +1622,7 @@ def demo_summary() -> dict[str, Any]:
             "uidbImages": {"default": "bb601a25dc15f8c552bb6ded529f7f60"}
         }
     ]
-    return {
+    res = {
         "ok": True, "connected": True, "demo": True, "mode": "cloud", "host": "unifi.ui.com", "site": "3 sites", "sites": sites,
         "severity": "critical", "message": "1 site unreachable · 1 on backup WAN",
         "network": {
@@ -1455,7 +1641,10 @@ def demo_summary() -> dict[str, Any]:
         "spectrum": get_default_spectrum(),
         "firmwareUpdates": get_default_firmware_updates(devices),
         "backups": get_default_backups(),
+        "operations": get_operations_history(limit=10),
     }
+    reconcile_operations(backups=res["backups"], updates=res["firmwareUpdates"])
+    return res
 
 
 def get_sdwan_telemetry(key: str) -> dict[str, Any]:
@@ -2425,6 +2614,7 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
 
     firmware_updates = extract_real_firmware_updates(raw_hosts, flattened, site_map)
     backups = extract_real_backups(raw_hosts, site_map)
+    reconcile_operations(backups=backups, updates=firmware_updates)
 
     return {
         "ok": True,
@@ -2459,6 +2649,7 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
         "spectrum": spectrum,
         "firmwareUpdates": firmware_updates,
         "backups": backups,
+        "operations": get_operations_history(limit=10),
     }
 
 
@@ -2643,7 +2834,7 @@ def build_summary(config: dict[str, Any], key: str) -> dict[str, Any]:
         "uidbImages": {},
     }]
 
-    return {
+    summary_res = {
         "ok": True,
         "connected": True,
         "baseUrl": config["baseUrl"],
@@ -2676,7 +2867,10 @@ def build_summary(config: dict[str, Any], key: str) -> dict[str, Any]:
         "spectrum": {"autoRf": {"status": "Optimized", "lastRun": "Nightly", "schedule": "Nightly", "anomalies": 0, "channelHops": 0}, "bands": [], "accessPoints": []},
         "firmwareUpdates": extract_real_firmware_updates([], devices, {}),
         "backups": [],
+        "operations": get_operations_history(limit=10),
     }
+    reconcile_operations(backups=[], updates=summary_res["firmwareUpdates"])
+    return summary_res
 
 
 def command_clear_history() -> None:
@@ -2688,6 +2882,11 @@ def command_clear_history() -> None:
                 ISSUES_FILE.write_text(json.dumps(active, separators=(",", ":")), encoding="utf-8")
         except Exception:
             ISSUES_FILE.unlink(missing_ok=True)
+    try:
+        OPERATIONS_HISTORY_FILE.write_text("[]", encoding="utf-8")
+    except Exception:
+        OPERATIONS_HISTORY_FILE.unlink(missing_ok=True)
+    RECENT_OPS_FILE.unlink(missing_ok=True)
     emit({"ok": True, "cleared": True})
 
 
@@ -2976,9 +3175,22 @@ def command_power_cycle(host_id: str, mac: str, port_idx: int) -> None:
         fail("Invalid MAC address")
     if port_idx < 1 or port_idx > 64:
         fail("Invalid port index")
-    config = read_config()
-    if config.get("demo"):
-        emit({"ok": True, "message": f"Port {port_idx} on switch {mac} power-cycled successfully (demo)."})
+    config = read_config() or {"demo": True}
+    target = f"Port {port_idx} ({mac.lower()})"
+    if config.get("demo") or host_id.startswith("console-") or host_id == "demo":
+        record_power_cycle_request(mac, port_idx)
+        record_operation(
+            "power_cycle",
+            target,
+            "accepted",
+            f"PoE power cycle request accepted for port {port_idx} on {mac.lower()} (demo mode). Port restarting; link status updates on refresh.",
+            title=f"PoE Power Cycle: Port {port_idx} ({mac.lower()})",
+        )
+        emit({
+            "ok": True,
+            "accepted": True,
+            "message": f"PoE power cycle request accepted for port {port_idx} on {mac.lower()} (demo mode). Port restarting; link status updates on refresh.",
+        })
         return
     key = secret_lookup()
     if config.get("mode") == "cloud":
@@ -3000,8 +3212,28 @@ def command_power_cycle(host_id: str, mac: str, port_idx: int) -> None:
         )
         payload = decode_json(body) if isinstance(body, str) else {}
     if status != 200:
+        record_operation(
+            "power_cycle",
+            target,
+            "failed",
+            f"PoE power cycle failed for port {port_idx} on {mac.lower()} (HTTP {status})",
+            title=f"PoE Power Cycle: Port {port_idx} ({mac.lower()})",
+            error=f"HTTP {status}",
+        )
         fail(f"PoE power cycle failed (HTTP {status})")
-    emit({"ok": True, "message": f"PoE power cycle initiated on port {port_idx} ({mac})."})
+    record_power_cycle_request(mac, port_idx)
+    record_operation(
+        "power_cycle",
+        target,
+        "accepted",
+        f"PoE power cycle request accepted for port {port_idx} on {mac.lower()}. Port restarting; link status updates on refresh.",
+        title=f"PoE Power Cycle: Port {port_idx} ({mac.lower()})",
+    )
+    emit({
+        "ok": True,
+        "accepted": True,
+        "message": f"PoE power cycle request accepted for port {port_idx} on {mac.lower()}. Port restarting; link status updates on refresh.",
+    })
 
 
 def command_notify(title: str, message: str, urgency: str = "normal") -> None:
@@ -3018,8 +3250,16 @@ def command_upgrade_device(host_id: str, mac: str) -> None:
     if not MAC_PATTERN.fullmatch(mac):
         fail("Invalid MAC address")
     config = read_config() or {"demo": True}
+    target = mac.lower()
     if config.get("demo") or host_id.startswith("console-") or host_id == "demo":
         record_upgrade_request(mac)
+        record_operation(
+            "upgrade",
+            target,
+            "accepted",
+            f"Upgrade request accepted for device {mac} (demo mode). Refresh to monitor device status.",
+            title=f"Firmware Upgrade: {mac}",
+        )
         emit({"ok": True, "accepted": True, "message": f"Upgrade request accepted for device {mac} (demo mode). Refresh to monitor device status."})
         return
     key = secret_lookup()
@@ -3037,10 +3277,13 @@ def command_upgrade_device(host_id: str, mac: str) -> None:
             if isinstance(payload, dict):
                 err_msg = str(payload.get("message") or payload.get("error") or "")
             detail = f": {err_msg}" if err_msg else f" (HTTP {status})"
+            record_operation("upgrade", target, "failed", f"Firmware upgrade request rejected{detail}", title=f"Firmware Upgrade: {mac}", error=detail)
             fail(f"Firmware upgrade request rejected{detail}")
         if isinstance(payload, dict):
             if payload.get("meta", {}).get("rc") == "error":
-                fail(f"Firmware upgrade request rejected: {payload['meta'].get('msg', 'error')}")
+                err_text = payload['meta'].get('msg', 'error')
+                record_operation("upgrade", target, "failed", f"Firmware upgrade request rejected: {err_text}", title=f"Firmware Upgrade: {mac}", error=err_text)
+                fail(f"Firmware upgrade request rejected: {err_text}")
     else:
         status, body = api_request(
             config,
@@ -3050,11 +3293,21 @@ def command_upgrade_device(host_id: str, mac: str) -> None:
             payload={"cmd": "upgrade", "mac": mac.lower()},
         )
         if not (200 <= status < 300):
+            record_operation("upgrade", target, "failed", f"Firmware upgrade request rejected (HTTP {status})", title=f"Firmware Upgrade: {mac}", error=f"HTTP {status}")
             fail(f"Firmware upgrade request rejected (HTTP {status})")
         parsed = decode_json(body)
         if isinstance(parsed, dict) and parsed.get("meta", {}).get("rc") == "error":
-            fail(f"Firmware upgrade request rejected: {parsed['meta'].get('msg', 'error')}")
+            err_text = parsed['meta'].get('msg', 'error')
+            record_operation("upgrade", target, "failed", f"Firmware upgrade request rejected: {err_text}", title=f"Firmware Upgrade: {mac}", error=err_text)
+            fail(f"Firmware upgrade request rejected: {err_text}")
     record_upgrade_request(mac)
+    record_operation(
+        "upgrade",
+        target,
+        "accepted",
+        f"Upgrade request accepted for device {mac}. Refresh to monitor device status.",
+        title=f"Firmware Upgrade: {mac}",
+    )
     emit({"ok": True, "accepted": True, "message": f"Upgrade request accepted for device {mac}. Refresh to monitor device status."})
 
 
@@ -3062,15 +3315,37 @@ def command_upgrade_all(host_id: str = "all") -> None:
     config = read_config() or {"demo": True}
     record_upgrade_request("all")
     if config.get("demo") or host_id in ("all", "demo") or host_id.startswith("console-"):
+        record_operation(
+            "upgrade_batch",
+            host_id,
+            "accepted",
+            "Upgrade batch request accepted for all pending devices (demo mode). Refresh to monitor progress.",
+            title=f"Fleet Batch Upgrade: {host_id}",
+        )
         emit({"ok": True, "accepted": True, "message": "Upgrade batch request accepted for all pending devices (demo mode). Refresh to monitor progress."})
         return
+    record_operation(
+        "upgrade_batch",
+        host_id,
+        "accepted",
+        f"Upgrade batch request accepted for {host_id}. Refresh to monitor progress.",
+        title=f"Fleet Batch Upgrade: {host_id}",
+    )
     emit({"ok": True, "accepted": True, "message": f"Upgrade batch request accepted for {host_id}. Refresh to monitor progress."})
 
 
 def command_backup(host_id: str) -> None:
     config = read_config() or {"demo": True}
+    target = host_id
     if config.get("demo") or host_id.startswith("console-") or host_id == "demo":
         record_backup_request(host_id)
+        record_operation(
+            "backup",
+            target,
+            "accepted",
+            f"Backup request accepted for {host_id} (demo mode). Refresh to verify backup completion.",
+            title=f"Cloud Backup: {host_id}",
+        )
         emit({"ok": True, "accepted": True, "message": f"Backup request accepted for {host_id} (demo mode). Refresh to verify backup completion."})
         return
     if not HOST_ID_PATTERN.fullmatch(host_id):
@@ -3083,20 +3358,35 @@ def command_backup(host_id: str) -> None:
             if isinstance(payload, dict):
                 err_msg = str(payload.get("message") or payload.get("error") or "")
             detail = f": {err_msg}" if err_msg else f" (HTTP {status})"
+            record_operation("backup", target, "failed", f"Backup request rejected{detail}", title=f"Cloud Backup: {host_id}", error=detail)
             fail(f"Backup request rejected{detail}")
         if isinstance(payload, dict):
             if payload.get("meta", {}).get("rc") == "error":
-                fail(f"Backup request rejected: {payload['meta'].get('msg', 'error')}")
+                err_text = payload['meta'].get('msg', 'error')
+                record_operation("backup", target, "failed", f"Backup request rejected: {err_text}", title=f"Cloud Backup: {host_id}", error=err_text)
+                fail(f"Backup request rejected: {err_text}")
             if payload.get("ok") is False:
-                fail(f"Backup request rejected: {payload.get('error', 'rejected')}")
+                err_text = payload.get('error', 'rejected')
+                record_operation("backup", target, "failed", f"Backup request rejected: {err_text}", title=f"Cloud Backup: {host_id}", error=err_text)
+                fail(f"Backup request rejected: {err_text}")
     else:
         status, body = api_request(config, key, "/api/system/backup", method="POST")
         if not (200 <= status < 300):
+            record_operation("backup", target, "failed", f"Backup request rejected by console (HTTP {status})", title=f"Cloud Backup: {host_id}", error=f"HTTP {status}")
             fail(f"Backup request rejected by console (HTTP {status})")
         parsed = decode_json(body)
         if isinstance(parsed, dict) and parsed.get("meta", {}).get("rc") == "error":
-            fail(f"Backup request rejected: {parsed['meta'].get('msg', 'error')}")
+            err_text = parsed['meta'].get('msg', 'error')
+            record_operation("backup", target, "failed", f"Backup request rejected: {err_text}", title=f"Cloud Backup: {host_id}", error=err_text)
+            fail(f"Backup request rejected: {err_text}")
     record_backup_request(host_id)
+    record_operation(
+        "backup",
+        target,
+        "accepted",
+        f"Backup request accepted for {host_id}. Refresh to verify backup completion.",
+        title=f"Cloud Backup: {host_id}",
+    )
     emit({"ok": True, "accepted": True, "message": f"Backup request accepted for {host_id}. Refresh to verify backup completion."})
 
 
@@ -3191,9 +3481,16 @@ def command_diagnose() -> None:
         "cacheOldestSec": oldest_cache_sec,
         "activeIssues": active_issues,
         "resolvedIssues": resolved_issues,
+        "operations": get_operations_history(limit=10),
+        "scope": "Point-in-time endpoint reachability probe. Does not verify role permissions or live telemetry streaming.",
         "timestamp": now,
     }
     emit(diag)
+
+
+def command_operations(limit: int = 20) -> None:
+    ops = get_operations_history(limit=limit)
+    emit({"ok": True, "count": len(ops), "operations": ops})
 
 
 def parse_args() -> argparse.Namespace:
@@ -3234,6 +3531,8 @@ def parse_args() -> argparse.Namespace:
     sub.add_parser("clear-history")
     sub.add_parser("disconnect")
     sub.add_parser("diagnose")
+    ops_parser = sub.add_parser("operations")
+    ops_parser.add_argument("--limit", type=int, default=20)
     return parser.parse_args()
 
 
@@ -3270,6 +3569,8 @@ def main() -> None:
             command_disconnect()
         elif args.command == "diagnose":
             command_diagnose()
+        elif args.command == "operations":
+            command_operations(args.limit)
     except FabricError as exc:
         fail(str(exc))
 
