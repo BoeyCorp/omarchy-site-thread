@@ -4,6 +4,8 @@ UniFi SiteThread is a high-density, NOC-style UniFi Network and Protect operatio
 
 > Screenshots below have names, IP/MAC addresses, SSIDs, passphrases and other identifying data blurred.
 
+![UniFi SiteThread](preview.png)
+
 ![Status bar widget](docs/screenshots/status_bar_widget.png)
 
 ## Contents
