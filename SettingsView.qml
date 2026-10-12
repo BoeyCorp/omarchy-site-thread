@@ -28,6 +28,11 @@ ColumnLayout {
   signal clearHistoryRequested()
   signal testNotifyRequested()
   signal closeSettingsRequested()
+  signal runDiagnosticsRequested()
+
+  property var diagnostics: null
+  property string lastErrorText: ""
+  property bool diagnosticsRunning: false
 
   spacing: Style.space(12)
 
@@ -474,7 +479,158 @@ ColumnLayout {
         }
       }
 
-      // 7. Action Controls: Clear History & Back
+      // 7. System Health & Diagnostics
+      ColumnLayout {
+        Layout.fillWidth: true
+        spacing: Style.space(4)
+
+        Text {
+          textFormat: Text.PlainText;
+          text: "SYSTEM HEALTH & DIAGNOSTICS"
+          color: root.foreground
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption - 1
+          font.bold: true
+        }
+
+        Rectangle {
+          Layout.fillWidth: true
+          implicitHeight: diagCol.implicitHeight + Style.space(16)
+          radius: 4
+          color: root.track
+          border.width: 1
+          border.color: (root.diagnostics && !root.diagnostics.apiReachable) ? root.urgent : root.outline
+
+          ColumnLayout {
+            id: diagCol
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: Style.space(8)
+            spacing: Style.space(6)
+
+            // API Reachability & Self-Test Row
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(8)
+
+              Rectangle {
+                width: Style.space(8)
+                height: Style.space(8)
+                radius: 4
+                color: (root.diagnostics && root.diagnostics.apiReachable) ? root.healthy : ((root.diagnostics && root.diagnostics.mode === "disconnected") ? root.dim : root.urgent)
+              }
+
+              Text {
+                textFormat: Text.PlainText;
+                text: {
+                  if (!root.diagnostics) return "API Status: Checking..."
+                  if (root.diagnostics.mode === "demo") return "API Status: Demo Mode (Simulated)"
+                  if (root.diagnostics.apiReachable) return "API Status: Reachable (" + root.diagnostics.apiLatencyMs + "ms)"
+                  return "API Status: Offline / Error" + (root.diagnostics.apiStatusCode ? " (HTTP " + root.diagnostics.apiStatusCode + ")" : "")
+                }
+                color: (root.diagnostics && root.diagnostics.apiReachable) ? root.foreground : root.urgent
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 1
+                font.bold: true
+                Layout.fillWidth: true
+              }
+
+              // Self-Test Button
+              Rectangle {
+                implicitHeight: Style.space(22)
+                implicitWidth: diagBtnText.implicitWidth + Style.space(14)
+                radius: 3
+                color: diagBtnMouse.containsMouse ? Qt.lighter(root.accent, 1.1) : root.accent
+                border.width: 1
+                border.color: root.accent
+
+                RowLayout {
+                  anchors.centerIn: parent
+                  spacing: Style.space(4)
+                  Text { textFormat: Text.PlainText; text: root.diagnosticsRunning ? "" : ""; color: root.accentForeground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                  Text { textFormat: Text.PlainText; id: diagBtnText; text: root.diagnosticsRunning ? "Testing..." : "Self-Test"; color: root.accentForeground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
+                }
+
+                MouseArea {
+                  id: diagBtnMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.runDiagnosticsRequested()
+                }
+              }
+            }
+
+            // Cache & Local Storage Health
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(6)
+              Text {
+                textFormat: Text.PlainText;
+                text: "Cache Health:"
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+              }
+              Text {
+                textFormat: Text.PlainText;
+                text: {
+                  if (!root.diagnostics) return "Inspecting cache..."
+                  var s = root.diagnostics.cachedSites + " site(s) cached"
+                  if (root.diagnostics.cachedSites > 0) s += " (latest: " + root.diagnostics.cacheAgeSec + "s ago)"
+                  s += root.diagnostics.cacheWritable ? " · Writable" : " · Read-only"
+                  return s
+                }
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+                Layout.fillWidth: true
+              }
+            }
+
+            // Error Display (if any error occurred)
+            Rectangle {
+              visible: !!(root.lastErrorText || (root.diagnostics && root.diagnostics.apiError))
+              Layout.fillWidth: true
+              radius: 3
+              color: Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.12)
+              border.width: 1
+              border.color: root.urgent
+              implicitHeight: errBannerCol.implicitHeight + Style.space(8)
+
+              ColumnLayout {
+                id: errBannerCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Style.space(6)
+                spacing: Style.space(2)
+
+                Text {
+                  textFormat: Text.PlainText;
+                  text: "Last Error / Diagnostics Failure:"
+                  color: root.urgent
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 2
+                  font.bold: true
+                }
+                Text {
+                  textFormat: Text.PlainText;
+                  text: root.lastErrorText || (root.diagnostics ? root.diagnostics.apiError : "")
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 2
+                  wrapMode: Text.WordWrap
+                  Layout.fillWidth: true
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 8. Action Controls: Clear History & Back
       RowLayout {
         Layout.fillWidth: true
         Layout.topMargin: Style.space(8)

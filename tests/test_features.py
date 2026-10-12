@@ -743,6 +743,55 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
         self.assertIn("tab5View.siteFilterOptions", self.analytics_qml)
         self.assertIn("All Devices Up to Date", self.analytics_qml)
 
+    def test_diagnose_command_and_qml_observability(self) -> None:
+        self.assertTrue(hasattr(SITE_THREAD, "command_diagnose"))
+        panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        settings_qml = (ROOT / "SettingsView.qml").read_text(encoding="utf-8")
+        self.assertIn("id: diagProc", panel_qml)
+        self.assertIn("id: summaryStderr", panel_qml)
+        self.assertIn("function runDiagnostics()", panel_qml)
+        self.assertIn("diagnostics: root.diagnosticsData", panel_qml)
+        self.assertIn("SYSTEM HEALTH & DIAGNOSTICS", settings_qml)
+        self.assertIn("Self-Test", settings_qml)
+        self.assertIn("Cache Health:", settings_qml)
+
+        import subprocess
+        res = subprocess.run(
+            [str(ROOT / "bin" / "site-thread"), "diagnose"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        data = json.loads(res.stdout)
+        self.assertTrue(data.get("ok"))
+        self.assertIn("apiReachable", data)
+        self.assertIn("cacheDir", data)
+        self.assertIn("cachedSites", data)
+    def test_reusable_components_and_schema_alignment(self) -> None:
+        search_qml = (ROOT / "SearchField.qml").read_text(encoding="utf-8")
+        toast_qml = (ROOT / "StatusToast.qml").read_text(encoding="utf-8")
+        manifest_raw = (ROOT / "manifest.json").read_text(encoding="utf-8")
+        manifest = json.loads(manifest_raw)
+
+        self.assertIn("property alias text: input.text", search_qml)
+        self.assertIn("property string placeholderText:", search_qml)
+        self.assertIn("signal cleared()", search_qml)
+
+        self.assertIn("property string message:", toast_qml)
+        self.assertIn("property string toastType:", toast_qml)
+
+        self.assertIn("SearchField {", self.analytics_qml)
+        self.assertIn("StatusToast {", self.analytics_qml)
+
+        schema = manifest["barWidget"]["schema"]
+        refresh_field = next(f for f in schema if f["key"] == "refreshSeconds")
+        self.assertEqual(refresh_field["min"], 15)
+        self.assertEqual(refresh_field["max"], 300)
+        self.assertEqual(refresh_field["step"], 15)
+
+        badge_field = next(f for f in schema if f["key"] == "badgeMode")
+        self.assertIn("updates", badge_field["options"])
+
 
 if __name__ == "__main__":
     unittest.main()

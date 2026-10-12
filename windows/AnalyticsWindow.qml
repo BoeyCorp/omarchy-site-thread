@@ -6,6 +6,7 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 import ".."
+import "../Model.js" as Model
 
 FloatingWindow {
   id: root
@@ -203,12 +204,17 @@ FloatingWindow {
 
   Process {
     id: powerCycleProc
+    stdout: StdioCollector { id: powerCycleOut; waitForEnd: true }
+    stderr: StdioCollector { id: powerCycleErr; waitForEnd: true }
     onExited: function(code) {
       if (code === 0) {
-        root.statusToast = "PoE power cycle initiated successfully!"
+        var pSuccess = Model.parse(powerCycleOut.text, null)
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "PoE power cycle initiated successfully!"
         root.toastType = "success"
       } else {
-        root.statusToast = "PoE power cycle command failed (code " + code + ")"
+        var pFail = Model.parse(powerCycleOut.text, null)
+        var msg = (pFail && pFail.error) ? pFail.error : (powerCycleErr.text ? powerCycleErr.text.trim() : ("code " + code))
+        root.statusToast = "PoE power cycle failed: " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -217,6 +223,8 @@ FloatingWindow {
 
   Process {
     id: pingProc
+    stdout: StdioCollector { id: pingOut; waitForEnd: true }
+    stderr: StdioCollector { id: pingErr; waitForEnd: true }
     onExited: function(code) {
       if (code === 0) {
         root.statusToast = "Ping test completed: Host reachable (<5ms)"
@@ -231,12 +239,17 @@ FloatingWindow {
 
   Process {
     id: upgradeDevProc
+    stdout: StdioCollector { id: upgradeDevOut; waitForEnd: true }
+    stderr: StdioCollector { id: upgradeDevErr; waitForEnd: true }
     onExited: function(code) {
       if (code === 0) {
-        root.statusToast = "Firmware upgrade initiated successfully!"
+        var pSuccess = Model.parse(upgradeDevOut.text, null)
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Firmware upgrade initiated successfully!"
         root.toastType = "success"
       } else {
-        root.statusToast = "Firmware upgrade failed (code " + code + ")"
+        var pFail = Model.parse(upgradeDevOut.text, null)
+        var msg = (pFail && pFail.error) ? pFail.error : (upgradeDevErr.text ? upgradeDevErr.text.trim() : ("code " + code))
+        root.statusToast = "Firmware upgrade failed: " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -245,12 +258,17 @@ FloatingWindow {
 
   Process {
     id: upgradeAllProc
+    stdout: StdioCollector { id: upgradeAllOut; waitForEnd: true }
+    stderr: StdioCollector { id: upgradeAllErr; waitForEnd: true }
     onExited: function(code) {
       if (code === 0) {
-        root.statusToast = "Fleet firmware upgrade batch dispatched!"
+        var pSuccess = Model.parse(upgradeAllOut.text, null)
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Fleet firmware upgrade batch dispatched!"
         root.toastType = "success"
       } else {
-        root.statusToast = "Fleet firmware upgrade failed"
+        var pFail = Model.parse(upgradeAllOut.text, null)
+        var msg = (pFail && pFail.error) ? pFail.error : (upgradeAllErr.text ? upgradeAllErr.text.trim() : ("code " + code))
+        root.statusToast = "Fleet firmware upgrade failed: " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -259,12 +277,17 @@ FloatingWindow {
 
   Process {
     id: backupProc
+    stdout: StdioCollector { id: backupOut; waitForEnd: true }
+    stderr: StdioCollector { id: backupErr; waitForEnd: true }
     onExited: function(code) {
       if (code === 0) {
-        root.statusToast = "Cloud configuration backup created successfully!"
+        var pSuccess = Model.parse(backupOut.text, null)
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Cloud configuration backup created successfully!"
         root.toastType = "success"
       } else {
-        root.statusToast = "Backup creation failed"
+        var pFail = Model.parse(backupOut.text, null)
+        var msg = (pFail && pFail.error) ? pFail.error : (backupErr.text ? backupErr.text.trim() : ("code " + code))
+        root.statusToast = "Backup creation failed: " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -273,6 +296,8 @@ FloatingWindow {
 
   Process {
     id: notifyProc
+    stdout: StdioCollector { id: notifyOut; waitForEnd: true }
+    stderr: StdioCollector { id: notifyErr; waitForEnd: true }
     onExited: function(code) {
       if (code === 0) {
         root.statusToast = "Desktop notification sent successfully!"
@@ -986,35 +1011,14 @@ FloatingWindow {
       }
 
       // Status Toast (Inline banner when active)
-      Rectangle {
-        Layout.fillWidth: true
-        visible: root.statusToast !== ""
-        height: root.statusToast !== "" ? Style.space(30) : 0
-        radius: 6
-        color: root.toastType === "error" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.22) : (root.toastType === "success" ? Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.22) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.22))
-        border.width: 1
-        border.color: root.toastType === "error" ? root.urgent : (root.toastType === "success" ? root.healthy : root.accent)
-
-        RowLayout {
-          anchors.centerIn: parent
-          spacing: 8
-          Text {
-            textFormat: Text.PlainText;
-            text: root.toastType === "error" ? "" : (root.toastType === "success" ? "" : "")
-            color: root.toastType === "error" ? root.urgent : (root.toastType === "success" ? root.healthy : root.accent)
-            font.family: root.fontFamily
-            font.pixelSize: 11
-          }
-          Text {
-            id: toastText
-            textFormat: Text.PlainText;
-            text: root.statusToast
-            color: root.foreground
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption - 1
-            font.bold: true
-          }
-        }
+      StatusToast {
+        message: root.statusToast
+        toastType: root.toastType
+        foreground: root.foreground
+        accent: root.accent
+        healthy: root.healthy
+        urgent: root.urgent
+        fontFamily: root.fontFamily
       }
 
       // ==========================================
@@ -1907,61 +1911,17 @@ FloatingWindow {
             spacing: Style.space(8)
 
             // Search Input Box
-            Rectangle {
-              Layout.fillWidth: true
-              height: Style.space(28)
-              radius: 5
-              color: root.track
-              border.width: 1
-              border.color: root.outline
-
-              RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: Style.space(8)
-                anchors.rightMargin: Style.space(8)
-                spacing: Style.space(6)
-
-                Text {
-                  textFormat: Text.PlainText;
-                  text: ""
-                  color: root.dim
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption - 1
-                }
-
-                TextInput {
-                  id: clientSearchInput
-                  Layout.fillWidth: true
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption - 1
-                  selectByMouse: true
-                  onTextChanged: { root.clientSearch = text }
-
-                  Text {
-                    textFormat: Text.PlainText;
-                    visible: !parent.text
-                    text: "Search clients by name, IP, MAC address, ESSID, or uplink AP..."
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption - 1
-                  }
-                }
-
-                Text {
-                  textFormat: Text.PlainText;
-                  visible: Boolean(clientSearchInput.text)
-                  text: "✕"
-                  color: root.dim
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption - 1
-                  MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: { clientSearchInput.text = "" }
-                  }
-                }
-              }
+            SearchField {
+              placeholderText: "Search clients by name, IP, MAC address, ESSID, or uplink AP..."
+              text: root.clientSearch
+              foreground: root.foreground
+              dim: root.dim
+              track: root.track
+              outline: root.outline
+              accent: root.accent
+              fontFamily: root.fontFamily
+              onTextChanged: root.clientSearch = text
+              onCleared: root.clientSearch = ""
             }
 
             // Medium Filter Pills
@@ -3845,65 +3805,19 @@ FloatingWindow {
           spacing: Style.space(8)
 
           // Search Box
-          Rectangle {
+          SearchField {
+            Layout.fillWidth: false
             Layout.preferredWidth: Style.space(260)
-            Layout.preferredHeight: Style.space(28)
-            radius: 4
-            color: root.track
-            border.width: 1
-            border.color: consoleSearchInput.activeFocus ? root.accent : root.outline
-
-            RowLayout {
-              anchors.fill: parent
-              anchors.leftMargin: Style.space(8)
-              anchors.rightMargin: Style.space(8)
-              spacing: Style.space(6)
-
-              Text {
-                textFormat: Text.PlainText;
-                text: ""
-                color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption - 1
-              }
-
-              TextInput {
-                id: consoleSearchInput
-                Layout.fillWidth: true
-                text: root.consoleSearch
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-                clip: true
-                onTextChanged: { root.consoleSearch = text }
-
-                Text {
-                  textFormat: Text.PlainText;
-                  visible: consoleSearchInput.text === "" && !consoleSearchInput.activeFocus
-                  text: "Filter consoles, apps, domains..."
-                  color: root.dim
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                }
-              }
-
-              Text {
-                textFormat: Text.PlainText;
-                visible: root.consoleSearch !== ""
-                text: "✕"
-                color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption - 2
-                MouseArea {
-                  anchors.fill: parent
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: {
-                    consoleSearchInput.text = ""
-                    root.consoleSearch = ""
-                  }
-                }
-              }
-            }
+            placeholderText: "Filter consoles, apps, domains..."
+            text: root.consoleSearch
+            foreground: root.foreground
+            dim: root.dim
+            track: root.track
+            outline: root.outline
+            accent: root.accent
+            fontFamily: root.fontFamily
+            onTextChanged: root.consoleSearch = text
+            onCleared: root.consoleSearch = ""
           }
 
           // Direct Connect Explainer Badge
@@ -4831,39 +4745,17 @@ FloatingWindow {
               spacing: Style.space(8)
 
               // Search Box
-              Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Style.space(30)
-                radius: 6
-                color: root.track
-                border.width: 1
-                border.color: root.outline
-
-                RowLayout {
-                  anchors.fill: parent
-                  anchors.margins: Style.space(6)
-                  spacing: Style.space(6)
-
-                  Text { textFormat: Text.PlainText; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                  TextInput {
-                    id: wlanSearchInput
-                    Layout.fillWidth: true
-                    text: root.wlanSearch
-                    color: root.foreground
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                    clip: true
-                    onTextChanged: { root.wlanSearch = text }
-                  }
-                  Text {
-                    textFormat: Text.PlainText;
-                    visible: root.wlanSearch === ""
-                    text: "Search SSIDs, security type, frequency bands..."
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                  }
-                }
+              SearchField {
+                placeholderText: "Search SSIDs, security type, frequency bands..."
+                text: root.wlanSearch
+                foreground: root.foreground
+                dim: root.dim
+                track: root.track
+                outline: root.outline
+                accent: root.accent
+                fontFamily: root.fontFamily
+                onTextChanged: root.wlanSearch = text
+                onCleared: root.wlanSearch = ""
               }
 
               // Site filter pills
@@ -5639,39 +5531,17 @@ FloatingWindow {
               spacing: Style.space(8)
 
               // Search Box
-              Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Style.space(30)
-                radius: 6
-                color: root.track
-                border.width: 1
-                border.color: root.outline
-
-                RowLayout {
-                  anchors.fill: parent
-                  anchors.margins: Style.space(6)
-                  spacing: Style.space(6)
-
-                  Text { textFormat: Text.PlainText; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-                  TextInput {
-                    id: updateSearchInput
-                    Layout.fillWidth: true
-                    text: root.updateSearch
-                    color: root.foreground
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                    clip: true
-                    onTextChanged: { root.updateSearch = text }
-                  }
-                  Text {
-                    textFormat: Text.PlainText;
-                    visible: root.updateSearch === ""
-                    text: "Search by device model, site, or version..."
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                  }
-                }
+              SearchField {
+                placeholderText: "Search by device model, site, or version..."
+                text: root.updateSearch
+                foreground: root.foreground
+                dim: root.dim
+                track: root.track
+                outline: root.outline
+                accent: root.accent
+                fontFamily: root.fontFamily
+                onTextChanged: root.updateSearch = text
+                onCleared: root.updateSearch = ""
               }
 
               // Category filter pills

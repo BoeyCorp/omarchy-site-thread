@@ -65,9 +65,16 @@ Panel {
   property string preferredTerminal: setting("terminalCommand", "xdg-terminal-exec")
   property bool enableNotifications: setting("enableNotifications", true)
 
+  property var diagnosticsData: null
+  property string lastErrorText: ""
+  property bool diagnosticsRunning: false
+
   property int analyticsTab: 0
 
-  function openSettings() { settingsMode = true }
+  function openSettings() {
+    settingsMode = true
+    root.runDiagnostics()
+  }
   function closeSettings() { settingsMode = false }
   function openAnalytics(tabIndex) {
     root.close()
@@ -569,7 +576,10 @@ Panel {
     }
   }
 
-  Component.onCompleted: refresh()
+  Component.onCompleted: {
+    refresh()
+    runDiagnostics()
+  }
 
   Process {
     id: summaryProc
@@ -578,7 +588,14 @@ Panel {
       onStreamFinished: {
         var parsed = Model.parse(text, { ok: false, connected: false, error: "Invalid helper response" })
         root.data = root.stabilizeCloudSummary(parsed)
-        root.notice = parsed.ok ? "" : Model.safe(parsed.error, "Unable to load UniFi")
+        if (parsed.ok) {
+          root.notice = ""
+          root.lastErrorText = ""
+        } else {
+          var errDetail = parsed.error || (summaryStderr.text ? summaryStderr.text.trim() : "Unable to load UniFi")
+          root.lastErrorText = errDetail
+          root.notice = Model.safe(errDetail, "Unable to load UniFi")
+        }
         root.loading = false
         root.refreshAgeSec = 0
         root.lastRefreshMs = Date.now()
@@ -586,6 +603,10 @@ Panel {
           root.prefetchSites()
         }
       }
+    }
+    stderr: StdioCollector {
+      id: summaryStderr
+      waitForEnd: true
     }
     onExited: function(exitCode) { root.loading = false }
   }
@@ -648,6 +669,7 @@ Panel {
           if (root.inSite && root.selectedSite && String(parsed.siteId) === String(root.selectedSite.id)) {
             root.siteData = parsed
             root.notice = ""
+            root.lastErrorText = ""
             if (root.siteTab === 1 && parsed.protect && parsed.protect.cameras && parsed.protect.cameras.length > 0) {
               var selectedStillExists = false
               for (var index = 0; index < parsed.protect.cameras.length; index++) {
@@ -658,18 +680,54 @@ Panel {
             }
           }
         } else {
+          var errDetail = parsed.error || (siteStderr.text ? siteStderr.text.trim() : "Unable to load this site")
+          root.lastErrorText = errDetail
           if (!root.siteData || !root.siteData.ok) {
-            root.notice = Model.safe(parsed.error, "Unable to load this site")
+            root.notice = Model.safe(errDetail, "Unable to load this site")
           }
         }
         root.siteLoading = false
         root.siteLiveRefreshing = false
       }
     }
+    stderr: StdioCollector {
+      id: siteStderr
+      waitForEnd: true
+    }
     onExited: function(exitCode) {
       root.siteLoading = false
       root.siteLiveRefreshing = false
     }
+  }
+
+  Process {
+    id: diagProc
+    command: [root.helper, "diagnose"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var parsed = Model.parse(text, null)
+        if (parsed && parsed.ok) {
+          root.diagnosticsData = parsed
+          if (parsed.apiError) {
+            root.lastErrorText = parsed.apiError
+          }
+        }
+        root.diagnosticsRunning = false
+      }
+    }
+    stderr: StdioCollector {
+      waitForEnd: true
+    }
+    onExited: function(exitCode) {
+      root.diagnosticsRunning = false
+    }
+  }
+
+  function runDiagnostics() {
+    if (diagProc.running) return
+    root.diagnosticsRunning = true
+    diagProc.running = true
   }
 
   Process {
@@ -776,7 +834,7 @@ Panel {
   }
 
   Timer {
-    interval: Math.max(10, root.refreshSeconds) * 1000
+    interval: Math.max(15, root.refreshSeconds) * 1000
     running: true
     repeat: true
     triggeredOnStart: false
@@ -1438,6 +1496,12 @@ Panel {
             }
             onTestNotifyRequested: {
               root.testNotification()
+            }
+            diagnostics: root.diagnosticsData
+            lastErrorText: root.lastErrorText
+            diagnosticsRunning: root.diagnosticsRunning
+            onRunDiagnosticsRequested: {
+              root.runDiagnostics()
             }
             onCloseSettingsRequested: {
               root.closeSettings()

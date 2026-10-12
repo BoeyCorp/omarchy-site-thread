@@ -67,10 +67,12 @@ def emit(payload: dict[str, Any], exit_code: int = 0) -> None:
     raise SystemExit(exit_code)
 
 
-def fail(message: str, *, connected: bool | None = None) -> None:
+def fail(message: str, *, connected: bool | None = None, details: dict[str, Any] | None = None) -> None:
     payload: dict[str, Any] = {"ok": False, "error": message}
     if connected is not None:
         payload["connected"] = connected
+    if details:
+        payload["details"] = details
     emit(payload, 1)
 
 
@@ -2964,6 +2966,102 @@ def command_backup(host_id: str) -> None:
     emit({"ok": True, "message": f"Cloud configuration backup triggered for {host_id}."})
 
 
+def command_diagnose() -> None:
+    now = int(time.time())
+    config = read_config() or {}
+    key = secret_lookup()
+    mode = config.get("mode", "disconnected")
+    if config.get("demo"):
+        mode = "demo"
+    elif not config or not key:
+        mode = "unconfigured"
+
+    api_reachable = False
+    api_status_code = 0
+    api_latency_ms = 0
+    api_error = ""
+
+    if mode == "demo":
+        api_reachable = True
+        api_status_code = 200
+        api_latency_ms = 8
+    elif mode == "cloud" and key:
+        t0 = time.time()
+        try:
+            status, _ = cloud_json_request(key, "/ea/devices")
+            api_status_code = status
+            api_latency_ms = max(1, int((time.time() - t0) * 1000))
+            api_reachable = (200 <= status < 400)
+            if not api_reachable:
+                api_error = f"HTTP {status}"
+        except Exception as exc:
+            api_latency_ms = max(1, int((time.time() - t0) * 1000))
+            api_error = str(exc)
+    elif mode == "local" and key and config.get("host"):
+        t0 = time.time()
+        try:
+            status, _ = api_request(config, key, "/api/auth/login")
+            api_status_code = status
+            api_latency_ms = max(1, int((time.time() - t0) * 1000))
+            api_reachable = (200 <= status < 400)
+            if not api_reachable:
+                api_error = f"HTTP {status}"
+        except Exception as exc:
+            api_latency_ms = max(1, int((time.time() - t0) * 1000))
+            api_error = str(exc)
+
+    cache_files = list(SITE_CACHE_DIR.glob("site_*.json")) if SITE_CACHE_DIR.exists() else []
+    cached_sites = len(cache_files)
+    newest_cache_sec = 0
+    oldest_cache_sec = 0
+    if cache_files:
+        mtimes = [f.stat().st_mtime for f in cache_files]
+        newest_cache_sec = max(0, int(now - max(mtimes)))
+        oldest_cache_sec = max(0, int(now - min(mtimes)))
+
+    cache_writable = False
+    if SITE_CACHE_DIR.exists():
+        try:
+            test_file = SITE_CACHE_DIR / f".perm_{os.getpid()}"
+            test_file.write_text("ok", encoding="utf-8")
+            test_file.unlink(missing_ok=True)
+            cache_writable = True
+        except Exception:
+            cache_writable = False
+
+    active_issues = 0
+    resolved_issues = 0
+    if ISSUES_FILE.is_file():
+        try:
+            raw = decode_json(ISSUES_FILE.read_text(encoding="utf-8"))
+            if isinstance(raw, list):
+                active_issues = sum(bool(x.get("active")) for x in raw if isinstance(x, dict))
+                resolved_issues = sum(not x.get("active") for x in raw if isinstance(x, dict))
+        except Exception:
+            pass
+
+    diag = {
+        "ok": True,
+        "mode": mode,
+        "connected": mode in ("cloud", "local", "demo"),
+        "keyPresent": bool(key),
+        "configPresent": bool(config),
+        "apiReachable": api_reachable,
+        "apiStatusCode": api_status_code,
+        "apiLatencyMs": api_latency_ms,
+        "apiError": api_error,
+        "cacheDir": str(SITE_CACHE_DIR),
+        "cacheWritable": cache_writable,
+        "cachedSites": cached_sites,
+        "cacheAgeSec": newest_cache_sec,
+        "cacheOldestSec": oldest_cache_sec,
+        "activeIssues": active_issues,
+        "resolvedIssues": resolved_issues,
+        "timestamp": now,
+    }
+    emit(diag)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="site-thread")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -3001,6 +3099,7 @@ def parse_args() -> argparse.Namespace:
     backup_cmd.add_argument("host_id")
     sub.add_parser("clear-history")
     sub.add_parser("disconnect")
+    sub.add_parser("diagnose")
     return parser.parse_args()
 
 
@@ -3035,6 +3134,8 @@ def main() -> None:
             command_clear_history()
         elif args.command == "disconnect":
             command_disconnect()
+        elif args.command == "diagnose":
+            command_diagnose()
     except FabricError as exc:
         fail(str(exc))
 
