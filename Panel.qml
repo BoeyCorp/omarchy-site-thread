@@ -28,11 +28,21 @@ Panel {
     return bgLum > 0.5 || fgLum < 0.5
   }
 
+  function contrastTextFor(c) {
+    if (!c) return "#ffffff"
+    var lum = (c.r * 0.299 + c.g * 0.587 + c.b * 0.114)
+    return lum > 0.55 ? "#0f141c" : "#ffffff"
+  }
+  readonly property color accentForeground: contrastTextFor(accent)
+  readonly property color healthyForeground: contrastTextFor(healthy)
+  readonly property color backupForeground: contrastTextFor(backup)
+  readonly property color urgentForeground: contrastTextFor(urgent)
+
   readonly property color dim: isLightTheme
-    ? Qt.rgba(foreground.r * 0.58 + ((bar && bar.background) ? bar.background.r : 1.0) * 0.42,
-              foreground.g * 0.58 + ((bar && bar.background) ? bar.background.g : 1.0) * 0.42,
-              foreground.b * 0.58 + ((bar && bar.background) ? bar.background.b : 1.0) * 0.42, 1.0)
-    : Qt.darker(foreground, 1.45)
+    ? Qt.rgba(foreground.r * 0.70 + ((bar && bar.background) ? bar.background.r : 1.0) * 0.30,
+              foreground.g * 0.70 + ((bar && bar.background) ? bar.background.g : 1.0) * 0.30,
+              foreground.b * 0.70 + ((bar && bar.background) ? bar.background.b : 1.0) * 0.30, 1.0)
+    : Qt.darker(foreground, 1.35)
   readonly property color card: Qt.rgba(foreground.r, foreground.g, foreground.b, isLightTheme ? 0.04 : 0.055)
   readonly property color cardHover: Qt.rgba(foreground.r, foreground.g, foreground.b, isLightTheme ? 0.08 : 0.085)
   readonly property color outline: Qt.rgba(foreground.r, foreground.g, foreground.b, isLightTheme ? 0.14 : 0.18)
@@ -1098,7 +1108,6 @@ Panel {
                       color: root.refreshAgeSec > 120 ? root.urgent : root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 2
-                      opacity: 0.7
                     }
 
                     Text {
@@ -1114,7 +1123,6 @@ Panel {
                       color: root.refreshAgeSec > 120 ? root.urgent : root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 1
-                      opacity: 0.85
                     }
                   }
 
@@ -1790,7 +1798,7 @@ Panel {
                     Text {
                       textFormat: Text.PlainText;
                       text: modelData.icon
-                      color: isSelected ? (root.isLightTheme ? "#ffffff" : "#000000") : (tabMouse.containsMouse ? root.foreground : root.dim)
+                      color: isSelected ? root.accentForeground : (tabMouse.containsMouse ? root.foreground : root.dim)
                       font.family: root.fontFamily
                       font.pixelSize: 9
                     }
@@ -1798,7 +1806,7 @@ Panel {
                     Text {
                       textFormat: Text.PlainText;
                       text: modelData.label
-                      color: isSelected ? (root.isLightTheme ? "#ffffff" : "#000000") : (tabMouse.containsMouse ? root.foreground : root.dim)
+                      color: isSelected ? root.accentForeground : (tabMouse.containsMouse ? root.foreground : root.dim)
                       font.family: root.fontFamily
                       font.pixelSize: 9
                       font.bold: isSelected
@@ -2384,7 +2392,7 @@ Panel {
                   Text {
                     textFormat: Text.PlainText;
                     text: "\uf132"
-                    color: root.sitesSubView === "sites" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground
+                    color: root.sitesSubView === "sites" ? root.accentForeground : root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 2
                   }
@@ -2392,7 +2400,7 @@ Panel {
                     textFormat: Text.PlainText;
                     id: sitesSubPillText
                     text: root.cloudMode ? "Sites (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "Sites"
-                    color: root.sitesSubView === "sites" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground
+                    color: root.sitesSubView === "sites" ? root.accentForeground : root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 2
                     font.bold: root.sitesSubView === "sites"
@@ -2421,7 +2429,6 @@ Panel {
                 color: root.sitesSubView === "devices" ? root.accent : (subDevMouse.containsMouse ? root.cardHover : root.track)
                 border.width: 1
                 border.color: root.sitesSubView === "devices" ? root.accent : root.outline
-
                 RowLayout {
                   id: devSubPillRow
                   anchors.centerIn: parent
@@ -2429,7 +2436,7 @@ Panel {
                   Text {
                     textFormat: Text.PlainText;
                     text: "\uf0e8"
-                    color: root.sitesSubView === "devices" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground
+                    color: root.sitesSubView === "devices" ? root.accentForeground : root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 2
                   }
@@ -2437,7 +2444,7 @@ Panel {
                     textFormat: Text.PlainText;
                     id: devSubPillText
                     text: "Devices (" + root.getAllFleetDevices().length + ")"
-                    color: root.sitesSubView === "devices" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground
+                    color: root.sitesSubView === "devices" ? root.accentForeground : root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 2
                     font.bold: root.sitesSubView === "devices"
@@ -2562,7 +2569,7 @@ Panel {
                     Text {
                       textFormat: Text.PlainText;
                       text: ""
-                      color: sdwanBtnMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : root.accent
+                      color: sdwanBtnMouse.containsMouse ? root.accentForeground : root.accent
                       font.family: root.fontFamily
                       font.pixelSize: 10
                     }
@@ -2570,7 +2577,7 @@ Panel {
                       textFormat: Text.PlainText;
                       id: sdwanBtnText
                       text: "Mesh"
-                      color: sdwanBtnMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : root.accent
+                      color: sdwanBtnMouse.containsMouse ? root.accentForeground : root.accent
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 2
                       font.bold: true
@@ -2691,7 +2698,7 @@ Panel {
                     Text {
                       textFormat: Text.PlainText;
                       text: ""
-                      color: wifiBtnMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : root.accent
+                      color: wifiBtnMouse.containsMouse ? root.accentForeground : root.accent
                       font.family: root.fontFamily
                       font.pixelSize: 10
                     }
@@ -2699,7 +2706,7 @@ Panel {
                       textFormat: Text.PlainText;
                       id: wifiBtnText
                       text: "WiFi & RF"
-                      color: wifiBtnMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : root.accent
+                      color: wifiBtnMouse.containsMouse ? root.accentForeground : root.accent
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 2
                       font.bold: true
@@ -2820,7 +2827,7 @@ Panel {
                     Text {
                       textFormat: Text.PlainText;
                       text: ""
-                      color: fwBtnMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : (firmwareCard.pendingUpCount > 0 ? root.backup : root.accent)
+                      color: fwBtnMouse.containsMouse ? (firmwareCard.pendingUpCount > 0 ? root.backupForeground : root.accentForeground) : (firmwareCard.pendingUpCount > 0 ? root.backup : root.accent)
                       font.family: root.fontFamily
                       font.pixelSize: 10
                     }
@@ -2828,7 +2835,7 @@ Panel {
                       textFormat: Text.PlainText;
                       id: fwBtnText
                       text: "Firmware"
-                      color: fwBtnMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : (firmwareCard.pendingUpCount > 0 ? root.backup : root.accent)
+                      color: fwBtnMouse.containsMouse ? (firmwareCard.pendingUpCount > 0 ? root.backupForeground : root.accentForeground) : (firmwareCard.pendingUpCount > 0 ? root.backup : root.accent)
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 2
                       font.bold: true
@@ -2994,7 +3001,7 @@ Panel {
                           textFormat: Text.PlainText;
                           anchors.centerIn: parent
                           text: ""
-                          color: directSiteMouse.containsMouse ? "#ffffff" : root.accent
+                          color: directSiteMouse.containsMouse ? root.accentForeground : root.accent
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2
                         }
@@ -3030,7 +3037,7 @@ Panel {
                           id: sshBtnText
                           anchors.centerIn: parent
                           text: "SSH"
-                          color: sshMouse.containsMouse ? (root.isLightTheme ? "#ffffff" : "#000000") : root.accent
+                          color: sshMouse.containsMouse ? root.accentForeground : root.accent
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2
                           font.bold: true
@@ -3145,7 +3152,7 @@ Panel {
                   implicitHeight: Style.space(20)
                   radius: 3
                   color: root.issueFilter === "all" ? root.accent : root.track
-                  Text { textFormat: Text.PlainText; id: allFilterText; anchors.centerIn: parent; text: "All (" + root.issuesList.length + ")"; color: root.issueFilter === "all" ? (root.isLightTheme ? "#ffffff" : "#000000") : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: root.issueFilter === "all" }
+                  Text { textFormat: Text.PlainText; id: allFilterText; anchors.centerIn: parent; text: "All (" + root.issuesList.length + ")"; color: root.issueFilter === "all" ? root.accentForeground : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: root.issueFilter === "all" }
                   MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.issueFilter = "all" }
                 }
 
@@ -3154,7 +3161,7 @@ Panel {
                   implicitHeight: Style.space(20)
                   radius: 3
                   color: root.issueFilter === "active" ? root.urgent : root.track
-                  Text { textFormat: Text.PlainText; id: actFilterText; anchors.centerIn: parent; text: "Active (" + root.activeIssuesCount + ")"; color: root.issueFilter === "active" ? "#ffffff" : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: root.issueFilter === "active" }
+                  Text { textFormat: Text.PlainText; id: actFilterText; anchors.centerIn: parent; text: "Active (" + root.activeIssuesCount + ")"; color: root.issueFilter === "active" ? root.urgentForeground : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: root.issueFilter === "active" }
                   MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.issueFilter = "active" }
                 }
 
@@ -3163,7 +3170,7 @@ Panel {
                   implicitHeight: Style.space(20)
                   radius: 3
                   color: root.issueFilter === "resolved" ? root.dim : root.track
-                  Text { textFormat: Text.PlainText; id: resFilterText; anchors.centerIn: parent; text: "Resolved"; color: root.issueFilter === "resolved" ? "#ffffff" : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: root.issueFilter === "resolved" }
+                  Text { textFormat: Text.PlainText; id: resFilterText; anchors.centerIn: parent; text: "Resolved"; color: root.issueFilter === "resolved" ? root.contrastTextFor(root.dim) : root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: root.issueFilter === "resolved" }
                   MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.issueFilter = "resolved" }
                 }
 
@@ -3174,7 +3181,7 @@ Panel {
                   color: clearHistoryMouse.containsMouse ? root.cardHover : root.track
                   border.width: 1
                   border.color: root.outline
-                  Text { textFormat: Text.PlainText; id: clearHistoryBtnText; anchors.centerIn: parent; text: "Clear"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                  Text { textFormat: Text.PlainText; id: clearHistoryBtnText; anchors.centerIn: parent; text: "Clear"; color: clearHistoryMouse.containsMouse ? root.foreground : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
                   MouseArea {
                     id: clearHistoryMouse
                     anchors.fill: parent

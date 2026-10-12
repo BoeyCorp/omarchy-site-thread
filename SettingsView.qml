@@ -8,8 +8,14 @@ ColumnLayout {
 
   property var settings: ({})
   property color foreground: (Color.foreground || "#D8DEE9")
-  property color dim: (Color.dim || "#888888")
+  property color dim: (Color.dim || Qt.darker(foreground, 1.35))
   property color accent: (Color.accent || "#89B4FA")
+  function contrastTextFor(c) {
+    if (!c) return "#ffffff"
+    var lum = (c.r * 0.299 + c.g * 0.587 + c.b * 0.114)
+    return lum > 0.55 ? "#0f141c" : "#ffffff"
+  }
+  readonly property color accentForeground: contrastTextFor(accent)
   property color card: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.05)
   property color cardHover: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.09)
   property color track: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.15)
@@ -86,7 +92,7 @@ ColumnLayout {
                 id: badgePillText
                 anchors.centerIn: parent
                 text: modelData.label
-                color: isSelected ? "#ffffff" : root.foreground
+                color: isSelected ? root.accentForeground : root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
                 font.bold: isSelected
@@ -149,7 +155,7 @@ ColumnLayout {
                 id: mDotText
                 anchors.centerIn: parent
                 text: modelData.label
-                color: isSelected ? "#ffffff" : root.foreground
+                color: isSelected ? root.accentForeground : root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
                 font.bold: isSelected
@@ -212,7 +218,7 @@ ColumnLayout {
                 id: autoRotPillText
                 anchors.centerIn: parent
                 text: modelData.label
-                color: isSelected ? "#ffffff" : root.foreground
+                color: isSelected ? root.accentForeground : root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
                 font.bold: isSelected
@@ -278,7 +284,7 @@ ColumnLayout {
                 id: refPillText
                 anchors.centerIn: parent
                 text: modelData.label
-                color: isSelected ? "#ffffff" : root.foreground
+                color: isSelected ? root.accentForeground : root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
                 font.bold: isSelected
@@ -344,7 +350,7 @@ ColumnLayout {
                 id: termPillText
                 anchors.centerIn: parent
                 text: modelData.label
-                color: isSelected ? "#ffffff" : root.foreground
+                color: isSelected ? root.accentForeground : root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
                 font.bold: isSelected
@@ -504,13 +510,13 @@ ColumnLayout {
           implicitHeight: Style.space(28)
           implicitWidth: backBtnText.implicitWidth + Style.space(18)
           radius: 4
-          color: backMouse.containsMouse ? root.cardHover : root.accent
+          color: backMouse.containsMouse ? Qt.lighter(root.accent, 1.1) : root.accent
 
           RowLayout {
             anchors.centerIn: parent
             spacing: Style.space(5)
-            Text { textFormat: Text.PlainText; text: ""; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-            Text { textFormat: Text.PlainText; id: backBtnText; text: "Back to Dashboard"; color: "#ffffff"; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+            Text { textFormat: Text.PlainText; text: ""; color: root.accentForeground; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+            Text { textFormat: Text.PlainText; id: backBtnText; text: "Back to Dashboard"; color: root.accentForeground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
           }
 
           MouseArea {

@@ -8,6 +8,7 @@ BorderSurface {
 
   property string title: ""
   property string subtitle: ""
+  property color subtitleColor: (Color.dim || Qt.darker(titleColor, 1.35))
   property string iconText: ""
   property color titleColor: (Color.foreground || "#D8DEE9")
   property string badgeText: ""
@@ -101,7 +102,7 @@ BorderSurface {
       visible: root.subtitle !== ""
       Layout.fillWidth: true
       text: root.subtitle
-      color: (Color.dim || "#888888")
+      color: root.subtitleColor
       font.family: root.fontFamily
       font.pixelSize: Style.font.caption - 2
       wrapMode: Text.WordWrap

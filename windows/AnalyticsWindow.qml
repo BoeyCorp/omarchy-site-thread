@@ -70,11 +70,21 @@ FloatingWindow {
     return bgLum > 0.5 || fgLum < 0.5
   }
 
+  function contrastTextFor(c) {
+    if (!c) return "#ffffff"
+    var lum = (c.r * 0.299 + c.g * 0.587 + c.b * 0.114)
+    return lum > 0.55 ? "#0f141c" : "#ffffff"
+  }
+  readonly property color accentForeground: contrastTextFor(accent)
+  readonly property color healthyForeground: contrastTextFor(healthy)
+  readonly property color backupForeground: contrastTextFor(backup)
+  readonly property color urgentForeground: contrastTextFor(urgent)
+
   readonly property color dim: isLightTheme
-    ? Qt.rgba(foreground.r * 0.58 + background.r * 0.42,
-              foreground.g * 0.58 + background.g * 0.42,
-              foreground.b * 0.58 + background.b * 0.42, 1.0)
-    : Qt.darker(foreground, 1.45)
+    ? Qt.rgba(foreground.r * 0.70 + background.r * 0.30,
+              foreground.g * 0.70 + background.g * 0.30,
+              foreground.b * 0.70 + background.b * 0.30, 1.0)
+    : Qt.darker(foreground, 1.35)
   readonly property color card: Qt.rgba(foreground.r, foreground.g, foreground.b, isLightTheme ? 0.04 : 0.055)
   readonly property color cardHover: Qt.rgba(foreground.r, foreground.g, foreground.b, isLightTheme ? 0.08 : 0.085)
   readonly property color track: Qt.rgba(foreground.r, foreground.g, foreground.b, isLightTheme ? 0.12 : 0.24)
@@ -1776,7 +1786,7 @@ FloatingWindow {
                             id: filterBadgeText
                             anchors.centerIn: parent
                             text: isSelected ? "✓ FILTERED" : "FILTER"
-                            color: isSelected ? "#ffffff" : root.dim
+                            color: isSelected ? root.accentForeground : root.dim
                             font.family: root.fontFamily
                             font.pixelSize: 8
                             font.bold: true
@@ -1788,13 +1798,13 @@ FloatingWindow {
                           width: statusTextTag.implicitWidth + 8
                           radius: 2
                           anchors.verticalCenter: parent.verticalCenter
-                          color: modelData.status === "down" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2) : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
+                          color: modelData.status === "down" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2) : (modelData.status === "backup" ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2) : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2))
                           Text {
                             textFormat: Text.PlainText;
                             id: statusTextTag
                             anchors.centerIn: parent
                             text: modelData.status === "down" ? "OFFLINE" : (modelData.status === "backup" ? "BACKUP WAN" : "ONLINE")
-                            color: modelData.status === "down" ? root.urgent : root.healthy
+                            color: modelData.status === "down" ? root.urgent : (modelData.status === "backup" ? root.backup : root.healthy)
                             font.family: root.fontFamily
                             font.pixelSize: 8
                             font.bold: true
@@ -2502,7 +2512,7 @@ FloatingWindow {
                           textFormat: Text.PlainText;
                           anchors.centerIn: parent
                           text: !modelData.plugged ? "UNPLUGGED" : (modelData.type.indexOf("Primary") !== -1 ? "PRIMARY" : "STANDBY")
-                          color: !modelData.plugged ? root.dim : (modelData.type.indexOf("Primary") !== -1 ? root.healthy : root.backup)
+                          color: !modelData.plugged ? root.foreground : (modelData.type.indexOf("Primary") !== -1 ? root.healthy : root.backup)
                           font.family: root.fontFamily
                           font.pixelSize: 8
                           font.bold: true
@@ -4282,8 +4292,8 @@ FloatingWindow {
                         RowLayout {
                           anchors.centerIn: parent
                           spacing: 4
-                          Text { textFormat: Text.PlainText; text: "⚡"; color: "#1E1E2E"; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
-                          Text { textFormat: Text.PlainText; text: "Launch Direct Connect"; color: "#1E1E2E"; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                          Text { textFormat: Text.PlainText; text: "⚡"; color: root.accentForeground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1 }
+                          Text { textFormat: Text.PlainText; text: "Launch Direct Connect"; color: root.accentForeground; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
                         }
 
                         MouseArea {
@@ -4564,8 +4574,8 @@ FloatingWindow {
                                 RowLayout {
                                   anchors.centerIn: parent
                                   spacing: 4
-                                  Text { textFormat: Text.PlainText; text: "⚡"; color: appLaunchMouse.containsMouse ? "#1E1E2E" : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
-                                  Text { textFormat: Text.PlainText; text: "Direct Launch"; color: appLaunchMouse.containsMouse ? "#1E1E2E" : root.foreground; font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
+                                  Text { textFormat: Text.PlainText; text: "⚡"; color: appLaunchMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
+                                  Text { textFormat: Text.PlainText; text: "Direct Launch"; color: appLaunchMouse.containsMouse ? root.accentForeground : root.foreground; font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
                                 }
 
                                 MouseArea {
@@ -4875,7 +4885,7 @@ FloatingWindow {
                       id: wlanSiteText
                       anchors.centerIn: parent
                       text: modelData
-                      color: root.wlanSiteFilter === modelData ? "#ffffff" : root.foreground
+                      color: root.wlanSiteFilter === modelData ? root.accentForeground : root.foreground
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 1
                       font.bold: root.wlanSiteFilter === modelData
@@ -5067,8 +5077,8 @@ FloatingWindow {
                         RowLayout {
                           anchors.centerIn: parent
                           spacing: Style.space(4)
-                          Text { textFormat: Text.PlainText; text: ""; color: qrBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
-                          Text { textFormat: Text.PlainText; id: qrBtnText; text: "Share QR"; color: qrBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                          Text { textFormat: Text.PlainText; text: ""; color: qrBtnMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
+                          Text { textFormat: Text.PlainText; id: qrBtnText; text: "Share QR"; color: qrBtnMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
                         }
 
                         MouseArea {
@@ -5201,8 +5211,8 @@ FloatingWindow {
                         RowLayout {
                           anchors.centerIn: parent
                           spacing: Style.space(4)
-                          Text { textFormat: Text.PlainText; text: ""; color: copyUriMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
-                          Text { textFormat: Text.PlainText; id: copyUriBtnText; text: "Copy WiFi URI"; color: copyUriMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                          Text { textFormat: Text.PlainText; text: ""; color: copyUriMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
+                          Text { textFormat: Text.PlainText; id: copyUriBtnText; text: "Copy WiFi URI"; color: copyUriMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
                         }
                         MouseArea {
                           id: copyUriMouse
@@ -5229,8 +5239,8 @@ FloatingWindow {
                         RowLayout {
                           anchors.centerIn: parent
                           spacing: Style.space(4)
-                          Text { textFormat: Text.PlainText; text: ""; color: copyPassBtnMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: 8 }
-                          Text { textFormat: Text.PlainText; id: copyPassBtnText; text: "Copy Password"; color: copyPassBtnMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                          Text { textFormat: Text.PlainText; text: ""; color: copyPassBtnMouse.containsMouse ? root.healthyForeground : root.healthy; font.family: root.fontFamily; font.pixelSize: 8 }
+                          Text { textFormat: Text.PlainText; id: copyPassBtnText; text: "Copy Password"; color: copyPassBtnMouse.containsMouse ? root.healthyForeground : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
                         }
                         MouseArea {
                           id: copyPassBtnMouse
@@ -5573,7 +5583,7 @@ FloatingWindow {
                   implicitHeight: Style.space(28)
                   implicitWidth: updateAllBtnText.implicitWidth + Style.space(18)
                   radius: 4
-                  color: !hasUpdates ? root.track : (root.bulkUpdateConfirm ? root.urgent : (updateAllMouse.containsMouse ? root.cardHover : root.accent))
+                  color: !hasUpdates ? root.track : (root.bulkUpdateConfirm ? (updateAllMouse.containsMouse ? Qt.lighter(root.urgent, 1.1) : root.urgent) : (updateAllMouse.containsMouse ? Qt.lighter(root.accent, 1.1) : root.accent))
                   border.width: 1
                   border.color: !hasUpdates ? root.outline : (root.bulkUpdateConfirm ? root.urgent : root.accent)
 
@@ -5583,7 +5593,7 @@ FloatingWindow {
                     Text {
                       textFormat: Text.PlainText;
                       text: !parent.parent.hasUpdates ? "" : (root.bulkUpdateConfirm ? "" : "")
-                      color: !parent.parent.hasUpdates ? root.healthy : "#ffffff"
+                      color: !parent.parent.hasUpdates ? root.healthy : (root.bulkUpdateConfirm ? root.urgentForeground : root.accentForeground)
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption
                     }
@@ -5591,7 +5601,7 @@ FloatingWindow {
                       textFormat: Text.PlainText;
                       id: updateAllBtnText
                       text: !parent.parent.hasUpdates ? "All Devices Up to Date" : (root.bulkUpdateConfirm ? "Confirm Update All" : "Update All Devices")
-                      color: !parent.parent.hasUpdates ? root.dim : "#ffffff"
+                      color: !parent.parent.hasUpdates ? root.dim : (root.bulkUpdateConfirm ? root.urgentForeground : root.accentForeground)
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 1
                       font.bold: true
@@ -5683,7 +5693,7 @@ FloatingWindow {
                       id: catFilterText
                       anchors.centerIn: parent
                       text: modelData
-                      color: root.updateSeverityFilter === modelData ? "#ffffff" : root.foreground
+                      color: root.updateSeverityFilter === modelData ? root.accentForeground : root.foreground
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 1
                       font.bold: root.updateSeverityFilter === modelData
@@ -5817,8 +5827,8 @@ FloatingWindow {
                       RowLayout {
                         anchors.centerIn: parent
                         spacing: Style.space(4)
-                        Text { textFormat: Text.PlainText; text: ""; color: upBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
-                        Text { textFormat: Text.PlainText; id: upBtnText; text: "Update Device"; color: upBtnMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                        Text { textFormat: Text.PlainText; text: ""; color: upBtnMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
+                        Text { textFormat: Text.PlainText; id: upBtnText; text: "Update Device"; color: upBtnMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
                       }
 
                       MouseArea {
@@ -5901,8 +5911,8 @@ FloatingWindow {
                         RowLayout {
                           anchors.centerIn: parent
                           spacing: Style.space(5)
-                          Text { textFormat: Text.PlainText; text: ""; color: createBkMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: 8 }
-                          Text { textFormat: Text.PlainText; id: createBkText; text: "Create Backup Now"; color: createBkMouse.containsMouse ? "#ffffff" : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                          Text { textFormat: Text.PlainText; text: ""; color: createBkMouse.containsMouse ? root.healthyForeground : root.healthy; font.family: root.fontFamily; font.pixelSize: 8 }
+                          Text { textFormat: Text.PlainText; id: createBkText; text: "Create Backup Now"; color: createBkMouse.containsMouse ? root.healthyForeground : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
                         }
 
                         MouseArea {

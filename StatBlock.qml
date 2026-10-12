@@ -10,7 +10,7 @@ Rectangle {
   property string subvalue: ""
   property string iconText: ""
   property color valColor: (Color.foreground || "#D8DEE9")
-  property color subColor: (Color.dim || "#888888")
+  property color subColor: (Color.dim || Qt.darker(valColor, 1.35))
   property color trackColor: Qt.rgba(valColor.r, valColor.g, valColor.b, 0.08)
   property string fontFamily: Style.font.family
   property bool isHighlighted: false

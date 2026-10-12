@@ -9,8 +9,14 @@ ColumnLayout {
   property var devices: []
   property string currentFilter: "all"
   property color foreground: (Color.foreground || "#D8DEE9")
-  property color dim: (Color.dim || "#888888")
+  property color dim: (Color.dim || Qt.darker(foreground, 1.35))
   property color accent: (Color.accent || "#89B4FA")
+  function contrastTextFor(c) {
+    if (!c) return "#ffffff"
+    var lum = (c.r * 0.299 + c.g * 0.587 + c.b * 0.114)
+    return lum > 0.55 ? "#0f141c" : "#ffffff"
+  }
+  readonly property color accentForeground: contrastTextFor(accent)
   property color card: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.05)
   property color cardHover: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.09)
   property color track: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.15)
@@ -90,7 +96,7 @@ ColumnLayout {
             id: catPillText
             anchors.centerIn: parent
             text: modelData.label
-            color: isSelected ? "#ffffff" : root.foreground
+            color: isSelected ? root.accentForeground : root.foreground
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption - 2
             font.bold: isSelected
@@ -241,8 +247,8 @@ ColumnLayout {
                   id: sshBtnRow
                   anchors.centerIn: parent
                   spacing: Style.space(3)
-                  Text { textFormat: Text.PlainText; text: ""; color: sshMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }
-                  Text { textFormat: Text.PlainText; id: sshText; text: "SSH"; color: sshMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
+                  Text { textFormat: Text.PlainText; text: ""; color: sshMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }
+                  Text { textFormat: Text.PlainText; id: sshText; text: "SSH"; color: sshMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
                 }
 
                 MouseArea {
@@ -307,8 +313,8 @@ ColumnLayout {
                   id: webBtnRow
                   anchors.centerIn: parent
                   spacing: Style.space(3)
-                  Text { textFormat: Text.PlainText; text: ""; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }
-                  Text { textFormat: Text.PlainText; id: webText; text: "Web"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                  Text { textFormat: Text.PlainText; text: ""; color: webMouse.containsMouse ? root.foreground : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }
+                  Text { textFormat: Text.PlainText; id: webText; text: "Web"; color: webMouse.containsMouse ? root.foreground : root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
                 }
 
                 MouseArea {

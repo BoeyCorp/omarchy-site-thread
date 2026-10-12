@@ -9,8 +9,14 @@ ColumnLayout {
   property var site: null
   property var devices: []
   property color foreground: (Color.foreground || "#D8DEE9")
-  property color dim: (Color.dim || "#888888")
+  property color dim: (Color.dim || Qt.darker(foreground, 1.35))
   property color accent: (Color.accent || "#89B4FA")
+  function contrastTextFor(c) {
+    if (!c) return "#ffffff"
+    var lum = (c.r * 0.299 + c.g * 0.587 + c.b * 0.114)
+    return lum > 0.55 ? "#0f141c" : "#ffffff"
+  }
+  readonly property color accentForeground: contrastTextFor(accent)
   property color card: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.05)
   property color cardHover: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.09)
   property color track: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.15)
@@ -214,8 +220,8 @@ ColumnLayout {
             id: gwSshRow
             anchors.centerIn: parent
             spacing: Style.space(3)
-            Text { textFormat: Text.PlainText; text: ""; color: gwSshMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }
-            Text { textFormat: Text.PlainText; id: gwSshText; text: "SSH"; color: gwSshMouse.containsMouse ? "#ffffff" : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
+            Text { textFormat: Text.PlainText; text: ""; color: gwSshMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 3 }
+            Text { textFormat: Text.PlainText; id: gwSshText; text: "SSH"; color: gwSshMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; font.bold: true }
           }
           MouseArea {
             id: gwSshMouse
@@ -355,7 +361,7 @@ ColumnLayout {
                 Text {
                   textFormat: Text.PlainText;
                   text: root.isSwitch(modelData) ? "" : ""
-                  color: t1ActionMouse.containsMouse ? "#ffffff" : root.dim
+                  color: t1ActionMouse.containsMouse ? root.accentForeground : root.dim
                   font.family: root.fontFamily
                   font.pixelSize: 8
                 }
@@ -363,7 +369,7 @@ ColumnLayout {
                   textFormat: Text.PlainText;
                   id: t1ActionText
                   text: root.isSwitch(modelData) ? "SSH" : "Ping"
-                  color: t1ActionMouse.containsMouse ? "#ffffff" : root.dim
+                  color: t1ActionMouse.containsMouse ? root.accentForeground : root.dim
                   font.family: root.fontFamily
                   font.pixelSize: 8
                 }
@@ -484,7 +490,7 @@ ColumnLayout {
                   id: t2PingText
                   anchors.centerIn: parent
                   text: "Ping"
-                  color: root.dim
+                  color: t2PingMouse.containsMouse ? root.foreground : root.dim
                   font.family: root.fontFamily
                   font.pixelSize: 8
                 }
