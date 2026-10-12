@@ -283,7 +283,7 @@ Column {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.openAnalytics()
+                    onClicked: root.openAnalytics(0)
                   }
 
                   PanelToolTip {

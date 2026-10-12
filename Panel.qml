@@ -80,19 +80,32 @@ Panel {
   function closeSettings() { settingsMode = false }
   function openAnalytics(tabIndex) {
     root.close()
-    if (tabIndex !== undefined) {
-      // Extended from Math.min(4, tabIndex) to support tabs 0..6
-      root.analyticsTab = Math.max(0, Math.min(6, tabIndex))
-    }
+    // Extended from Math.min(4, tabIndex) to support tabs 0..6 (default to 0 Overview)
+    var targetTab = (tabIndex !== undefined && tabIndex !== null) ? Math.max(0, Math.min(6, tabIndex)) : 0
+    root.analyticsTab = targetTab
     analyticsOpen = true
-    if (analyticsWindowLoader.item && tabIndex !== undefined) {
-      analyticsWindowLoader.item.currentTab = root.analyticsTab
+    if (analyticsWindowLoader.item) {
+      analyticsWindowLoader.item.currentTab = targetTab
     }
   }
-  function closeAnalytics() { analyticsOpen = false }
+  function closeAnalytics() {
+    analyticsOpen = false
+    root.analyticsTab = 0
+    if (analyticsWindowLoader.item) {
+      analyticsWindowLoader.item.currentTab = 0
+    }
+  }
   function toggleAnalytics() {
-    if (!analyticsOpen) root.close()
-    analyticsOpen = !analyticsOpen
+    if (!analyticsOpen) {
+      root.close()
+      root.analyticsTab = 0
+      analyticsOpen = true
+      if (analyticsWindowLoader.item) {
+        analyticsWindowLoader.item.currentTab = 0
+      }
+    } else {
+      root.closeAnalytics()
+    }
   }
 
   function goToMainPage() {
@@ -1284,7 +1297,7 @@ Panel {
 
                   PanelToolTip {
                     visible: chartMouse.containsMouse
-                    text: root.analyticsOpen ? "Close telemetry analytics" : "Open telemetry & mesh analytics"
+                    text: root.analyticsOpen ? "Close telemetry analytics" : "Open telemetry & analytics"
                     fontFamily: root.fontFamily
                   }
                 }
@@ -2382,7 +2395,7 @@ Panel {
           root.refresh()
         })
         item.closed.connect(function() {
-          root.analyticsOpen = false
+          root.closeAnalytics()
         })
       }
     }
@@ -2393,7 +2406,7 @@ Panel {
     ignoreUnknownSignals: true
     function onVisibleChanged() {
       if (analyticsWindowLoader.item && !analyticsWindowLoader.item.visible) {
-        root.analyticsOpen = false
+        root.closeAnalytics()
       }
     }
   }

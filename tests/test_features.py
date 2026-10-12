@@ -797,6 +797,14 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
         self.assertIn("item.refreshRequested.connect", panel_qml)
         self.assertIn("item.isRefreshing = Qt.binding", panel_qml)
 
+    def test_open_telemetry_analytics_opens_to_overview_tab(self) -> None:
+        panel_qml = load_panel_qml()
+        self.assertIn("targetTab = (tabIndex !== undefined && tabIndex !== null) ? Math.max(0, Math.min(6, tabIndex)) : 0", panel_qml)
+        self.assertIn("root.analyticsTab = 0", panel_qml)
+        self.assertIn("analyticsWindowLoader.item.currentTab = 0", panel_qml)
+        self.assertIn("Open telemetry & analytics", panel_qml)
+        self.assertIn("onClicked: root.openAnalytics(0)", panel_qml)
+
     def test_real_extraction_functions_exist_and_behave_correctly(self) -> None:
         self.assertTrue(hasattr(SITE_THREAD, "extract_real_wlans"))
         self.assertTrue(hasattr(SITE_THREAD, "extract_real_spectrum"))
