@@ -12,7 +12,7 @@ Column {
   id: root
 
   property string sitesSubView: "sites"
-  property var data: ({})
+  property var fleetData: ({})
   property bool cloudMode: false
   property string deviceFilter: "all"
   property var fleetDevices: []
@@ -52,9 +52,9 @@ Column {
   }
 
   function getSiteConsole(hostId) {
-    if (!hostId || !root.data || !root.data.consoles) return null
-    for (var i = 0; i < root.data.consoles.length; i++) {
-      var c = root.data.consoles[i]
+    if (!hostId || !root.fleetData || !root.fleetData.consoles) return null
+    for (var i = 0; i < root.fleetData.consoles.length; i++) {
+      var c = root.fleetData.consoles[i]
       if (c && c.hostId === hostId) return c
     }
     return null
@@ -93,7 +93,7 @@ Column {
                   Text {
                     textFormat: Text.PlainText;
                     id: sitesSubPillText
-                    text: root.cloudMode ? "Sites (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "Sites"
+                    text: root.cloudMode ? "Sites (" + (root.fleetData.sites ? root.fleetData.sites.length : 0) + ")" : "Sites"
                     color: root.sitesSubView === "sites" ? root.accentForeground : root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 2
@@ -169,13 +169,14 @@ Column {
               width: root.width
               spacing: Style.space(8)
 
-              PanelSectionHeader { width: root.width; text: root.cloudMode ? "ALL SITES (" + (root.data.sites ? root.data.sites.length : 0) + ")" : "SITES"; foreground: root.foreground; fontFamily: root.fontFamily }
+              PanelSectionHeader { width: root.width; text: root.cloudMode ? "ALL SITES (" + (root.fleetData.sites ? root.fleetData.sites.length : 0) + ")" : "SITES"; foreground: root.foreground; fontFamily: root.fontFamily }
 
               // Site Magic SD-WAN Mesh Banner
             BorderSurface {
-              visible: Boolean(root.data && root.data.sdwan && root.data.sdwan.available)
+              visible: Boolean(root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.available)
               width: root.width
               implicitHeight: sdwanRow.implicitHeight + Style.space(16)
+              height: implicitHeight
               color: root.track
               radius: Style.cornerRadius
               borderSpec: Border.flat(root.accent, 1)
@@ -192,7 +193,7 @@ Column {
                   width: Style.space(8)
                   height: width
                   radius: width / 2
-                  color: (root.data && root.data.sdwan && root.data.sdwan.status === "connected") ? root.healthy : root.backup
+                  color: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.status === "connected") ? root.healthy : root.backup
                   Layout.alignment: Qt.AlignVCenter
                 }
 
@@ -207,7 +208,7 @@ Column {
 
                     Text {
                       textFormat: Text.PlainText;
-                      text: "Site Magic SD-WAN: " + (root.data && root.data.sdwan && root.data.sdwan.name ? root.data.sdwan.name : ((root.data && root.data.sites && root.data.sites.length > 0) ? root.data.sites[0].name + " Mesh" : "Inter-Site Mesh"))
+                      text: "Site Magic SD-WAN: " + (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.name ? root.fleetData.sdwan.name : ((root.fleetData && root.fleetData.sites && root.fleetData.sites.length > 0) ? root.fleetData.sites[0].name + " Mesh" : "Inter-Site Mesh"))
                       color: root.foreground
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption
@@ -225,7 +226,7 @@ Column {
                         textFormat: Text.PlainText;
                         id: sdwanStatusText
                         anchors.centerIn: parent
-                        text: (root.data && root.data.sdwan && root.data.sdwan.status === "connected") ? "ACTIVE" : "DEGRADED"
+                        text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.status === "connected") ? "ACTIVE" : "DEGRADED"
                         color: root.healthy
                         font.family: root.fontFamily
                         font.pixelSize: 8
@@ -236,8 +237,8 @@ Column {
 
                   Text {
                     textFormat: Text.PlainText;
-                    text: (root.data && root.data.sdwan && root.data.sdwan.connections && root.data.sdwan.connections.length > 0)
-                      ? (root.data.sdwan.connections[0].siteA + " (" + root.data.sdwan.connections[0].subnetA + ") ⇄ " + root.data.sdwan.connections[0].siteB + " (" + root.data.sdwan.connections[0].subnetB + ") · Latency " + (root.data.sdwan.ping < 1 ? "<1ms" : root.data.sdwan.ping + "ms"))
+                    text: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections && root.fleetData.sdwan.connections.length > 0)
+                      ? (root.fleetData.sdwan.connections[0].siteA + " (" + root.fleetData.sdwan.connections[0].subnetA + ") ⇄ " + root.fleetData.sdwan.connections[0].siteB + " (" + root.fleetData.sdwan.connections[0].subnetB + ") · Latency " + (root.fleetData.sdwan.ping < 1 ? "<1ms" : root.fleetData.sdwan.ping + "ms"))
                       : "Inter-site mesh active · Cross-subnet routing enabled"
                     color: root.dim
                     font.family: root.fontFamily
@@ -300,6 +301,7 @@ Column {
               id: wifiSpectrumCard
               width: root.width
               implicitHeight: wifiCardRow.implicitHeight + Style.space(16)
+              height: implicitHeight
               color: wifiCardMouse.containsMouse ? root.cardHover : root.card
               radius: Style.cornerRadius
               borderSpec: Border.flat(wifiCardMouse.containsMouse ? root.accent : root.outline, 1)
@@ -349,7 +351,7 @@ Column {
                         textFormat: Text.PlainText;
                         id: wifiSsidPillText
                         anchors.centerIn: parent
-                        text: (root.data && root.data.wlans ? root.data.wlans.length : 0) + " SSIDs"
+                        text: (root.fleetData && root.fleetData.wlans ? root.fleetData.wlans.length : 0) + " SSIDs"
                         color: root.accent
                         font.family: root.fontFamily
                         font.pixelSize: 8
@@ -361,11 +363,11 @@ Column {
                   Text {
                     textFormat: Text.PlainText;
                     text: {
-                      var sp = (root.data && root.data.spectrum && root.data.spectrum.bands) ? root.data.spectrum.bands : []
+                      var sp = (root.fleetData && root.fleetData.spectrum && root.fleetData.spectrum.bands) ? root.fleetData.spectrum.bands : []
                       var u24 = sp.length > 0 ? (sp[0].utilization + "%") : "28%"
                       var u5 = sp.length > 1 ? (sp[1].utilization + "%") : "14%"
                       var u6 = sp.length > 2 ? (sp[2].utilization + "%") : "5%"
-                      var clients = (root.data && root.data.network && root.data.network.wifiClients !== undefined) ? root.data.network.wifiClients : 0
+                      var clients = (root.fleetData && root.fleetData.network && root.fleetData.network.wifiClients !== undefined) ? root.fleetData.network.wifiClients : 0
                       return "Tri-band RF Congestion: 2.4G " + u24 + " · 5G " + u5 + " · 6G " + u6 + " · " + clients + " wireless clients"
                     }
                     color: root.dim
@@ -429,10 +431,11 @@ Column {
               id: firmwareCard
               width: root.width
               implicitHeight: fwCardRow.implicitHeight + Style.space(16)
+              height: implicitHeight
               color: fwCardMouse.containsMouse ? root.cardHover : root.card
               radius: Style.cornerRadius
-              readonly property int pendingUpCount: (root.data && root.data.firmwareUpdates) ? root.data.firmwareUpdates.length : (root.data && root.data.network ? (root.data.network.updateCount || 0) : 0)
-              readonly property int backupCount: (root.data && root.data.backups) ? root.data.backups.length : 0
+              readonly property int pendingUpCount: (root.fleetData && root.fleetData.firmwareUpdates) ? root.fleetData.firmwareUpdates.length : (root.fleetData && root.fleetData.network ? (root.fleetData.network.updateCount || 0) : 0)
+              readonly property int backupCount: (root.fleetData && root.fleetData.backups) ? root.fleetData.backups.length : 0
               borderSpec: Border.flat(fwCardMouse.containsMouse ? (pendingUpCount > 0 ? root.backup : root.accent) : root.outline, 1)
 
               MouseArea {
@@ -555,8 +558,8 @@ Column {
 
             Repeater {
               model: root.cloudMode
-                ? (root.data.sites || [])
-                : (root.data.network && root.data.network.devices ? root.data.network.devices : [])
+                ? (root.fleetData.sites || [])
+                : (root.fleetData.network && root.fleetData.network.devices ? root.fleetData.network.devices : [])
               SiteRow {
                 id: siteCardSurface
                 width: root.width

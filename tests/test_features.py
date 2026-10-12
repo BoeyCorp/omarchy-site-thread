@@ -320,8 +320,14 @@ class GlobeSdwanFeatureTests(unittest.TestCase):
 
     def test_panel_binds_connections_and_traffic_to_globe(self) -> None:
         self.assertIn("id: fleetGlobe", self.panel_qml)
-        self.assertIn("connections: (root.data && root.data.sdwan && root.data.sdwan.connections) ? root.data.sdwan.connections : []", self.panel_qml)
-        self.assertIn("sdwan: root.data ? root.data.sdwan : null", self.panel_qml)
+        self.assertTrue(
+            "connections: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections) ? root.fleetData.sdwan.connections : []" in self.panel_qml
+            or "connections: (root.data && root.data.sdwan && root.data.sdwan.connections) ? root.data.sdwan.connections : []" in self.panel_qml
+        )
+        self.assertTrue(
+            "sdwan: root.fleetData ? root.fleetData.sdwan : null" in self.panel_qml
+            or "sdwan: root.data ? root.data.sdwan : null" in self.panel_qml
+        )
         self.assertIn("animateTraffic: root.opened && root.activeTab === 0", self.panel_qml)
 
     def test_globe_model_has_spherical_arc_and_color_math(self) -> None:

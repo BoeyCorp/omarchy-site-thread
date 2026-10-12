@@ -1911,7 +1911,7 @@ Panel {
             visible: root.activeTab === 0
             width: parent.width
 
-            data: root.data
+            fleetData: root.data
             activeIssuesCount: root.activeIssuesCount
             siteDownCount: root.siteDownCount
             siteBackupCount: root.siteBackupCount
@@ -1947,7 +1947,7 @@ Panel {
             width: parent.width
 
             sitesSubView: root.sitesSubView
-            data: root.data
+            fleetData: root.data
             cloudMode: root.cloudMode
             deviceFilter: root.deviceFilter
             fleetDevices: root.getAllFleetDevices()
@@ -2006,7 +2006,7 @@ Panel {
             visible: root.activeTab === 3
             width: parent.width
 
-            data: root.data
+            fleetData: root.data
             cloudMode: root.cloudMode
             selectedCameraId: root.selectedCameraId
             selectedCameraName: root.selectedCameraName
@@ -2449,14 +2449,14 @@ Panel {
       root.sitesSubView = view === "devices" ? "devices" : "sites"
     }
     function rotate(longitude: real): void {
-      fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(longitude)
+      if (overviewView && overviewView.fleetGlobe) overviewView.fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(longitude)
     }
-    function zoomIn(): void { fleetGlobe.zoomIn() }
-    function zoomOut(): void { fleetGlobe.zoomOut() }
-    function setGlobeScale(scale: real): void { fleetGlobe.globeScale = scale }
-    function globeScaleValue(): real { return fleetGlobe.globeScale }
+    function zoomIn(): void { if (overviewView && overviewView.fleetGlobe) overviewView.fleetGlobe.zoomIn() }
+    function zoomOut(): void { if (overviewView && overviewView.fleetGlobe) overviewView.fleetGlobe.zoomOut() }
+    function setGlobeScale(scale: real): void { if (overviewView && overviewView.fleetGlobe) overviewView.fleetGlobe.globeScale = scale }
+    function globeScaleValue(): real { return (overviewView && overviewView.fleetGlobe) ? overviewView.fleetGlobe.globeScale : 1.0 }
     function visibleSitesCount(): int {
-      return fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0
+      return (overviewView && overviewView.fleetGlobe && overviewView.fleetGlobe.visibleSites) ? overviewView.fleetGlobe.visibleSites.length : 0
     }
     function prefetchSites(): void { root.prefetchSites() }
     function goToMainPage(): void { root.goToMainPage() }

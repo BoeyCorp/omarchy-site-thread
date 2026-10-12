@@ -10,7 +10,7 @@ import "../Model.js" as Model
 Column {
   id: root
 
-  property var data: ({})
+  property var fleetData: ({})
   property bool cloudMode: false
   property string selectedCameraId: ""
   property string selectedCameraName: ""
@@ -62,7 +62,7 @@ Column {
                 id: cameraCardsRow
                 spacing: Style.space(6)
                 Repeater {
-                  model: root.data.protect && root.data.protect.cameras ? root.data.protect.cameras : []
+                  model: root.fleetData.protect && root.fleetData.protect.cameras ? root.fleetData.protect.cameras : []
                   Rectangle {
                     required property var modelData
                     implicitWidth: Style.space(100)
@@ -82,5 +82,5 @@ Column {
                 }
               }
             }
-            Text { textFormat: Text.PlainText; visible: !root.data.protect || !root.data.protect.available; width: root.width; text: root.cloudMode ? "Site Manager did not report Protect devices for this account" : "UniFi Protect is unavailable for this connection"; horizontalAlignment: Text.AlignHCenter; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
+            Text { textFormat: Text.PlainText; visible: !root.fleetData.protect || !root.fleetData.protect.available; width: root.width; text: root.cloudMode ? "Site Manager did not report Protect devices for this account" : "UniFi Protect is unavailable for this connection"; horizontalAlignment: Text.AlignHCenter; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
           }

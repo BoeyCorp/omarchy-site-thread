@@ -6,11 +6,13 @@ import qs.Ui
 import ".."
 import "../components"
 import "../Model.js" as Model
+import "../GlobeModel.js" as GlobeModel
 
 Column {
   id: root
 
-  property var data: ({})
+  property var fleetData: ({})
+  property alias fleetGlobe: fleetGlobe
   property int activeIssuesCount: 0
   property int siteDownCount: 0
   property int siteBackupCount: 0
@@ -53,7 +55,7 @@ Column {
 
               StatBlock {
                 label: "SITES"
-                value: String(root.data.sites ? root.data.sites.length : 1)
+                value: String(root.fleetData.sites ? root.fleetData.sites.length : 1)
                 subvalue: root.siteDownCount > 0 ? (root.siteDownCount + " Down") : "All Healthy"
                 iconText: "\uf132"
                 valColor: root.foreground
@@ -66,7 +68,7 @@ Column {
 
               StatBlock {
                 label: "GATEWAYS"
-                value: String(root.data.network && root.data.network.gatewaysCount ? root.data.network.gatewaysCount : (root.data.sites ? root.data.sites.length : 1))
+                value: String(root.fleetData.network && root.fleetData.network.gatewaysCount ? root.fleetData.network.gatewaysCount : (root.fleetData.sites ? root.fleetData.sites.length : 1))
                 subvalue: root.siteBackupCount > 0 ? (root.siteBackupCount + " Backup WAN") : "WAN Normal"
                 iconText: "\uf0e8"
                 valColor: root.foreground
@@ -79,21 +81,21 @@ Column {
 
               StatBlock {
                 label: "DEVICES"
-                value: String(root.data.network && root.data.network.deviceCount ? root.data.network.deviceCount : (root.data.network && root.data.network.devices ? root.data.network.devices.length : 0))
-                subvalue: (root.data.network && root.data.network.offlineCount > 0) ? (root.data.network.offlineCount + " Offline") : "All Online"
+                value: String(root.fleetData.network && root.fleetData.network.deviceCount ? root.fleetData.network.deviceCount : (root.fleetData.network && root.fleetData.network.devices ? root.fleetData.network.devices.length : 0))
+                subvalue: (root.fleetData.network && root.fleetData.network.offlineCount > 0) ? (root.fleetData.network.offlineCount + " Offline") : "All Online"
                 iconText: "\uf233"
                 valColor: root.foreground
-                subColor: (root.data.network && root.data.network.offlineCount > 0) ? root.urgent : root.healthy
+                subColor: (root.fleetData.network && root.fleetData.network.offlineCount > 0) ? root.urgent : root.healthy
                 trackColor: root.track
                 fontFamily: root.fontFamily
-                isHighlighted: !!(root.data.network && root.data.network.offlineCount > 0)
+                isHighlighted: !!(root.fleetData.network && root.fleetData.network.offlineCount > 0)
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.activeTab = 1; root.sitesSubView = "devices"; } }
               }
 
               StatBlock {
                 label: "CLIENTS"
-                value: String(root.data.network && root.data.network.clientCount ? root.data.network.clientCount : 0)
-                subvalue: "\uf1eb " + (root.data.network ? (root.data.network.wifiClients || 0) : 0) + " · \udb81\ude00 " + (root.data.network ? (root.data.network.wiredClients || 0) : 0)
+                value: String(root.fleetData.network && root.fleetData.network.clientCount ? root.fleetData.network.clientCount : 0)
+                subvalue: "\uf1eb " + (root.fleetData.network ? (root.fleetData.network.wifiClients || 0) : 0) + " · \udb81\ude00 " + (root.fleetData.network ? (root.fleetData.network.wiredClients || 0) : 0)
                 iconText: "\uf109"
                 valColor: root.foreground
                 subColor: root.dim
@@ -107,6 +109,7 @@ Column {
             BorderSurface {
               width: root.width
               implicitHeight: globeCardColumn.implicitHeight + Style.space(20)
+              height: implicitHeight
               color: root.card
               radius: Style.cornerRadius
               borderSpec: Border.flat(root.outline, 1)
@@ -150,8 +153,8 @@ Column {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                          if (root.data && root.data.sites && root.data.sites.length > 0) {
-                            fleetGlobe.focusSite(root.data.sites[0])
+                          if (root.fleetData && root.fleetData.sites && root.fleetData.sites.length > 0) {
+                            fleetGlobe.focusSite(root.fleetData.sites[0])
                           }
                         }
                       }
@@ -291,9 +294,9 @@ Column {
                   Globe {
                     id: fleetGlobe
                     anchors.fill: parent
-                    sites: root.data && root.data.sites ? root.data.sites : []
-                    connections: (root.data && root.data.sdwan && root.data.sdwan.connections) ? root.data.sdwan.connections : []
-                    sdwan: root.data ? root.data.sdwan : null
+                    sites: root.fleetData && root.fleetData.sites ? root.fleetData.sites : []
+                    connections: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.connections) ? root.fleetData.sdwan.connections : []
+                    sdwan: root.fleetData ? root.fleetData.sdwan : null
                     autoRotate: root.autoRotate && root.opened && root.activeTab === 0
                     animateTraffic: root.opened && root.activeTab === 0
                     fontFamily: root.fontFamily
@@ -470,7 +473,7 @@ Column {
                       anchors.verticalCenter: parent.verticalCenter
                     }
                     Text { textFormat: Text.PlainText;
-                      text: (fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0) + " of " + (root.data && root.data.sites ? root.data.sites.length : 0) + " sites in view" + (root.data && root.data.sdwan && root.data.sdwan.available && fleetGlobe.preparedConnections && fleetGlobe.preparedConnections.length > 0 ? "  ·   " + fleetGlobe.preparedConnections.length + " SD-WAN link" + (fleetGlobe.preparedConnections.length > 1 ? "s" : "") : "") + "  ·  Drag to rotate  ·  Scroll to zoom"
+                      text: (fleetGlobe.visibleSites ? fleetGlobe.visibleSites.length : 0) + " of " + (root.fleetData && root.fleetData.sites ? root.fleetData.sites.length : 0) + " sites in view" + (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.available && fleetGlobe.preparedConnections && fleetGlobe.preparedConnections.length > 0 ? "  ·   " + fleetGlobe.preparedConnections.length + " SD-WAN link" + (fleetGlobe.preparedConnections.length > 1 ? "s" : "") : "") + "  ·  Drag to rotate  ·  Scroll to zoom"
                       color: root.dim
                       font.family: root.fontFamily
                       font.pixelSize: 8
@@ -495,6 +498,7 @@ Column {
                   required property var modelData
                   width: root.width
                   implicitHeight: activeIssueRow.implicitHeight + Style.space(12)
+                  height: implicitHeight
                   color: activeIssueMouse.containsMouse ? root.cardHover : root.card
                   radius: Style.cornerRadius
                   borderSpec: Border.flat(modelData.severity === "critical" ? root.urgent : root.backup, 1)
