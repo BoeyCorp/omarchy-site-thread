@@ -675,7 +675,8 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
             self.assertEqual(cm.exception.code, 0)
         res = json.loads(out.getvalue())
         self.assertTrue(res.get("ok"))
-        self.assertIn("Firmware upgrade initiated", res.get("message", ""))
+        self.assertTrue(res.get("accepted"))
+        self.assertIn("Upgrade request accepted", res.get("message", ""))
 
         out = io.StringIO()
         with redirect_stdout(out):
@@ -684,7 +685,8 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
             self.assertEqual(cm.exception.code, 0)
         res = json.loads(out.getvalue())
         self.assertTrue(res.get("ok"))
-        self.assertIn("Fleet firmware upgrade batch initiated", res.get("message", ""))
+        self.assertTrue(res.get("accepted"))
+        self.assertIn("Upgrade batch request accepted", res.get("message", ""))
 
         out = io.StringIO()
         with redirect_stdout(out):
@@ -693,7 +695,56 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
             self.assertEqual(cm.exception.code, 0)
         res = json.loads(out.getvalue())
         self.assertTrue(res.get("ok"))
-        self.assertIn("backup created successfully", res.get("message", ""))
+        self.assertTrue(res.get("accepted"))
+        self.assertIn("Backup request accepted", res.get("message", ""))
+
+    def test_backup_command_rejects_on_api_error(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+        from unittest.mock import patch
+
+        # Non-demo cloud mode with rejected response (HTTP 400)
+        with patch.object(SITE_THREAD, "read_config", return_value={"mode": "cloud", "demo": False}):
+            with patch.object(SITE_THREAD, "secret_lookup", return_value="dummy_key_12345678"):
+                with patch.object(SITE_THREAD, "cloud_json_request", return_value=(400, {"message": "Storage quota exceeded"})):
+                    out = io.StringIO()
+                    with redirect_stdout(out):
+                        with self.assertRaises(SystemExit) as cm:
+                            SITE_THREAD.command_backup("A89C6C0623CC0000000009F79A87000000000A8619A40000000069C30A3F:861783942")
+                        self.assertEqual(cm.exception.code, 1)
+                    res = json.loads(out.getvalue())
+                    self.assertFalse(res.get("ok"))
+                    self.assertIn("Backup request rejected", res.get("error", ""))
+                    self.assertIn("Storage quota exceeded", res.get("error", ""))
+
+        # Non-demo local mode with rejected response (HTTP 500)
+        with patch.object(SITE_THREAD, "read_config", return_value={"mode": "local", "host": "https://192.168.1.1", "demo": False}):
+            with patch.object(SITE_THREAD, "secret_lookup", return_value="dummy_key_12345678"):
+                with patch.object(SITE_THREAD, "api_request", return_value=(500, "Internal Server Error")):
+                    out = io.StringIO()
+                    with redirect_stdout(out):
+                        with self.assertRaises(SystemExit) as cm:
+                            SITE_THREAD.command_backup("local-host-id")
+                        self.assertEqual(cm.exception.code, 1)
+                    res = json.loads(out.getvalue())
+                    self.assertFalse(res.get("ok"))
+                    self.assertIn("Backup request rejected", res.get("error", ""))
+
+    def test_upgrade_and_backup_status_surfaced_on_refresh(self) -> None:
+        # Trigger accepted backup in demo mode
+        SITE_THREAD.record_backup_request("console-home")
+        backups = SITE_THREAD.get_default_backups()
+        home_bk = next(b for b in backups if b["hostId"] == "console-home")
+        self.assertEqual(home_bk["status"], "in_progress")
+        self.assertIn("Request accepted", home_bk["lastBackup"])
+
+        # Trigger accepted upgrade in demo mode
+        SITE_THREAD.record_upgrade_request("74:83:c2:22:33:44")
+        updates = SITE_THREAD.get_default_firmware_updates()
+        switch_up = next(u for u in updates if u["mac"] == "74:83:c2:22:33:44")
+        self.assertTrue(switch_up["upgrading"])
+        self.assertEqual(switch_up["status"], "upgrading")
+        self.assertTrue(switch_up["requestAccepted"])
 
     def test_analytics_window_firmware_tab_and_processes(self) -> None:
         self.assertIn('"Firmware & Backups ("', self.analytics_qml)

@@ -244,12 +244,13 @@ FloatingWindow {
     onExited: function(code) {
       if (code === 0) {
         var pSuccess = Model.parse(upgradeDevOut.text, null)
-        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Firmware upgrade initiated successfully!"
-        root.toastType = "success"
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Upgrade request accepted. Refresh to monitor device status."
+        root.toastType = "info"
+        root.refreshRequested()
       } else {
         var pFail = Model.parse(upgradeDevOut.text, null)
         var msg = (pFail && pFail.error) ? pFail.error : (upgradeDevErr.text ? upgradeDevErr.text.trim() : ("code " + code))
-        root.statusToast = "Firmware upgrade failed: " + msg
+        root.statusToast = "Upgrade request rejected: " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -263,12 +264,13 @@ FloatingWindow {
     onExited: function(code) {
       if (code === 0) {
         var pSuccess = Model.parse(upgradeAllOut.text, null)
-        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Fleet firmware upgrade batch dispatched!"
-        root.toastType = "success"
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Upgrade batch request accepted. Refresh to monitor fleet progress."
+        root.toastType = "info"
+        root.refreshRequested()
       } else {
         var pFail = Model.parse(upgradeAllOut.text, null)
         var msg = (pFail && pFail.error) ? pFail.error : (upgradeAllErr.text ? upgradeAllErr.text.trim() : ("code " + code))
-        root.statusToast = "Fleet firmware upgrade failed: " + msg
+        root.statusToast = "Upgrade batch request rejected: " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -282,12 +284,13 @@ FloatingWindow {
     onExited: function(code) {
       if (code === 0) {
         var pSuccess = Model.parse(backupOut.text, null)
-        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Cloud configuration backup created successfully!"
-        root.toastType = "success"
+        root.statusToast = (pSuccess && pSuccess.message) ? pSuccess.message : "Backup request accepted. Refresh to verify backup completion."
+        root.toastType = "info"
+        root.refreshRequested()
       } else {
         var pFail = Model.parse(backupOut.text, null)
         var msg = (pFail && pFail.error) ? pFail.error : (backupErr.text ? backupErr.text.trim() : ("code " + code))
-        root.statusToast = "Backup creation failed: " + msg
+        root.statusToast = "Backup request rejected: " + msg
         root.toastType = "error"
       }
       toastTimer.restart()
@@ -318,21 +321,21 @@ FloatingWindow {
 
   function upgradeDevice(hostId, mac, deviceName) {
     if (!mac) return
-    root.statusToast = "Initiating upgrade for " + (deviceName || mac) + "..."
+    root.statusToast = "Submitting upgrade request for " + (deviceName || mac) + "..."
     root.toastType = "info"
     upgradeDevProc.command = [root.helper, "upgrade-device", String(hostId || "console-home"), String(mac)]
     upgradeDevProc.running = true
   }
 
   function upgradeAllDevices() {
-    root.statusToast = "Dispatching fleet-wide firmware upgrades..."
+    root.statusToast = "Submitting fleet upgrade batch request..."
     root.toastType = "info"
     upgradeAllProc.command = [root.helper, "upgrade-all"]
     upgradeAllProc.running = true
   }
 
   function triggerBackup(hostId, consoleName) {
-    root.statusToast = "Creating backup for " + (consoleName || hostId) + "..."
+    root.statusToast = "Submitting backup request for " + (consoleName || hostId) + "..."
     root.toastType = "info"
     backupProc.command = [root.helper, "backup", String(hostId || "console-home")]
     backupProc.running = true
@@ -5660,8 +5663,17 @@ FloatingWindow {
                           implicitHeight: Style.space(16)
                           implicitWidth: sevText.implicitWidth + Style.space(8)
                           radius: 3
-                          color: modelData.severity === "critical" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2) : (modelData.severity === "important" ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2))
-                          Text { textFormat: Text.PlainText; id: sevText; anchors.centerIn: parent; text: modelData.severity.toUpperCase(); color: modelData.severity === "critical" ? root.urgent : (modelData.severity === "important" ? root.backup : root.accent); font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
+                          color: (modelData.upgrading || modelData.status === "upgrading") ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2) : (modelData.severity === "critical" ? Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2) : (modelData.severity === "important" ? Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)))
+                          Text {
+                            textFormat: Text.PlainText;
+                            id: sevText;
+                            anchors.centerIn: parent;
+                            text: (modelData.upgrading || modelData.status === "upgrading") ? "REQUEST ACCEPTED" : modelData.severity.toUpperCase();
+                            color: (modelData.upgrading || modelData.status === "upgrading") ? root.accent : (modelData.severity === "critical" ? root.urgent : (modelData.severity === "important" ? root.backup : root.accent));
+                            font.family: root.fontFamily;
+                            font.pixelSize: 8;
+                            font.bold: true
+                          }
                         }
                       }
 
@@ -5690,28 +5702,47 @@ FloatingWindow {
                       implicitHeight: Style.space(26)
                       implicitWidth: upBtnText.implicitWidth + Style.space(16)
                       radius: 4
-                      color: upBtnMouse.containsMouse ? root.accent : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15)
+                      property bool isPending: Boolean(modelData.upgrading || modelData.status === "upgrading")
+                      color: isPending ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15) : (upBtnMouse.containsMouse ? root.accent : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15))
                       border.width: 1
                       border.color: root.accent
 
                       RowLayout {
                         anchors.centerIn: parent
                         spacing: Style.space(4)
-                        Text { textFormat: Text.PlainText; text: ""; color: upBtnMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: 8 }
-                        Text { textFormat: Text.PlainText; id: upBtnText; text: "Update Device"; color: upBtnMouse.containsMouse ? root.accentForeground : root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                        Text {
+                          textFormat: Text.PlainText;
+                          text: isPending ? "" : "";
+                          color: isPending ? root.accent : (upBtnMouse.containsMouse ? root.accentForeground : root.accent);
+                          font.family: root.fontFamily;
+                          font.pixelSize: 8
+                        }
+                        Text {
+                          textFormat: Text.PlainText;
+                          id: upBtnText;
+                          text: isPending ? "Request Accepted" : "Update Device";
+                          color: isPending ? root.accent : (upBtnMouse.containsMouse ? root.accentForeground : root.accent);
+                          font.family: root.fontFamily;
+                          font.pixelSize: Style.font.caption - 1;
+                          font.bold: true
+                        }
                       }
 
                       MouseArea {
                         id: upBtnMouse
                         anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: { root.upgradeDevice(modelData.hostId, modelData.mac, modelData.name) }
+                        hoverEnabled: !parent.isPending
+                        cursorShape: parent.isPending ? Qt.ArrowCursor : Qt.PointingHandCursor
+                        onClicked: {
+                          if (!parent.isPending) {
+                            root.upgradeDevice(modelData.hostId, modelData.mac, modelData.name)
+                          }
+                        }
                       }
 
                       PanelToolTip {
                         visible: upBtnMouse.containsMouse
-                        text: "Install target firmware version " + modelData.targetVersion + " on " + modelData.name
+                        text: parent.isPending ? ("Upgrade request accepted for " + modelData.name + " · Status updates on refresh") : ("Submit firmware upgrade request (" + modelData.targetVersion + ") for " + modelData.name + " · Status updates on refresh")
                         fontFamily: root.fontFamily
                       }
                     }
@@ -5758,8 +5789,32 @@ FloatingWindow {
                         implicitHeight: Style.space(16)
                         implicitWidth: bkStatusText.implicitWidth + Style.space(8)
                         radius: 3
-                        color: Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
-                        Text { textFormat: Text.PlainText; id: bkStatusText; anchors.centerIn: parent; text: "PROTECTED"; color: root.healthy; font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
+                        color: {
+                          if (modelData.status === "in_progress") return Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.2)
+                          if (modelData.status === "failed") return Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.2)
+                          if (modelData.status === "warning") return Qt.rgba(root.backup.r, root.backup.g, root.backup.b, 0.2)
+                          return Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.2)
+                        }
+                        Text {
+                          textFormat: Text.PlainText;
+                          id: bkStatusText;
+                          anchors.centerIn: parent;
+                          text: {
+                            if (modelData.status === "in_progress") return "REQUEST ACCEPTED"
+                            if (modelData.status === "failed") return "BACKUP FAILED"
+                            if (modelData.status === "warning") return "STALE BACKUP"
+                            return "PROTECTED"
+                          }
+                          color: {
+                            if (modelData.status === "in_progress") return root.accent
+                            if (modelData.status === "failed") return root.urgent
+                            if (modelData.status === "warning") return root.backup
+                            return root.healthy
+                          }
+                          font.family: root.fontFamily;
+                          font.pixelSize: 8;
+                          font.bold: true
+                        }
                       }
                     }
 
@@ -5774,28 +5829,47 @@ FloatingWindow {
                         implicitHeight: Style.space(26)
                         implicitWidth: createBkText.implicitWidth + Style.space(18)
                         radius: 4
-                        color: createBkMouse.containsMouse ? root.healthy : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15)
+                        property bool isPending: modelData.status === "in_progress"
+                        color: isPending ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15) : (createBkMouse.containsMouse ? root.healthy : Qt.rgba(root.healthy.r, root.healthy.g, root.healthy.b, 0.15))
                         border.width: 1
-                        border.color: root.healthy
+                        border.color: isPending ? root.accent : root.healthy
 
                         RowLayout {
                           anchors.centerIn: parent
                           spacing: Style.space(5)
-                          Text { textFormat: Text.PlainText; text: ""; color: createBkMouse.containsMouse ? root.healthyForeground : root.healthy; font.family: root.fontFamily; font.pixelSize: 8 }
-                          Text { textFormat: Text.PlainText; id: createBkText; text: "Create Backup Now"; color: createBkMouse.containsMouse ? root.healthyForeground : root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 1; font.bold: true }
+                          Text {
+                            textFormat: Text.PlainText;
+                            text: isPending ? "" : "";
+                            color: isPending ? root.accent : (createBkMouse.containsMouse ? root.healthyForeground : root.healthy);
+                            font.family: root.fontFamily;
+                            font.pixelSize: 8
+                          }
+                          Text {
+                            textFormat: Text.PlainText;
+                            id: createBkText;
+                            text: isPending ? "Request Accepted" : "Create Backup Now";
+                            color: isPending ? root.accent : (createBkMouse.containsMouse ? root.healthyForeground : root.healthy);
+                            font.family: root.fontFamily;
+                            font.pixelSize: Style.font.caption - 1;
+                            font.bold: true
+                          }
                         }
 
                         MouseArea {
                           id: createBkMouse
                           anchors.fill: parent
-                          hoverEnabled: true
-                          cursorShape: Qt.PointingHandCursor
-                          onClicked: { root.triggerBackup(modelData.hostId, modelData.consoleName) }
+                          hoverEnabled: !parent.isPending
+                          cursorShape: parent.isPending ? Qt.ArrowCursor : Qt.PointingHandCursor
+                          onClicked: {
+                            if (!parent.isPending) {
+                              root.triggerBackup(modelData.hostId, modelData.consoleName)
+                            }
+                          }
                         }
 
                         PanelToolTip {
                           visible: createBkMouse.containsMouse
-                          text: "Trigger immediate cloud configuration backup for " + modelData.consoleName
+                          text: parent.isPending ? ("Backup request accepted for " + modelData.consoleName + " · Status updates on refresh") : ("Submit cloud configuration backup request for " + modelData.consoleName + " · Status updates on refresh")
                           fontFamily: root.fontFamily
                         }
                       }

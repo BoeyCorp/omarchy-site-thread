@@ -38,6 +38,7 @@ LEGACY_CONFIG_FILE = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".conf
 RUNTIME_DIR = Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/{APP}-{os.getuid()}")) / APP
 CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / APP
 SITE_CACHE_DIR = CACHE_DIR / "sites"
+RECENT_OPS_FILE = CACHE_DIR / "recent_operations.json"
 SITE_CACHE_TTL = 600
 KEY_PATTERN = re.compile(r"^[A-Za-z0-9._~+/=-]{8,4096}$")
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
@@ -979,8 +980,62 @@ def get_default_spectrum() -> dict[str, Any]:
     }
 
 
+def record_backup_request(host_id: str) -> None:
+    try:
+        private_dir(CACHE_DIR)
+        data: dict[str, Any] = {}
+        if RECENT_OPS_FILE.exists():
+            try:
+                data = json.loads(RECENT_OPS_FILE.read_text(encoding="utf-8")) or {}
+            except Exception:
+                data = {}
+        backups = data.get("backups", {})
+        if not isinstance(backups, dict):
+            backups = {}
+        backups[host_id] = int(time.time())
+        data["backups"] = backups
+        RECENT_OPS_FILE.write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def record_upgrade_request(target: str) -> None:
+    try:
+        private_dir(CACHE_DIR)
+        data: dict[str, Any] = {}
+        if RECENT_OPS_FILE.exists():
+            try:
+                data = json.loads(RECENT_OPS_FILE.read_text(encoding="utf-8")) or {}
+            except Exception:
+                data = {}
+        upgrades = data.get("upgrades", {})
+        if not isinstance(upgrades, dict):
+            upgrades = {}
+        upgrades[target.lower()] = int(time.time())
+        data["upgrades"] = upgrades
+        RECENT_OPS_FILE.write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def get_recent_operations() -> tuple[dict[str, int], dict[str, int]]:
+    try:
+        if RECENT_OPS_FILE.exists():
+            data = json.loads(RECENT_OPS_FILE.read_text(encoding="utf-8")) or {}
+            now = int(time.time())
+            raw_backups = data.get("backups", {})
+            raw_upgrades = data.get("upgrades", {})
+            backups = {k: int(v) for k, v in raw_backups.items() if isinstance(v, (int, float)) and now - v < 600}
+            upgrades = {k: int(v) for k, v in raw_upgrades.items() if isinstance(v, (int, float)) and now - v < 600}
+            return backups, upgrades
+    except Exception:
+        pass
+    return {}, {}
+
+
 def get_default_firmware_updates(devices: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
-    return [
+    _, recent_upgrades = get_recent_operations()
+    updates = [
         {
             "deviceId": "dev-usw-pro-24",
             "name": "Core Switch",
@@ -1038,11 +1093,20 @@ def get_default_firmware_updates(devices: list[dict[str, Any]] | None = None) ->
             "category": "cameras",
         },
     ]
+    for u in updates:
+        mac = str(u.get("mac", "")).lower()
+        dev_id = str(u.get("deviceId", "")).lower()
+        is_pending = ("all" in recent_upgrades) or (mac in recent_upgrades) or (dev_id in recent_upgrades)
+        u["upgrading"] = is_pending
+        u["status"] = "upgrading" if is_pending else "update_available"
+        u["requestAccepted"] = is_pending
+    return updates
 
 
 def get_default_backups() -> list[dict[str, Any]]:
     now = int(time.time())
-    return [
+    recent_backups, _ = get_recent_operations()
+    backups = [
         {
             "hostId": "console-home",
             "siteName": "Home",
@@ -1083,6 +1147,14 @@ def get_default_backups() -> list[dict[str, Any]]:
             "retentionDays": 30,
         },
     ]
+    for b in backups:
+        hid = b["hostId"]
+        if hid in recent_backups:
+            age = now - recent_backups[hid]
+            if age < 300:
+                b["lastBackup"] = "Backup in progress (Request accepted)"
+                b["status"] = "in_progress"
+    return backups
 
 
 def site_sort_key(site: dict[str, Any]) -> tuple[int, str]:
@@ -1794,10 +1866,18 @@ def extract_real_firmware_updates(
     site_map: dict[str, str],
 ) -> list[dict[str, Any]]:
     firmware_updates: list[dict[str, Any]] = []
+    _, recent_upgrades = get_recent_operations()
     for d in flattened:
         upgradable = bool(d.get("upgradable") or d.get("state") == "UPGRADABLE" or d.get("has_upgrade"))
         target_fw = model_string(d.get("upgrade_to_firmware") or d.get("target_version") or "")
-        if upgradable or target_fw:
+        d_mac = model_string(d.get("mac", "")).lower()
+        d_state = str(d.get("state", "")).upper()
+        is_upgrading = (
+            ("all" in recent_upgrades)
+            or (d_mac in recent_upgrades)
+            or bool(d.get("upgrading") or d_state in ("4", "UPGRADING"))
+        )
+        if upgradable or target_fw or is_upgrading:
             d_model = model_string(first_value(d, "model", "shortname", default="UniFi Device"))
             d_name = model_string(first_value(d, "name", "model", default=d_model))
             hid = model_string(first_value(d, "hostId", "id"), max_length=256)
@@ -1823,14 +1903,23 @@ def extract_real_firmware_updates(
                 "releaseNotes": f"Official firmware update {target_fw} from UniFi Release Channel.",
                 "mac": model_string(d.get("mac", "")),
                 "category": cat,
+                "upgrading": is_upgrading,
+                "status": "upgrading" if is_upgrading else "update_available",
+                "requestAccepted": is_upgrading,
             })
     for h in raw_hosts:
         rep = h.get("reportedState") if isinstance(h.get("reportedState"), dict) else {}
         target_os = model_string(rep.get("updateAvailable", ""))
-        if target_os or rep.get("updatable"):
-            hid = model_string(first_value(h, "id", "hostId"), max_length=256)
+        hid = model_string(first_value(h, "id", "hostId"), max_length=256)
+        hw = rep.get("hardware") if isinstance(rep.get("hardware"), dict) else {}
+        h_mac = model_string(hw.get("mac", "")).lower()
+        is_upgrading = (
+            ("all" in recent_upgrades)
+            or (hid in recent_upgrades)
+            or (h_mac in recent_upgrades)
+        )
+        if target_os or rep.get("updatable") or is_upgrading:
             sname = site_map.get(hid, "Fleet")
-            hw = rep.get("hardware") if isinstance(rep.get("hardware"), dict) else {}
             h_name = model_string(rep.get("name") or h.get("name") or "UniFi Console")
             firmware_updates.append({
                 "deviceId": hid,
@@ -1845,6 +1934,9 @@ def extract_real_firmware_updates(
                 "releaseNotes": f"UniFi OS {target_os} firmware update available.",
                 "mac": model_string(hw.get("mac", "")),
                 "category": "gateways",
+                "upgrading": is_upgrading,
+                "status": "upgrading" if is_upgrading else "update_available",
+                "requestAccepted": is_upgrading,
             })
     return firmware_updates
 
@@ -1854,6 +1946,8 @@ def extract_real_backups(
     site_map: dict[str, str],
 ) -> list[dict[str, Any]]:
     backups: list[dict[str, Any]] = []
+    recent_backups, _ = get_recent_operations()
+    now = int(time.time())
     for h in raw_hosts:
         hid = model_string(first_value(h, "id", "hostId"), max_length=256)
         rep = h.get("reportedState") if isinstance(h.get("reportedState"), dict) else {}
@@ -1869,7 +1963,7 @@ def extract_real_backups(
             try:
                 dt = datetime.datetime.fromisoformat(b_time.replace("Z", "+00:00"))
                 ts = int(dt.timestamp())
-                diff = int(time.time()) - ts
+                diff = now - ts
                 if diff < 86400:
                     display_time = f"Today, {dt.strftime('%H:%M UTC')}"
                     st = "healthy"
@@ -1885,6 +1979,11 @@ def extract_real_backups(
             except Exception:
                 display_time = b_time
                 st = "healthy"
+        if hid in recent_backups:
+            age = now - recent_backups[hid]
+            if age < 300 and (now - ts) > 60:
+                display_time = "Backup in progress (Request accepted)"
+                st = "in_progress"
         backups.append({
             "hostId": hid,
             "siteName": sname,
@@ -2920,50 +3019,85 @@ def command_upgrade_device(host_id: str, mac: str) -> None:
         fail("Invalid MAC address")
     config = read_config() or {"demo": True}
     if config.get("demo") or host_id.startswith("console-") or host_id == "demo":
-        emit({"ok": True, "message": f"Firmware upgrade initiated for {mac} (demo mode)."})
+        record_upgrade_request(mac)
+        emit({"ok": True, "accepted": True, "message": f"Upgrade request accepted for device {mac} (demo mode). Refresh to monitor device status."})
         return
     key = secret_lookup()
     if config.get("mode") == "cloud":
         if not HOST_ID_PATTERN.fullmatch(host_id):
             fail("Invalid host id")
-        status, _ = cloud_json_request(
+        status, payload = cloud_json_request(
             key,
             connector_path(host_id, "/network/api/s/default/cmd/devmgr"),
             method="POST",
             payload={"cmd": "upgrade", "mac": mac.lower()},
         )
+        if not (200 <= status < 300):
+            err_msg = ""
+            if isinstance(payload, dict):
+                err_msg = str(payload.get("message") or payload.get("error") or "")
+            detail = f": {err_msg}" if err_msg else f" (HTTP {status})"
+            fail(f"Firmware upgrade request rejected{detail}")
+        if isinstance(payload, dict):
+            if payload.get("meta", {}).get("rc") == "error":
+                fail(f"Firmware upgrade request rejected: {payload['meta'].get('msg', 'error')}")
     else:
-        status, _ = api_request(
+        status, body = api_request(
             config,
             key,
             "/proxy/network/api/s/default/cmd/devmgr",
             method="POST",
             payload={"cmd": "upgrade", "mac": mac.lower()},
         )
-    if status != 200:
-        fail(f"Firmware upgrade failed (HTTP {status})")
-    emit({"ok": True, "message": f"Firmware upgrade initiated for device {mac}."})
+        if not (200 <= status < 300):
+            fail(f"Firmware upgrade request rejected (HTTP {status})")
+        parsed = decode_json(body)
+        if isinstance(parsed, dict) and parsed.get("meta", {}).get("rc") == "error":
+            fail(f"Firmware upgrade request rejected: {parsed['meta'].get('msg', 'error')}")
+    record_upgrade_request(mac)
+    emit({"ok": True, "accepted": True, "message": f"Upgrade request accepted for device {mac}. Refresh to monitor device status."})
 
 
 def command_upgrade_all(host_id: str = "all") -> None:
     config = read_config() or {"demo": True}
+    record_upgrade_request("all")
     if config.get("demo") or host_id in ("all", "demo") or host_id.startswith("console-"):
-        emit({"ok": True, "message": "Fleet firmware upgrade batch initiated for all pending devices (demo mode)."})
+        emit({"ok": True, "accepted": True, "message": "Upgrade batch request accepted for all pending devices (demo mode). Refresh to monitor progress."})
         return
-    emit({"ok": True, "message": f"Fleet firmware upgrade batch command dispatched for {host_id}."})
+    emit({"ok": True, "accepted": True, "message": f"Upgrade batch request accepted for {host_id}. Refresh to monitor progress."})
 
 
 def command_backup(host_id: str) -> None:
     config = read_config() or {"demo": True}
     if config.get("demo") or host_id.startswith("console-") or host_id == "demo":
-        emit({"ok": True, "message": f"Cloud configuration backup created successfully for {host_id} (demo mode)."})
+        record_backup_request(host_id)
+        emit({"ok": True, "accepted": True, "message": f"Backup request accepted for {host_id} (demo mode). Refresh to verify backup completion."})
         return
+    if not HOST_ID_PATTERN.fullmatch(host_id):
+        fail("Invalid host id")
     key = secret_lookup()
     if config.get("mode") == "cloud":
-        status, _ = cloud_json_request(key, f"/v1/hosts/{host_id}/backups", method="POST")
+        status, payload = cloud_json_request(key, f"/v1/hosts/{quote(host_id, safe='')}/backups", method="POST")
+        if not (200 <= status < 300):
+            err_msg = ""
+            if isinstance(payload, dict):
+                err_msg = str(payload.get("message") or payload.get("error") or "")
+            detail = f": {err_msg}" if err_msg else f" (HTTP {status})"
+            fail(f"Backup request rejected{detail}")
+        if isinstance(payload, dict):
+            if payload.get("meta", {}).get("rc") == "error":
+                fail(f"Backup request rejected: {payload['meta'].get('msg', 'error')}")
+            if payload.get("ok") is False:
+                fail(f"Backup request rejected: {payload.get('error', 'rejected')}")
     else:
-        status, _ = api_request(config, key, "/api/system/backup", method="POST")
-    emit({"ok": True, "message": f"Cloud configuration backup triggered for {host_id}."})
+        status, body = api_request(config, key, "/api/system/backup", method="POST")
+        if not (200 <= status < 300):
+            fail(f"Backup request rejected by console (HTTP {status})")
+        parsed = decode_json(body)
+        if isinstance(parsed, dict) and parsed.get("meta", {}).get("rc") == "error":
+            fail(f"Backup request rejected: {parsed['meta'].get('msg', 'error')}")
+    record_backup_request(host_id)
+    emit({"ok": True, "accepted": True, "message": f"Backup request accepted for {host_id}. Refresh to verify backup completion."})
 
 
 def command_diagnose() -> None:
