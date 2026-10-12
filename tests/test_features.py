@@ -14,6 +14,29 @@ SITE_THREAD = importlib.util.module_from_spec(SPEC)
 LOADER.exec_module(SITE_THREAD)
 
 
+def load_analytics_qml() -> str:
+    content = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+    views_dir = ROOT / "views" / "analytics"
+    if views_dir.exists():
+        for tab_file in sorted(views_dir.glob("*.qml")):
+            content += "\n" + tab_file.read_text(encoding="utf-8")
+    return content
+
+
+def load_panel_qml() -> str:
+    content = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+    views_dir = ROOT / "views"
+    if views_dir.exists():
+        for view_file in sorted(views_dir.glob("*.qml")):
+            content += "\n" + view_file.read_text(encoding="utf-8")
+    components_dir = ROOT / "components"
+    if components_dir.exists():
+        for comp_file in sorted(components_dir.glob("*.qml")):
+            content += "\n" + comp_file.read_text(encoding="utf-8")
+    return content
+
+
+
 class FeatureTelemetryTests(unittest.TestCase):
     def test_demo_summary_has_coordinates_and_gateways(self) -> None:
         summary = SITE_THREAD.demo_summary()
@@ -161,7 +184,7 @@ class FeatureTelemetryTests(unittest.TestCase):
 
 class BarInteractionTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
 
     def test_bar_extra_mouse_area_exists_and_configured(self) -> None:
         self.assertIn("id: barExtraMouse", self.panel_qml)
@@ -188,8 +211,8 @@ class BarInteractionTests(unittest.TestCase):
 
 class ConsoleDirectConnectIntegrationTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
-        self.analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
+        self.analytics_qml = load_analytics_qml()
 
     def test_panel_supports_analytics_tab_4(self) -> None:
         self.assertIn("Math.min(4, tabIndex)", self.panel_qml)
@@ -244,7 +267,7 @@ class ConsoleDirectConnectIntegrationTests(unittest.TestCase):
 
 class UiDimensionsAndDensityTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
         self.statblock_qml = (ROOT / "StatBlock.qml").read_text(encoding="utf-8")
         self.device_view_qml = (ROOT / "DeviceInventoryView.qml").read_text(encoding="utf-8")
 
@@ -280,7 +303,7 @@ class GlobeSdwanFeatureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.globe_qml = (ROOT / "Globe.qml").read_text(encoding="utf-8")
         self.globe_model_js = (ROOT / "GlobeModel.js").read_text(encoding="utf-8")
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
 
     def test_globe_qml_exposes_connections_and_traffic_properties(self) -> None:
         self.assertIn("property var connections: []", self.globe_qml)
@@ -330,7 +353,7 @@ class GlobeSdwanFeatureTests(unittest.TestCase):
 class GlobeZoomFeatureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.globe_qml = (ROOT / "Globe.qml").read_text(encoding="utf-8")
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
 
     def test_globe_scale_range_allows_deep_zoom(self) -> None:
         self.assertIn("property real maximumScale: 160.0", self.globe_qml)
@@ -361,7 +384,7 @@ class GlobeZoomFeatureTests(unittest.TestCase):
 
 class SiteCachingAndPrefetchTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
 
     def test_site_cache_path_generation(self) -> None:
         path = SITE_THREAD.site_cache_path("console:123", "site/home")
@@ -419,7 +442,7 @@ class SiteCachingAndPrefetchTests(unittest.TestCase):
 
 class MergedSitesAndDevicesTabTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
 
     def test_top_navigation_has_four_tabs_without_standalone_devices(self) -> None:
         self.assertIn('{ id: 0, label: "Overview"', self.panel_qml)
@@ -448,10 +471,10 @@ class MergedSitesAndDevicesTabTests(unittest.TestCase):
 
 class ActionButtonSizingAndOverlapTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
         self.device_view_qml = (ROOT / "DeviceInventoryView.qml").read_text(encoding="utf-8")
         self.topology_qml = (ROOT / "TopologyTreeView.qml").read_text(encoding="utf-8")
-        self.analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+        self.analytics_qml = load_analytics_qml()
 
     def test_sdwan_banner_action_button_and_row_layout(self) -> None:
         self.assertIn("id: sdwanRow", self.panel_qml)
@@ -476,7 +499,7 @@ class ActionButtonSizingAndOverlapTests(unittest.TestCase):
 
 class ActionButtonToolTipTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
         self.device_view_qml = (ROOT / "DeviceInventoryView.qml").read_text(encoding="utf-8")
         self.topology_qml = (ROOT / "TopologyTreeView.qml").read_text(encoding="utf-8")
 
@@ -525,7 +548,7 @@ class ActionButtonToolTipTests(unittest.TestCase):
 
 class AttentionSectionLayoutTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
 
     def test_attention_required_card_uses_row_layout_with_clean_fit(self) -> None:
         self.assertIn("id: activeIssueRow", self.panel_qml)
@@ -549,7 +572,7 @@ class AttentionSectionLayoutTests(unittest.TestCase):
 
 class WiFiAndRfSpectrumTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+        self.analytics_qml = load_analytics_qml()
 
     def test_demo_summary_has_wlans_and_spectrum(self) -> None:
         summary = SITE_THREAD.demo_summary()
@@ -595,7 +618,7 @@ class WiFiAndRfSpectrumTests(unittest.TestCase):
         self.assertIn("WiFi password", self.analytics_qml)
 
     def test_panel_overview_has_wifi_spectrum_card(self) -> None:
-        panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        panel_qml = load_panel_qml()
         self.assertIn("id: wifiSpectrumCard", panel_qml)
         self.assertIn("WIFI & RF SPECTRUM HEALTH", panel_qml)
         self.assertIn("root.openAnalytics(5)", panel_qml)
@@ -603,7 +626,7 @@ class WiFiAndRfSpectrumTests(unittest.TestCase):
 
 class LinuxDesktopIntegrationTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.panel_qml = load_panel_qml()
         self.settings_qml = (ROOT / "SettingsView.qml").read_text(encoding="utf-8")
 
     def test_panel_has_notifications_and_settings(self) -> None:
@@ -639,7 +662,7 @@ class LinuxDesktopIntegrationTests(unittest.TestCase):
 
 class FirmwareLifecycleManagementTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+        self.analytics_qml = load_analytics_qml()
 
     def test_demo_summary_has_firmware_updates_and_backups(self) -> None:
         summary = SITE_THREAD.demo_summary()
@@ -759,13 +782,13 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
         self.assertIn("Create Backup Now", self.analytics_qml)
 
     def test_panel_overview_has_firmware_card(self) -> None:
-        panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        panel_qml = load_panel_qml()
         self.assertIn("id: firmwareCard", panel_qml)
         self.assertIn("FLEET FIRMWARE & BACKUPS", panel_qml)
         self.assertIn("root.openAnalytics(6)", panel_qml)
 
     def test_analytics_window_refresh_button_and_connections(self) -> None:
-        panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        panel_qml = load_panel_qml()
         self.assertIn("signal refreshRequested()", self.analytics_qml)
         self.assertIn("property bool isRefreshing: false", self.analytics_qml)
         self.assertIn("id: refBtn", self.analytics_qml)
@@ -796,7 +819,7 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
 
     def test_diagnose_command_and_qml_observability(self) -> None:
         self.assertTrue(hasattr(SITE_THREAD, "command_diagnose"))
-        panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        panel_qml = load_panel_qml()
         settings_qml = (ROOT / "SettingsView.qml").read_text(encoding="utf-8")
         self.assertIn("id: diagProc", panel_qml)
         self.assertIn("id: summaryStderr", panel_qml)
@@ -862,7 +885,7 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
         self.assertIn("Port restarting; link status updates on refresh", p_res.get("message", ""))
 
     def test_action_observability_and_non_generic_toasts(self) -> None:
-        analytics_qml = (ROOT / "windows" / "AnalyticsWindow.qml").read_text(encoding="utf-8")
+        analytics_qml = load_analytics_qml()
         self.assertIn("pendingCycleTarget", analytics_qml)
         self.assertIn("pendingPingTarget", analytics_qml)
         self.assertIn("pendingUpgradeDeviceTarget", analytics_qml)
