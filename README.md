@@ -27,13 +27,12 @@ UniFi SiteThread is a high-density, NOC-style UniFi Network and Protect operatio
 
 ### Bar popup
 
-| Overview (cockpit) | Sites | Devices |
-| :---: | :---: | :---: |
-| ![Overview](docs/screenshots/panel_overview.png) | ![Sites](docs/screenshots/panel_sites.png) | ![Devices](docs/screenshots/panel_devices.png) |
-
-| Issues | Settings |
-| :---: | :---: |
-| ![Issues](docs/screenshots/panel_issues.png) | ![Settings](docs/screenshots/panel_settings.png) |
+Overview
+![Overview](docs/screenshots/panel_overview.png)
+![Sites](docs/screenshots/panel_sites.png)
+![Devices](docs/screenshots/panel_devices.png)
+![Issues](docs/screenshots/panel_issues.png)
+![Settings](docs/screenshots/panel_settings.png)
 
 ### Fleet Analytics & Telemetry window
 
