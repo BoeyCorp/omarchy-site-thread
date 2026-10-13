@@ -27,7 +27,6 @@ UniFi SiteThread is a high-density, NOC-style UniFi Network and Protect operatio
 
 ### Bar popup
 
-Overview
 ![Overview](docs/screenshots/panel_overview.png)
 ![Sites](docs/screenshots/panel_sites.png)
 ![Devices](docs/screenshots/panel_devices.png)
