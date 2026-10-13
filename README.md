@@ -28,10 +28,50 @@ UniFi SiteThread is a high-density, NOC-style UniFi Network and Protect operatio
 ### Bar popup
 
 ![Overview](docs/screenshots/panel_overview.png)
+
+**Overview (Cockpit)** – Fleet health at a glance, global topology, and urgent incident monitoring.
+- **Fleet KPI Cards**: High-level status counters summarizing total online sites, WAN uplink stability, total hardware counts (highlighting offline units in urgent red), and client load broken down by Wi-Fi and wired connections.
+- **Interactive 3D Vector Globe**: A real-time orthographic vector wireframe globe mapping site locations with geographic pins and interconnecting Site Magic SD-WAN links. Supports mouse drag rotation, scroll zooming, and continuous auto-rotation.
+- **In-View Site Cards**: Dynamic site cards that orient with the globe camera, surfacing local throughput, client totals, and direct click-to-focus controls for sites currently visible.
+- **Priority Attention Banner**: An alert strip highlighting active hardware and connectivity disruptions, detailing affected devices, host locations, and downtime duration.
+- **Quick Action Header**: Instant shortcuts to launch the standalone 7-tab Fleet Analytics window, toggle color schemes, trigger manual background syncs, and open preferences.
+
 ![Sites](docs/screenshots/panel_sites.png)
+
+**Sites** – Managed installations, site-level network telemetry, and direct operator actions.
+- **Fleet Feature Cards**: Pinned summary modules providing instant insight into cross-site services:
+  - **Site Magic SD-WAN**: Reports active mesh connectivity across gateways with a quick link to the SD-WAN topology view.
+  - **WiFi & RF Spectrum Health**: Fleet SSID counts and real-time tri-band channel utilization across 2.4 GHz, 5 GHz, and 6 GHz spectrums.
+  - **Fleet Firmware & Backups**: Upgrade readiness indicators and cloud backup freshness across all consoles.
+- **Per-Site Health Rows**: Detailed cards for each managed site indicating gateway model badges (e.g. UCG Max, UCG Ultra), online status, device counts, client distribution, and WAN uptime percentages.
+- **Direct Operator Shortcuts**: 1-click launcher buttons to open the site's UniFi OS console web interface, open an SSH terminal session to the gateway, or launch an active ICMP ping latency monitor.
+
 ![Devices](docs/screenshots/panel_devices.png)
+
+**Devices** – Hardware inventory across the entire fleet with operational status and diagnostics.
+- **Category Filtering**: Segment hardware instantly across Gateways, Switches, Access Points, and UniFi Protect Storage / NVRs.
+- **Operational Status Indicators**: Color-coded connectivity badges and live uptime tracking.
+- **Network Telemetry**: Surfaces assigned IP addresses, hardware MAC addresses, and active uplink topology for every device in the fleet.
+- **Integrated Terminal Actions**: Action buttons next to each device allowing operators to launch 1-click SSH terminal sessions, start ICMP ping diagnostic tests, or open local web admin portals without leaving the desktop.
+- **Fault Highlighting**: Unreachable or disconnected devices are immediately highlighted with prominent alert indicators.
+
 ![Issues](docs/screenshots/panel_issues.png)
+
+**Issues** – Centralized fleet incident logging and historical tracking for network disruptions and hardware failures.
+- **Real-Time Outage Tracking**: Logs and surfaces critical incidents such as gateway WAN drops, packet loss spikes, and unreachable access points or switches.
+- **Lifecycle Filters**: Filter between `All`, `Active` (unresolved ongoing issues), and `Resolved` historical incidents, with a button to purge historical logs.
+- **Downtime Duration**: Displays precise elapsed downtime duration (e.g. "Down for 23h 24m") and device context to distinguish transient blips from prolonged outages.
+
 ![Settings](docs/screenshots/panel_settings.png)
+
+**Settings** – Comprehensive customization for the Omarchy top bar widget, diagnostic tools, and desktop integration.
+- **Bar Badge Mode**: Select what telemetry appears on the top bar next to the UniFi icon: `Alerts Count`, `Fleet Clients`, `Sites Ratio`, `Updates`, or disabled (`Off`).
+- **Multi-Dot Site Status**: Optionally displays individual color-coded status indicator dots for each site directly in the top bar.
+- **3D Globe Behavior**: Toggle continuous background auto-rotation on the Overview tab or restrict globe interaction to manual mouse dragging.
+- **Refresh Interval**: Set background telemetry polling frequency (`15s`, `30s`, `60s`, `2m`, or `5m`).
+- **Preferred Terminal**: Configure which installed Linux terminal emulator (`Default`, `Ghostty`, `Kitty`, `Foot`, `Alacritty`) handles 1-click SSH and ping shortcuts.
+- **Desktop Notifications**: Enable native `notify-send` desktop alert banners when site outages or WAN failovers occur, with an interactive test notification trigger.
+- **Maintenance Actions**: Quick options to clear stored incident history or cleanly disconnect the stored API key from the desktop Secret Service keyring.
 
 ### Fleet Analytics & Telemetry window
 
