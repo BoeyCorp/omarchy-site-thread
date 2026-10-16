@@ -1140,6 +1140,7 @@ FloatingWindow {
         track: root.track
         outline: root.outline
         fontFamily: root.fontFamily
+        isLightTheme: root.isLightTheme
 
         onWlanSearchChanged: { root.wlanSearch = tab5View.wlanSearch }
         onWlanSiteFilterChanged: { root.wlanSiteFilter = tab5View.wlanSiteFilter }

@@ -17,6 +17,7 @@ ColumnLayout {
   property string wlanSiteFilter: "All"
   property var selectedWlanForQr: null
   property bool showQrModal: false
+  property bool isLightTheme: false
 
   property color foreground: (Color.foreground || "#D8DEE9")
   property color dim: (Color.dim || Qt.darker(foreground, 1.35))
@@ -56,40 +57,56 @@ ColumnLayout {
   spacing: Style.space(8)
 
   readonly property var rawWlans: root.fleetWlans || []
-        readonly property var siteFilterOptions: {
-          var list = ["All"]
-          if (root.fleetData && root.fleetData.sites) {
-            for (var i = 0; i < root.fleetData.sites.length; i++) {
-              var s = root.fleetData.sites[i]
-              if (s && s.name && list.indexOf(s.name) === -1) {
-                list.push(s.name)
-              }
-            }
-          }
-          for (var j = 0; j < rawWlans.length; j++) {
-            var w = rawWlans[j]
-            if (w && w.siteName && list.indexOf(w.siteName) === -1) {
-              list.push(w.siteName)
-            }
-          }
-          return list
+  readonly property var siteFilterOptions: {
+    var totalCount = rawWlans ? rawWlans.length : 0
+    var opts = [{
+      value: "All",
+      label: "All Sites",
+      description: totalCount + (totalCount === 1 ? " SSID total" : " SSIDs total")
+    }]
+    var siteMap = {}
+    var wList = rawWlans || []
+    for (var i = 0; i < wList.length; i++) {
+      var sn = wList[i].siteName || "Default Site"
+      siteMap[sn] = (siteMap[sn] || 0) + 1
+    }
+    if (root.fleetData && root.fleetData.sites) {
+      for (var j = 0; j < root.fleetData.sites.length; j++) {
+        var s = root.fleetData.sites[j]
+        var sName = s && (s.name || s.id) ? (s.name || s.id) : ""
+        if (sName && siteMap[sName] === undefined) {
+          siteMap[sName] = 0
         }
-        readonly property var filteredWlans: {
-          var list = []
-          for (var i = 0; i < rawWlans.length; i++) {
-            var w = rawWlans[i]
-            if (root.wlanSiteFilter !== "All" && w.siteName !== root.wlanSiteFilter) continue
-            if (root.wlanSearch.trim() !== "") {
-              var q = root.wlanSearch.toLowerCase()
-              var nameMatch = String(w.name || "").toLowerCase().indexOf(q) >= 0
-              var secMatch = String(w.security || "").toLowerCase().indexOf(q) >= 0
-              var siteMatch = String(w.siteName || "").toLowerCase().indexOf(q) >= 0
-              if (!nameMatch && !secMatch && !siteMatch) continue
-            }
-            list.push(w)
-          }
-          return list
-        }
+      }
+    }
+    var keys = Object.keys(siteMap).sort()
+    for (var k = 0; k < keys.length; k++) {
+      var c = siteMap[keys[k]]
+      opts.push({
+        value: keys[k],
+        label: keys[k],
+        description: c + (c === 1 ? " SSID" : " SSIDs")
+      })
+    }
+    return opts
+  }
+  readonly property var filteredWlans: {
+    var list = []
+    for (var i = 0; i < rawWlans.length; i++) {
+      var w = rawWlans[i]
+      var wSite = w.siteName || "Default Site"
+      if (root.wlanSiteFilter !== "All" && wSite !== root.wlanSiteFilter && w.siteName !== root.wlanSiteFilter) continue
+      if (root.wlanSearch.trim() !== "") {
+        var q = root.wlanSearch.toLowerCase()
+        var nameMatch = String(w.name || "").toLowerCase().indexOf(q) >= 0
+        var secMatch = String(w.security || "").toLowerCase().indexOf(q) >= 0
+        var siteMatch = String(w.siteName || "").toLowerCase().indexOf(q) >= 0
+        if (!nameMatch && !secMatch && !siteMatch) continue
+      }
+      list.push(w)
+    }
+    return list
+  }
 
         Flickable {
           Layout.fillWidth: true
@@ -255,37 +272,43 @@ ColumnLayout {
                 onCleared: root.wlanSearch = ""
               }
 
-              // Site filter pills
+              // Site selector dropdown with search
               RowLayout {
-                spacing: Style.space(4)
-                Repeater {
-                  model: tab5View.siteFilterOptions
-                  delegate: Rectangle {
-                    required property string modelData
-                    implicitHeight: Style.space(26)
-                    implicitWidth: wlanSiteText.implicitWidth + Style.space(14)
-                    radius: 4
-                    color: root.wlanSiteFilter === modelData ? root.accent : (wSiteMouse.containsMouse ? root.cardHover : root.track)
-                    border.width: 1
-                    border.color: root.wlanSiteFilter === modelData ? root.accent : root.outline
+                spacing: Style.space(6)
 
-                    Text {
-                      textFormat: Text.PlainText;
-                      id: wlanSiteText
-                      anchors.centerIn: parent
-                      text: modelData
-                      color: root.wlanSiteFilter === modelData ? root.accentForeground : root.foreground
-                      font.family: root.fontFamily
-                      font.pixelSize: Style.font.caption - 1
-                      font.bold: root.wlanSiteFilter === modelData
-                    }
+                Text {
+                  textFormat: Text.PlainText;
+                  text: "SITE:"
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 1
+                  font.bold: true
+                }
 
-                    MouseArea {
-                      id: wSiteMouse
-                      anchors.fill: parent
-                      hoverEnabled: true
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: { root.wlanSiteFilter = modelData }
+                Rectangle {
+                  Layout.preferredWidth: Style.space(190)
+                  Layout.preferredHeight: Style.space(28)
+                  radius: Style.cornerRadius
+                  color: root.isLightTheme ? "#ffffff" : "#1e1e2e"
+                  border.width: 1
+                  border.color: root.outline
+
+                  SearchableDropdown {
+                    id: wifiSiteDropdown
+                    anchors.fill: parent
+                    rowHeight: Style.space(28)
+                    showLabel: false
+                    value: root.wlanSiteFilter
+                    options: tab5View.siteFilterOptions
+                    placeholderText: "Search sites..."
+                    emptyText: "No sites match"
+                    foreground: root.foreground
+                    background: root.isLightTheme ? "#ffffff" : "#1e1e2e"
+                    popupBorder: root.accent
+                    accent: root.accent
+                    fontFamily: root.fontFamily
+                    onChanged: function(val) {
+                      root.wlanSiteFilter = val
                     }
                   }
                 }

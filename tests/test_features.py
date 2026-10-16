@@ -862,6 +862,9 @@ class FirmwareLifecycleManagementTests(unittest.TestCase):
         self.assertIn("All fleet hardware devices are up to date on official firmware", self.analytics_qml)
         self.assertIn("tab5View.siteFilterOptions", self.analytics_qml)
         self.assertIn("All Devices Up to Date", self.analytics_qml)
+        self.assertIn("id: wifiSiteDropdown", self.analytics_qml)
+        self.assertIn('placeholderText: "Search sites..."', self.analytics_qml)
+        self.assertIn("value: root.wlanSiteFilter", self.analytics_qml)
 
     def test_diagnose_command_and_qml_observability(self) -> None:
         self.assertTrue(hasattr(SITE_THREAD, "command_diagnose"))
