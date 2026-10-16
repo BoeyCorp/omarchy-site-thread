@@ -31,36 +31,64 @@ ColumnLayout {
 
   signal switchSiteSelected(string site)
   signal switchMacSelected(string mac)
-  signal cyclePortRequested(string hostId, string mac, var portIdx, string portName)
+  signal cyclePortRequested(string hostId, string mac, var portIdx, string portName, string siteId)
 
-  function cyclePort(hostId, mac, portIdx, portName) {
-    cyclePortRequested(hostId, mac, portIdx, portName)
+  function cyclePort(hostId, mac, portIdx, portName, siteId) {
+    cyclePortRequested(hostId, mac, portIdx, portName, siteId || "")
   }
 
-        spacing: Style.space(10)
+  property var fleetData: ({})
+  property var capabilities: root.fleetData && root.fleetData.capabilities ? root.fleetData.capabilities : null
+  readonly property bool canPowerCycle: {
+    if (!root.capabilities || !root.capabilities.powerCycle) return true
+    return root.capabilities.powerCycle.allowed !== false
+  }
+  readonly property string powerCycleWarning: {
+    if (root.capabilities && root.capabilities.powerCycle && !root.canPowerCycle) {
+      return root.capabilities.powerCycle.warning || root.capabilities.powerCycle.missingPermission || "Missing 'devices:write' scope: PoE power cycling disabled for this API key"
+    }
+    return "Missing 'devices:write' scope: PoE power cycling disabled for this API key"
+  }
+  readonly property bool partial: !!(root.fleetData && root.fleetData.partial)
+  readonly property var failedEndpoints: (root.fleetData && root.fleetData.failedEndpoints) || []
+  readonly property var unavailableTelemetry: (root.fleetData && root.fleetData.unavailableTelemetry) || []
+  readonly property bool switchesUnavailable: {
+    if (root.currentSwitch || (root.switchOptionsForSelectedSite && root.switchOptionsForSelectedSite.length > 0)) return false
+    if (!root.partial) return false
+    if (root.unavailableTelemetry && (root.unavailableTelemetry.indexOf("switches") >= 0 || root.unavailableTelemetry.indexOf("devices") >= 0)) return true
+    if (root.failedEndpoints) {
+      for (var i = 0; i < root.failedEndpoints.length; i++) {
+        var ep = String(root.failedEndpoints[i])
+        if (ep.indexOf("stat/device") >= 0 || ep.indexOf("/v1/devices") >= 0 || ep.indexOf("switches") >= 0) return true
+      }
+    }
+    return false
+  }
 
-        readonly property var portsList: {
-          if (!root.currentSwitch || !root.currentSwitch.ports) return []
-          var list = root.currentSwitch.ports
-          var filter = root.portFilter
-          return list.filter(function(p) {
-            if (filter === "PoE" && !(p.poePower > 0 || (p.poeMode && p.poeMode !== "off"))) return false
-            if (filter === "Active" && !p.up) return false
-            return true
-          })
-        }
+  spacing: Style.space(10)
 
-        // Switch Selector & Budget Header Card
-        SectionCard {
-          Layout.fillWidth: true
-          clip: false
-          title: "SWITCH FLEET SELECTION & POE BUDGET"
-          subtitle: (root.currentSwitch ? root.currentSwitch.name : "No switch selected") + (root.currentSwitch ? (" · " + (root.currentSwitch.siteName || "") + " (" + (root.currentSwitch.activePorts || 0) + "/" + (root.currentSwitch.totalPorts || 0) + " ports active)") : "")
-          iconText: ""
-          titleColor: root.foreground
-          fontFamily: root.fontFamily
-          badgeText: root.currentSwitch ? (String(root.currentSwitch.totalPower || 0) + " W / " + String(root.currentSwitch.maxPower || 600) + " W POE") : "0 W POE"
-          badgeColor: root.accent
+  readonly property var portsList: {
+    if (!root.currentSwitch || !root.currentSwitch.ports) return []
+    var list = root.currentSwitch.ports
+    var filter = root.portFilter
+    return list.filter(function(p) {
+      if (filter === "PoE" && !(p.poePower > 0 || (p.poeMode && p.poeMode !== "off"))) return false
+      if (filter === "Active" && !p.up) return false
+      return true
+    })
+  }
+
+  // Switch Selector & Budget Header Card
+  SectionCard {
+    Layout.fillWidth: true
+    clip: false
+    title: "SWITCH FLEET SELECTION & POE BUDGET"
+    subtitle: (root.currentSwitch ? root.currentSwitch.name : (root.switchesUnavailable ? "Switch telemetry unavailable (endpoint stat/device error)" : "No switch selected")) + (root.currentSwitch ? (" · " + (root.currentSwitch.siteName || "") + " (" + (root.currentSwitch.activePorts || 0) + "/" + (root.currentSwitch.totalPorts || 0) + " ports active)") : "")
+    iconText: ""
+    titleColor: root.foreground
+    fontFamily: root.fontFamily
+    badgeText: root.switchesUnavailable ? "UNAVAILABLE" : (root.currentSwitch ? (String(root.currentSwitch.totalPower || 0) + " W / " + String(root.currentSwitch.maxPower || 600) + " W POE") : "0 W POE")
+    badgeColor: root.switchesUnavailable ? root.urgent : root.accent
 
           ColumnLayout {
             Layout.fillWidth: true
@@ -142,7 +170,7 @@ ColumnLayout {
                     value: root.currentSwitch ? (root.currentSwitch.mac || root.currentSwitch.name || "") : ""
                     options: root.switchOptionsForSelectedSite
                     placeholderText: "Search switches..."
-                    emptyText: "No switches match"
+                    emptyText: root.switchesUnavailable ? "Switch telemetry unavailable" : "No switches match"
                     foreground: root.foreground
                     background: root.isLightTheme ? "#ffffff" : "#1e1e2e"
                     popupBorder: root.accent
@@ -200,6 +228,7 @@ ColumnLayout {
               visible: Boolean(root.currentSwitch)
 
               ColumnLayout {
+                Layout.fillWidth: true
                 spacing: 1
                 Text {
                   textFormat: Text.PlainText;
@@ -208,6 +237,8 @@ ColumnLayout {
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption - 1
                   font.bold: true
+                  elide: Text.ElideRight
+                  Layout.fillWidth: true
                 }
                 Text {
                   textFormat: Text.PlainText;
@@ -215,14 +246,17 @@ ColumnLayout {
                   color: root.dim
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption - 2
+                  elide: Text.ElideRight
+                  Layout.fillWidth: true
                 }
               }
-
-              Item { Layout.fillWidth: true }
 
               // PoE Power Consumption Meter
               ColumnLayout {
                 Layout.preferredWidth: 240
+                Layout.minimumWidth: 240
+                Layout.maximumWidth: 240
+                Layout.fillWidth: false
                 spacing: 2
 
                 RowLayout {
@@ -350,16 +384,78 @@ ColumnLayout {
               width: parent.width
               spacing: Style.space(4)
 
-              Text {
-                textFormat: Text.PlainText;
+              // Inline PoE Permission Warning Banner
+              Rectangle {
+                id: poePermissionBanner
+                visible: !root.canPowerCycle
+                width: portGridCol.width
+                implicitHeight: poePermRow.implicitHeight + Style.space(12)
+                radius: 4
+                color: Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.12)
+                border.width: 1
+                border.color: root.urgent
+
+                RowLayout {
+                  id: poePermRow
+                  anchors.fill: parent
+                  anchors.margins: Style.space(6)
+                  spacing: Style.space(8)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: ""
+                    color: root.urgent
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.fillWidth: true
+                    text: root.powerCycleWarning
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 1
+                    wrapMode: Text.WordWrap
+                  }
+                }
+              }
+
+              Rectangle {
                 visible: tab3View.portsList.length === 0
-                text: "No ports match the selected filter."
-                color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.bodySmall
-                horizontalAlignment: Text.AlignHCenter
-                width: parent.width
-                topPadding: Style.space(20)
+                width: portGridCol.width
+                implicitHeight: Style.space(56)
+                radius: 5
+                color: root.track
+                border.width: 1
+                border.color: root.switchesUnavailable ? root.urgent : root.outline
+
+                ColumnLayout {
+                  anchors.centerIn: parent
+                  spacing: Style.space(3)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.alignment: Qt.AlignHCenter
+                    text: root.switchesUnavailable
+                      ? "Switch telemetry unavailable (endpoint stat/device error)"
+                      : (!root.currentSwitch ? "No switches found in fleet" : "No ports match the selected filter.")
+                    color: root.switchesUnavailable ? root.urgent : root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    font.bold: root.switchesUnavailable
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    visible: root.switchesUnavailable
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "Telemetry is partial. Check UI Account permissions or API key."
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 2
+                  }
+                }
               }
 
               // 2-Column high-density table headers
@@ -383,6 +479,9 @@ ColumnLayout {
 
                     Text {
                       textFormat: Text.PlainText;
+                      Layout.minimumWidth: Style.space(32)
+                      Layout.maximumWidth: Style.space(32)
+                      Layout.fillWidth: false
                       Layout.preferredWidth: Style.space(32)
                       text: "PORT"
                       color: root.dim
@@ -393,6 +492,9 @@ ColumnLayout {
 
                     Text {
                       textFormat: Text.PlainText;
+                      Layout.minimumWidth: Style.space(105)
+                      Layout.maximumWidth: Style.space(105)
+                      Layout.fillWidth: false
                       Layout.preferredWidth: Style.space(105)
                       text: "STATUS & SPEED"
                       color: root.dim
@@ -414,7 +516,10 @@ ColumnLayout {
 
                     Text {
                       textFormat: Text.PlainText;
-                      Layout.preferredWidth: Style.space(60)
+                      Layout.minimumWidth: Style.space(56)
+                      Layout.maximumWidth: Style.space(56)
+                      Layout.fillWidth: false
+                      Layout.preferredWidth: Style.space(56)
                       text: "POE"
                       color: root.dim
                       font.family: root.fontFamily
@@ -424,6 +529,9 @@ ColumnLayout {
 
                     Text {
                       textFormat: Text.PlainText;
+                      Layout.minimumWidth: Style.space(48)
+                      Layout.maximumWidth: Style.space(48)
+                      Layout.fillWidth: false
                       Layout.preferredWidth: Style.space(48)
                       text: "ACTION"
                       color: root.dim
@@ -450,6 +558,9 @@ ColumnLayout {
 
                     Text {
                       textFormat: Text.PlainText;
+                      Layout.minimumWidth: Style.space(32)
+                      Layout.maximumWidth: Style.space(32)
+                      Layout.fillWidth: false
                       Layout.preferredWidth: Style.space(32)
                       text: "PORT"
                       color: root.dim
@@ -460,6 +571,9 @@ ColumnLayout {
 
                     Text {
                       textFormat: Text.PlainText;
+                      Layout.minimumWidth: Style.space(105)
+                      Layout.maximumWidth: Style.space(105)
+                      Layout.fillWidth: false
                       Layout.preferredWidth: Style.space(105)
                       text: "STATUS & SPEED"
                       color: root.dim
@@ -481,7 +595,10 @@ ColumnLayout {
 
                     Text {
                       textFormat: Text.PlainText;
-                      Layout.preferredWidth: Style.space(60)
+                      Layout.minimumWidth: Style.space(56)
+                      Layout.maximumWidth: Style.space(56)
+                      Layout.fillWidth: false
+                      Layout.preferredWidth: Style.space(56)
                       text: "POE"
                       color: root.dim
                       font.family: root.fontFamily
@@ -491,6 +608,9 @@ ColumnLayout {
 
                     Text {
                       textFormat: Text.PlainText;
+                      Layout.minimumWidth: Style.space(48)
+                      Layout.maximumWidth: Style.space(48)
+                      Layout.fillWidth: false
                       Layout.preferredWidth: Style.space(48)
                       text: "ACTION"
                       color: root.dim
@@ -536,6 +656,9 @@ ColumnLayout {
 
                       // Col 1: Port Badge
                       Rectangle {
+                        Layout.minimumWidth: Style.space(32)
+                        Layout.maximumWidth: Style.space(32)
+                        Layout.fillWidth: false
                         Layout.preferredWidth: Style.space(32)
                         Layout.preferredHeight: Style.space(18)
                         radius: 3
@@ -556,6 +679,9 @@ ColumnLayout {
 
                       // Col 2: Status & Speed (Dense Inline)
                       RowLayout {
+                        Layout.minimumWidth: Style.space(105)
+                        Layout.maximumWidth: Style.space(105)
+                        Layout.fillWidth: false
                         Layout.preferredWidth: Style.space(105)
                         spacing: Style.space(4)
 
@@ -636,7 +762,10 @@ ColumnLayout {
 
                       // Col 4: PoE Telemetry (Dense Inline)
                       RowLayout {
-                        Layout.preferredWidth: Style.space(60)
+                        Layout.minimumWidth: Style.space(56)
+                        Layout.maximumWidth: Style.space(56)
+                        Layout.fillWidth: false
+                        Layout.preferredWidth: Style.space(56)
                         spacing: Style.space(3)
 
                         Text {
@@ -666,20 +795,25 @@ ColumnLayout {
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2
                         }
+
+                        Item { Layout.fillWidth: true }
                       }
 
                       // Col 5: Action (Dense Cycle PoE Button with Tooltip)
                       Rectangle {
+                        Layout.minimumWidth: Style.space(48)
+                        Layout.maximumWidth: Style.space(48)
+                        Layout.fillWidth: false
                         Layout.preferredWidth: Style.space(48)
                         Layout.preferredHeight: Style.space(18)
                         radius: 3
                         color: (modelData.poeMode !== "off" || modelData.poePower > 0)
                           ? (cycleBtnMouse.containsMouse ? root.cardHover : root.track)
                           : "transparent"
-                        opacity: (modelData.poeMode !== "off" || modelData.poePower > 0) ? 1.0 : 0.35
+                        opacity: (modelData.poeMode !== "off" || modelData.poePower > 0) ? (root.canPowerCycle ? 1.0 : 0.45) : 0.35
                         border.width: 1
                         border.color: (modelData.poeMode !== "off" || modelData.poePower > 0)
-                          ? (cycleBtnMouse.containsMouse ? root.backup : root.outline)
+                          ? (cycleBtnMouse.containsMouse ? (root.canPowerCycle ? root.backup : root.urgent) : root.outline)
                           : "transparent"
 
                         RowLayout {
@@ -689,8 +823,8 @@ ColumnLayout {
 
                           Text {
                             textFormat: Text.PlainText;
-                            text: ""
-                            color: root.backup
+                            text: root.canPowerCycle ? "" : ""
+                            color: root.canPowerCycle ? root.backup : root.dim
                             font.family: root.fontFamily
                             font.pixelSize: 7
                           }
@@ -698,7 +832,7 @@ ColumnLayout {
                           Text {
                             textFormat: Text.PlainText;
                             text: "Cycle"
-                            color: root.foreground
+                            color: root.canPowerCycle ? root.foreground : root.dim
                             font.family: root.fontFamily
                             font.pixelSize: 7
                             font.bold: true
@@ -719,11 +853,11 @@ ColumnLayout {
                           id: cycleBtnMouse
                           anchors.fill: parent
                           hoverEnabled: true
-                          cursorShape: (modelData.poeMode !== "off" || modelData.poePower > 0) ? Qt.PointingHandCursor : Qt.ArrowCursor
+                          cursorShape: (modelData.poeMode !== "off" || modelData.poePower > 0) ? (root.canPowerCycle ? Qt.PointingHandCursor : Qt.ForbiddenCursor) : Qt.ArrowCursor
                           enabled: modelData.poeMode !== "off" || modelData.poePower > 0
                           onClicked: {
-                            if (root.currentSwitch) {
-                              root.cyclePort(root.currentSwitch.hostId, root.currentSwitch.mac, modelData.portIdx, modelData.name || ("Port " + modelData.portIdx))
+                            if (root.canPowerCycle && root.currentSwitch) {
+                              root.cyclePort(root.currentSwitch.hostId, root.currentSwitch.mac, modelData.portIdx, modelData.name || ("Port " + modelData.portIdx), root.currentSwitch.siteId || "")
                             }
                           }
                         }
@@ -734,7 +868,7 @@ ColumnLayout {
                           anchors.bottom: parent.top
                           anchors.bottomMargin: 4
                           anchors.right: parent.right
-                          width: cycleTipText.implicitWidth + Style.space(12)
+                          width: (root.canPowerCycle ? cycleTipText.implicitWidth : cycleTipDisabledText.implicitWidth) + Style.space(12)
                           height: Style.space(20)
                           radius: 3
                           color: root.isLightTheme ? "#ffffff" : "#161b2a"
@@ -745,7 +879,19 @@ ColumnLayout {
                             id: cycleTipText
                             textFormat: Text.PlainText;
                             anchors.centerIn: parent
+                            visible: root.canPowerCycle
                             text: "Power cycle PoE on Port " + modelData.portIdx + (modelData.poePower > 0 ? (" (" + modelData.poePower + "W)") : "")
+                            color: root.foreground
+                            font.family: root.fontFamily
+                            font.pixelSize: 8
+                          }
+
+                          Text {
+                            id: cycleTipDisabledText
+                            textFormat: Text.PlainText;
+                            anchors.centerIn: parent
+                            visible: !root.canPowerCycle
+                            text: "Cannot power cycle: API key lacks 'devices:write' permission"
                             color: root.foreground
                             font.family: root.fontFamily
                             font.pixelSize: 8

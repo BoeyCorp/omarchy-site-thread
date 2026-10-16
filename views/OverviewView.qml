@@ -95,13 +95,44 @@ Column {
               StatBlock {
                 label: "CLIENTS"
                 value: String(root.fleetData.network && root.fleetData.network.clientCount ? root.fleetData.network.clientCount : 0)
-                subvalue: "\uf1eb " + (root.fleetData.network ? (root.fleetData.network.wifiClients || 0) : 0) + " · \udb81\ude00 " + (root.fleetData.network ? (root.fleetData.network.wiredClients || 0) : 0)
+                subvalue: "\uf1eb " + (root.fleetData.network ? (root.fleetData.network.wifiClients || 0) : 0) + " · \uf0e8 " + (root.fleetData.network ? (root.fleetData.network.wiredClients || 0) : 0)
                 iconText: "\uf109"
                 valColor: root.foreground
                 subColor: root.dim
                 trackColor: root.track
                 fontFamily: root.fontFamily
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { root.activeTab = 1; root.sitesSubView = "devices"; } }
+              }
+            }
+
+            // Fleet WAN Live Throughput Card
+            BorderSurface {
+              width: root.width
+              implicitHeight: fleetThroughputCardCol.implicitHeight + Style.space(16)
+              height: implicitHeight
+              color: root.card
+              radius: Style.cornerRadius
+              borderSpec: Border.flat(root.outline, 1)
+
+              ColumnLayout {
+                id: fleetThroughputCardCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Style.space(8)
+                spacing: Style.space(4)
+
+                WanSparkline {
+                  id: fleetWanSparkline
+                  Layout.fillWidth: true
+                  throughputData: root.fleetData && root.fleetData.fleetThroughput ? root.fleetData.fleetThroughput : ({
+                    rxRate: (root.fleetData && root.fleetData.sites) ? root.fleetData.sites.reduce(function(acc, s) { return acc + (s.rxRate || 0) }, 0) : 0,
+                    txRate: (root.fleetData && root.fleetData.sites) ? root.fleetData.sites.reduce(function(acc, s) { return acc + (s.txRate || 0) }, 0) : 0
+                  })
+                  compact: false
+                  interactive: true
+                  range: "60s"
+                }
               }
             }
 
@@ -357,6 +388,7 @@ Column {
                         Layout.minimumWidth: 0
                         implicitHeight: Style.space(34)
                         radius: 4
+                        clip: true
                         color: cardMouse.containsMouse
                           ? (root.isLightTheme ? "#f1f5f9" : root.cardHover)
                           : (root.isLightTheme ? "#f8fafc" : Qt.rgba(root.track.r, root.track.g, root.track.b, 0.45))
@@ -369,7 +401,7 @@ Column {
                           anchors.fill: parent
                           anchors.leftMargin: Style.space(6)
                           anchors.rightMargin: Style.space(6)
-                          spacing: Style.space(5)
+                          spacing: Style.space(4)
 
                           Rectangle {
                             width: Style.space(6)
@@ -381,10 +413,12 @@ Column {
 
                           ColumnLayout {
                             Layout.fillWidth: true
+                            Layout.minimumWidth: 0
                             spacing: 0
 
                             RowLayout {
-                              spacing: Style.space(4)
+                              Layout.fillWidth: true
+                              spacing: Style.space(3)
                               Text {
                                 textFormat: Text.PlainText;
                                 text: Model.safe(modelData.name, "Site")
@@ -393,6 +427,8 @@ Column {
                                 font.pixelSize: Style.font.caption - 1
                                 font.bold: true
                                 elide: Text.ElideRight
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
                               }
                               Text {
                                 textFormat: Text.PlainText;
@@ -402,6 +438,7 @@ Column {
                                 font.family: root.fontFamily
                                 font.pixelSize: 8
                                 elide: Text.ElideRight
+                                Layout.maximumWidth: Style.space(52)
                               }
                             }
 
@@ -412,7 +449,20 @@ Column {
                               font.family: root.fontFamily
                               font.pixelSize: 8
                               elide: Text.ElideRight
+                              Layout.fillWidth: true
+                              Layout.minimumWidth: 0
                             }
+                          }
+
+                          WanSparkline {
+                            site: cardDelegate.modelData
+                            compact: true
+                            interactive: false
+                            implicitWidth: Style.space(64)
+                            Layout.preferredWidth: Style.space(64)
+                            Layout.maximumWidth: Style.space(64)
+                            implicitHeight: Style.space(20)
+                            Layout.alignment: Qt.AlignVCenter
                           }
 
                           Rectangle {

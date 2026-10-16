@@ -335,13 +335,16 @@ FloatingWindow {
     onTriggered: { root.statusToast = "" }
   }
 
-  function upgradeDevice(hostId, mac, deviceName) {
+  function upgradeDevice(hostId, mac, deviceName, siteId) {
     if (!mac) return
     var targetLabel = (deviceName || mac)
     root.pendingUpgradeDeviceTarget = targetLabel
     root.statusToast = "Submitting upgrade request for " + targetLabel + "..."
     root.toastType = "info"
-    upgradeDevProc.command = [root.helper, "upgrade-device", String(hostId || "console-home"), String(mac)]
+    var cmd = [root.helper, "upgrade-device", String(hostId || "console-home"), String(mac)]
+    if (siteId && String(siteId).trim() !== "") cmd.push(String(siteId))
+    if (deviceName && String(deviceName).trim() !== "") cmd.push("--name", String(deviceName).trim())
+    upgradeDevProc.command = cmd
     upgradeDevProc.running = true
   }
 
@@ -359,7 +362,9 @@ FloatingWindow {
     root.pendingBackupConsoleTarget = cName
     root.statusToast = "Submitting backup request for console: " + cName + "..."
     root.toastType = "info"
-    backupProc.command = [root.helper, "backup", String(hostId || "console-home")]
+    var cmd = [root.helper, "backup", String(hostId || "console-home")]
+    if (cName && String(cName).trim() !== "") cmd.push("--name", String(cName).trim())
+    backupProc.command = cmd
     backupProc.running = true
   }
 
@@ -368,14 +373,18 @@ FloatingWindow {
     notifyProc.running = true
   }
 
-  function cyclePort(hostId, mac, portIdx, portName) {
+  function cyclePort(hostId, mac, portIdx, portName, siteId) {
     if (!hostId || !mac) return
     var swName = (root.currentSwitch && root.currentSwitch.name) ? root.currentSwitch.name : mac
     var pName = portName || ("Port " + portIdx)
+    var sid = siteId || (root.currentSwitch ? root.currentSwitch.siteId : "") || ""
     root.pendingCycleTarget = pName + " on " + swName
     root.statusToast = "Submitting PoE power cycle request for " + pName + " on " + swName + "..."
     root.toastType = "info"
-    powerCycleProc.command = [root.helper, "power-cycle", String(hostId), String(mac), String(portIdx)]
+    var cmd = [root.helper, "power-cycle", String(hostId), String(mac), String(portIdx)]
+    if (sid && String(sid).trim() !== "") cmd.push(String(sid))
+    if (swName && String(swName).trim() !== "") cmd.push("--name", String(swName).trim())
+    powerCycleProc.command = cmd
     powerCycleProc.running = true
   }
 
@@ -456,6 +465,8 @@ FloatingWindow {
             font.family: root.fontFamily
             font.pixelSize: Style.font.title
             font.bold: true
+            elide: Text.ElideRight
+            Layout.fillWidth: true
           }
 
           Text {
@@ -464,11 +475,15 @@ FloatingWindow {
             color: root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
+            elide: Text.ElideRight
+            Layout.fillWidth: true
           }
         }
 
         // Action buttons: Refresh and Close
         RowLayout {
+          Layout.fillWidth: false
+          Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
           spacing: Style.space(6)
 
           // Refresh button
@@ -554,7 +569,7 @@ FloatingWindow {
       // Tab Bar (7 evenly-spaced tabs spanning the window width)
       RowLayout {
         Layout.fillWidth: true
-        spacing: Style.space(5)
+        spacing: Style.space(4)
 
         // Tab 0: Overview & Mesh
         Rectangle {
@@ -570,16 +585,16 @@ FloatingWindow {
 
           RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: Style.space(6)
-            anchors.rightMargin: Style.space(6)
-            spacing: Style.space(4)
+            anchors.leftMargin: Style.space(5)
+            anchors.rightMargin: Style.space(5)
+            spacing: Style.space(3)
             Text {
               Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 0 ? root.accent : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
             }
             Text {
               Layout.fillWidth: true
@@ -588,7 +603,7 @@ FloatingWindow {
               text: "Overview & Mesh"
               color: root.currentTab === 0 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption - 1
+              font.pixelSize: Style.font.caption - 2
               font.bold: root.currentTab === 0
               elide: Text.ElideRight
             }
@@ -623,16 +638,16 @@ FloatingWindow {
 
           RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: Style.space(6)
-            anchors.rightMargin: Style.space(6)
-            spacing: Style.space(4)
+            anchors.leftMargin: Style.space(5)
+            anchors.rightMargin: Style.space(5)
+            spacing: Style.space(3)
             Text {
               Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 1 ? root.accent : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
             }
             Text {
               Layout.fillWidth: true
@@ -641,9 +656,9 @@ FloatingWindow {
               text: "Client Telemetry (" + (root.fleetData && root.fleetData.clients ? root.fleetData.clients.length : (root.fleetData && root.fleetData.network ? root.fleetData.network.clientCount : 0)) + ")"
               color: root.currentTab === 1 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption - 1
+              font.pixelSize: Style.font.caption - 2
               font.bold: root.currentTab === 1
-              elide: Text.ElideRight
+              elide: Text.ElideMiddle
             }
           }
 
@@ -676,16 +691,16 @@ FloatingWindow {
 
           RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: Style.space(6)
-            anchors.rightMargin: Style.space(6)
-            spacing: Style.space(4)
+            anchors.leftMargin: Style.space(5)
+            anchors.rightMargin: Style.space(5)
+            spacing: Style.space(3)
             Text {
               Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 2 ? root.accent : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
             }
             Text {
               Layout.fillWidth: true
@@ -694,9 +709,9 @@ FloatingWindow {
               text: "WAN & Outages (" + (root.fleetData && root.fleetData.wans ? root.fleetData.wans.length : 0) + ")"
               color: root.currentTab === 2 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption - 1
+              font.pixelSize: Style.font.caption - 2
               font.bold: root.currentTab === 2
-              elide: Text.ElideRight
+              elide: Text.ElideMiddle
             }
           }
 
@@ -729,16 +744,16 @@ FloatingWindow {
 
           RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: Style.space(6)
-            anchors.rightMargin: Style.space(6)
-            spacing: Style.space(4)
+            anchors.leftMargin: Style.space(5)
+            anchors.rightMargin: Style.space(5)
+            spacing: Style.space(3)
             Text {
               Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 3 ? root.accent : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
             }
             Text {
               Layout.fillWidth: true
@@ -747,9 +762,9 @@ FloatingWindow {
               text: "Switch Ports & PoE (" + (root.availableSwitches ? root.availableSwitches.length : 0) + ")"
               color: root.currentTab === 3 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption - 1
+              font.pixelSize: Style.font.caption - 2
               font.bold: root.currentTab === 3
-              elide: Text.ElideRight
+              elide: Text.ElideMiddle
             }
           }
 
@@ -782,16 +797,16 @@ FloatingWindow {
 
           RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: Style.space(6)
-            anchors.rightMargin: Style.space(6)
-            spacing: Style.space(4)
+            anchors.leftMargin: Style.space(5)
+            anchors.rightMargin: Style.space(5)
+            spacing: Style.space(3)
             Text {
               Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 4 ? root.accent : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
             }
             Text {
               Layout.fillWidth: true
@@ -800,9 +815,9 @@ FloatingWindow {
               text: "UniFi OS & Direct Connect (" + (root.fleetConsoles ? root.fleetConsoles.length : 0) + ")"
               color: root.currentTab === 4 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption - 1
+              font.pixelSize: Style.font.caption - 2
               font.bold: root.currentTab === 4
-              elide: Text.ElideRight
+              elide: Text.ElideMiddle
             }
           }
 
@@ -835,16 +850,16 @@ FloatingWindow {
 
           RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: Style.space(6)
-            anchors.rightMargin: Style.space(6)
-            spacing: Style.space(4)
+            anchors.leftMargin: Style.space(5)
+            anchors.rightMargin: Style.space(5)
+            spacing: Style.space(3)
             Text {
               Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 5 ? root.accent : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
             }
             Text {
               Layout.fillWidth: true
@@ -853,9 +868,9 @@ FloatingWindow {
               text: "WiFi & RF Spectrum (" + (root.fleetWlans ? root.fleetWlans.length : 0) + ")"
               color: root.currentTab === 5 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption - 1
+              font.pixelSize: Style.font.caption - 2
               font.bold: root.currentTab === 5
-              elide: Text.ElideRight
+              elide: Text.ElideMiddle
             }
           }
 
@@ -888,16 +903,16 @@ FloatingWindow {
 
           RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: Style.space(6)
-            anchors.rightMargin: Style.space(6)
-            spacing: Style.space(4)
+            anchors.leftMargin: Style.space(5)
+            anchors.rightMargin: Style.space(5)
+            spacing: Style.space(3)
             Text {
               Layout.alignment: Qt.AlignVCenter
               textFormat: Text.PlainText;
               text: ""
               color: root.currentTab === 6 ? root.accent : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.caption - 1
             }
             Text {
               Layout.fillWidth: true
@@ -906,9 +921,9 @@ FloatingWindow {
               text: "Firmware & Backups (" + (root.fleetUpdates ? root.fleetUpdates.length : 0) + ")"
               color: root.currentTab === 6 ? root.foreground : root.dim
               font.family: root.fontFamily
-              font.pixelSize: Style.font.caption - 1
+              font.pixelSize: Style.font.caption - 2
               font.bold: root.currentTab === 6
-              elide: Text.ElideRight
+              elide: Text.ElideMiddle
             }
           }
 
@@ -1033,6 +1048,7 @@ FloatingWindow {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
+        fleetData: root.fleetData
         selectedSwitchSite: root.selectedSwitchSite
         selectedSwitchMac: root.selectedSwitchMac
         switchSiteOptions: root.switchSiteOptions
@@ -1056,7 +1072,7 @@ FloatingWindow {
         onSelectedSwitchMacChanged: { root.selectedSwitchMac = tab3View.selectedSwitchMac }
         onSwitchSiteSelected: function(site) { root.selectedSwitchSite = site }
         onSwitchMacSelected: function(mac) { root.selectedSwitchMac = mac }
-        onCyclePortRequested: function(hId, mac, pIdx, name) { root.cyclePort(hId, mac, pIdx, name) }
+        onCyclePortRequested: function(hId, mac, pIdx, name, sId) { root.cyclePort(hId, mac, pIdx, name, sId) }
       }
 
       // ==========================================
@@ -1069,6 +1085,7 @@ FloatingWindow {
         Layout.fillHeight: true
 
         fleetConsoles: root.fleetConsoles
+        fleetData: root.fleetData
         consoleSearch: root.consoleSearch
         consoleSiteFilter: root.consoleSiteFilter
         selectedConsoleIndex: root.selectedConsoleIndex
@@ -1140,9 +1157,12 @@ FloatingWindow {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
+        fleetData: root.fleetData
         fleetUpdates: root.fleetUpdates
         fleetBackups: root.fleetBackups
         fleetOperations: root.fleetOperations
+        fleetSwitches: root.availableSwitches
+        fleetConsoles: root.fleetConsoles
         updateSearch: root.updateSearch
         updateSiteFilter: root.updateSiteFilter
         updateSeverityFilter: root.updateSeverityFilter
@@ -1163,7 +1183,7 @@ FloatingWindow {
         outline: root.outline
         fontFamily: root.fontFamily
 
-        onUpgradeDeviceRequested: function(hId, mac, name) { root.upgradeDevice(hId, mac, name) }
+        onUpgradeDeviceRequested: function(hId, mac, name, sId) { root.upgradeDevice(hId, mac, name, sId) }
         onUpgradeAllRequested: root.upgradeAllDevices()
         onTriggerBackupRequested: function(hId, name) { root.triggerBackup(hId, name) }
         onBulkUpdateConfirmChanged: { root.bulkUpdateConfirm = tab6View.bulkUpdateConfirm }

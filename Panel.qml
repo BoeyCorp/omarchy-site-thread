@@ -52,7 +52,33 @@ Panel {
 
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
   readonly property int panelWidth: setting("panelWidth", 450)
-  readonly property int refreshSeconds: setting("refreshSeconds", 30)
+  property int refreshSeconds: setting("refreshSeconds", 30)
+  property int activeRefreshSeconds: setting("activeRefreshSeconds", 15)
+  property int idleRefreshSeconds: setting("idleRefreshSeconds", 120)
+  readonly property bool isUiActive: root.opened || root.analyticsOpen
+  readonly property int currentRefreshIntervalSec: isUiActive ? Math.max(10, Math.min(15, root.activeRefreshSeconds)) : Math.max(60, Math.min(300, root.idleRefreshSeconds))
+  readonly property int currentRefreshIntervalMs: currentRefreshIntervalSec * 1000
+
+  onIsUiActiveChanged: {
+    if (typeof refreshTimer !== "undefined" && refreshTimer) {
+      refreshTimer.interval = root.currentRefreshIntervalMs
+      refreshTimer.restart()
+    }
+    if (isUiActive) {
+      var ageSec = (Date.now() - root.lastRefreshMs) / 1000
+      if (ageSec >= root.activeRefreshSeconds) {
+        if (root.inSite) root.loadSite()
+        else root.refresh()
+      }
+    }
+  }
+
+  onActiveRefreshSecondsChanged: {
+    if (typeof refreshTimer !== "undefined" && refreshTimer) refreshTimer.interval = root.currentRefreshIntervalMs
+  }
+  onIdleRefreshSecondsChanged: {
+    if (typeof refreshTimer !== "undefined" && refreshTimer) refreshTimer.interval = root.currentRefreshIntervalMs
+  }
 
   property bool autoRotate: false
   property string issueFilter: "all"
@@ -222,6 +248,9 @@ Panel {
     else if (name === "terminalCommand") root.preferredTerminal = value
     else if (name === "autoRotate") root.autoRotate = value
     else if (name === "enableNotifications") root.enableNotifications = value
+    else if (name === "activeRefreshSeconds") root.activeRefreshSeconds = value
+    else if (name === "idleRefreshSeconds") root.idleRefreshSeconds = value
+    else if (name === "refreshSeconds") root.refreshSeconds = value
 
     var next = Object.assign({}, root.settings || {})
     next[name] = value
@@ -305,6 +334,8 @@ Panel {
   property string selectedCameraId: ""
   property string selectedCameraName: ""
   property string snapshotPath: ""
+  property string priorSnapshotPath: ""
+  property string cameraPermissionError: ""
   property bool confirmDisconnect: false
   property bool localSetup: false
   property bool pasteForLocalConsole: false
@@ -406,6 +437,9 @@ Panel {
     } else if (updates > 0) {
       parsed.severity = "warning"
       parsed.message = String(updates) + " firmware update(s) across " + String(parsed.sites.length) + " sites"
+    } else if (parsed.partial && parsed.failedEndpoints && parsed.failedEndpoints.length > 0) {
+      parsed.severity = "warning"
+      parsed.message = "Partial fleet telemetry (" + parsed.failedEndpoints.join(", ") + " failed)"
     } else {
       parsed.severity = "healthy"
       parsed.message = "All " + String(parsed.sites.length) + " sites operational"
@@ -423,12 +457,15 @@ Panel {
 
   function openSite(site) {
     if (!site || !site.hostId || !site.id) return
+    if (root.snapshotPath) root.deleteSnapshotFile(root.snapshotPath)
+    if (root.priorSnapshotPath) root.deleteSnapshotFile(root.priorSnapshotPath)
     selectedSite = site
     siteData = ({})
     siteTab = 0
     selectedCameraId = ""
     selectedCameraName = ""
     snapshotPath = ""
+    priorSnapshotPath = ""
     siteLoading = true
     siteLiveRefreshing = true
     loadSite()
@@ -452,12 +489,15 @@ Panel {
   }
 
   function backToSites() {
+    if (root.snapshotPath) root.deleteSnapshotFile(root.snapshotPath)
+    if (root.priorSnapshotPath) root.deleteSnapshotFile(root.priorSnapshotPath)
     selectedSite = null
     siteData = ({})
     siteTab = 0
     selectedCameraId = ""
     selectedCameraName = ""
     snapshotPath = ""
+    priorSnapshotPath = ""
     activeTab = 1
     sitesSubView = "sites"
     notice = ""
@@ -543,11 +583,36 @@ Panel {
     pasteProc.running = true
   }
 
+  function deleteSnapshotFile(filePath) {
+    if (!filePath) return
+    var cleanPath = String(filePath).replace(/^file:\/\//, "").split("?")[0].split("#")[0]
+    if (cleanPath.indexOf("camera-") !== -1) {
+      Quickshell.execDetached(["rm", "-f", cleanPath])
+    }
+  }
+
+  function cleanupPriorSnapshot() {
+    if (root.priorSnapshotPath && root.priorSnapshotPath !== "") {
+      var pClean = String(root.priorSnapshotPath).replace(/^file:\/\//, "").split("?")[0].split("#")[0]
+      var curClean = String(root.snapshotPath).replace(/^file:\/\//, "").split("?")[0].split("#")[0]
+      if (pClean !== curClean) {
+        root.deleteSnapshotFile(pClean)
+      }
+      root.priorSnapshotPath = ""
+    }
+  }
+
   function selectCamera(camera) {
     if (!camera) return
-    selectedCameraId = String(camera.id || "")
+    var newCamId = String(camera.id || "")
+    if (selectedCameraId !== newCamId) {
+      if (root.snapshotPath) root.deleteSnapshotFile(root.snapshotPath)
+      if (root.priorSnapshotPath) root.deleteSnapshotFile(root.priorSnapshotPath)
+      snapshotPath = ""
+      priorSnapshotPath = ""
+    }
+    selectedCameraId = newCamId
     selectedCameraName = Model.safe(camera.name, "Camera")
-    snapshotPath = ""
     if (selectedCameraId !== "") requestSnapshot()
   }
 
@@ -574,10 +639,21 @@ Panel {
       if (inSite) loadSite()
       else refresh()
     }
-    else snapshotPath = ""
+    else {
+      if (root.snapshotPath) root.deleteSnapshotFile(root.snapshotPath)
+      if (root.priorSnapshotPath) root.deleteSnapshotFile(root.priorSnapshotPath)
+      snapshotPath = ""
+      priorSnapshotPath = ""
+    }
   }
 
   onActiveTabChanged: {
+    if (!inSite && activeTab !== 3) {
+      if (root.snapshotPath) root.deleteSnapshotFile(root.snapshotPath)
+      if (root.priorSnapshotPath) root.deleteSnapshotFile(root.priorSnapshotPath)
+      snapshotPath = ""
+      priorSnapshotPath = ""
+    }
     if (!inSite && activeTab === 3 && data.protect && data.protect.cameras && data.protect.cameras.length > 0) {
       if (selectedCameraId === "") selectCamera(data.protect.cameras[0])
       else requestSnapshot()
@@ -585,6 +661,12 @@ Panel {
   }
 
   onSiteTabChanged: {
+    if (inSite && siteTab !== 1) {
+      if (root.snapshotPath) root.deleteSnapshotFile(root.snapshotPath)
+      if (root.priorSnapshotPath) root.deleteSnapshotFile(root.priorSnapshotPath)
+      snapshotPath = ""
+      priorSnapshotPath = ""
+    }
     if (inSite && siteTab === 1 && siteProtectInstalled && siteData.protect.cameras.length > 0) {
       if (selectedCameraId === "") selectCamera(siteData.protect.cameras[0])
       else requestSnapshot()
@@ -830,7 +912,15 @@ Panel {
       waitForEnd: true
       onStreamFinished: {
         var parsed = Model.parse(text, { ok: false })
-        if (parsed.ok && parsed.path) root.snapshotPath = "file://" + parsed.path
+        if (parsed.ok && parsed.path) {
+          root.cameraPermissionError = ""
+          if (root.snapshotPath !== "") {
+            root.priorSnapshotPath = root.snapshotPath
+          }
+          root.snapshotPath = "file://" + parsed.path + "?t=" + Date.now()
+        } else if (parsed && (parsed.permissionError || (parsed.error && parsed.error.indexOf("protect:stream") >= 0))) {
+          root.cameraPermissionError = parsed.error || "Missing 'protect:stream' permission for camera snapshots"
+        }
       }
     }
   }
@@ -849,7 +939,8 @@ Panel {
   }
 
   Timer {
-    interval: Math.max(15, root.refreshSeconds) * 1000
+    id: refreshTimer
+    interval: root.currentRefreshIntervalMs
     running: true
     repeat: true
     triggeredOnStart: false
@@ -1105,9 +1196,11 @@ Panel {
               // Title & Subtitle + Live refresh age / refreshing state
               ColumnLayout {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 spacing: 1
 
                 RowLayout {
+                  Layout.fillWidth: true
                   spacing: Style.space(6)
                   Text {
                     textFormat: Text.PlainText;
@@ -1120,6 +1213,9 @@ Panel {
                     font.family: root.fontFamily
                     font.pixelSize: 13
                     font.bold: true
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                   }
 
                   // Status badge
@@ -1160,7 +1256,7 @@ Panel {
                       ? "Configuration, Badge Modes & Terminal Launcher"
                       : (root.inSite
                           ? (root.siteLiveRefreshing
-                              ? (root.siteData && root.siteData._cached ? "Cached view · Syncing live data…" : "Connecting to site…")
+                              ? (root.siteData && root.siteData._cached ? "Cached view" : "Connecting to site…")
                               : (root.siteData && root.siteData._cached ? "Cached view · 10m cycle" : Model.safe(root.selectedSite.statusText, "Live site view")))
                           : (root.connected ? Model.summarySubtitle(root.data) : "Network + Protect"))
                     color: root.dim
@@ -1168,17 +1264,18 @@ Panel {
                     font.pixelSize: Style.font.caption
                     elide: Text.ElideRight
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                   }
 
                   // Age indicator
                   RowLayout {
                     spacing: Style.space(3)
-                    visible: !root.loading && root.connected && root.refreshAgeSec >= 0
+                    visible: !root.loading && !(root.inSite && root.siteLiveRefreshing) && root.connected && root.refreshAgeSec >= 0
 
                     Text {
                       textFormat: Text.PlainText;
                       text: ""
-                      color: root.refreshAgeSec > 120 ? root.urgent : root.dim
+                      color: root.refreshAgeSec > (root.idleRefreshSeconds + 60) ? root.urgent : root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 2
                     }
@@ -1193,7 +1290,7 @@ Panel {
                         if (a < 3600) return "Refreshed " + Math.floor(a / 60) + "m ago"
                         return "Refreshed " + Math.floor(a / 3600) + "h " + Math.floor((a % 3600) / 60) + "m ago"
                       }
-                      color: root.refreshAgeSec > 120 ? root.urgent : root.dim
+                      color: root.refreshAgeSec > (root.idleRefreshSeconds + 60) ? root.urgent : root.dim
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption - 1
                     }
@@ -1202,7 +1299,7 @@ Panel {
                   // Refreshing spinner text
                   RowLayout {
                     spacing: Style.space(3)
-                    visible: root.loading
+                    visible: root.loading && !(root.inSite && root.siteLiveRefreshing)
 
                     Text {
                       textFormat: Text.PlainText;
@@ -1489,6 +1586,8 @@ Panel {
               enableMultiDot: root.enableMultiDot,
               badgeMode: root.badgeMode,
               refreshSeconds: root.refreshSeconds,
+              activeRefreshSeconds: root.activeRefreshSeconds,
+              idleRefreshSeconds: root.idleRefreshSeconds,
               terminalCommand: root.preferredTerminal,
               autoRotate: root.autoRotate,
               enableNotifications: root.enableNotifications
@@ -2019,6 +2118,7 @@ Panel {
             fontFamily: root.fontFamily
 
             onSelectCameraRequested: function(camId, camName) { root.selectCamera(camId, camName) }
+            onCleanupPriorSnapshotRequested: root.cleanupPriorSnapshot()
           }
 
           Rectangle { width: parent.width; height: 1; color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.1) }
@@ -2106,6 +2206,19 @@ Panel {
             color: directBarMouse.containsMouse ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.12) : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.04)
             radius: Style.cornerRadius
             borderSpec: Border.flat(directBarMouse.containsMouse ? root.accent : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.10), 1)
+
+            MouseArea {
+              id: directBarMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                var c = root.getSiteConsole(root.selectedSite ? root.selectedSite.hostId : "")
+                if (c && (c.directConnectUrl || c.directConnectDomain)) {
+                  Quickshell.execDetached(["xdg-open", c.directConnectUrl || ("https://" + c.directConnectDomain)])
+                }
+              }
+            }
 
             RowLayout {
               anchors.fill: parent
@@ -2207,19 +2320,6 @@ Panel {
                 }
               }
             }
-
-            MouseArea {
-              id: directBarMouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: {
-                var c = root.getSiteConsole(root.selectedSite ? root.selectedSite.hostId : "")
-                if (c && (c.directConnectUrl || c.directConnectDomain)) {
-                  Quickshell.execDetached(["xdg-open", c.directConnectUrl || ("https://" + c.directConnectDomain)])
-                }
-              }
-            }
           }
 
           Text { textFormat: Text.PlainText;
@@ -2298,6 +2398,8 @@ Panel {
               width: parent.width
               site: root.selectedSite
               devices: root.siteData && root.siteData.network && root.siteData.network.devices ? root.siteData.network.devices : []
+              clients: (root.siteData && root.siteData.network && root.siteData.network.clients) || (root.siteData && root.siteData.clients) || (root.data && root.data.clients) || []
+              preferredTerminal: root.preferredTerminal
               foreground: root.foreground
               dim: root.dim
               accent: root.accent
@@ -2329,8 +2431,29 @@ Panel {
               radius: Style.cornerRadius
               color: Qt.rgba(0, 0, 0, 0.45)
               clip: true
-              Image { anchors.fill: parent; source: root.snapshotPath; fillMode: Image.PreserveAspectFit; cache: false; asynchronous: true }
-              Text { textFormat: Text.PlainText; anchors.centerIn: parent; visible: root.snapshotPath === ""; text: "Loading " + root.selectedCameraName + "…"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body }
+              Image {
+                anchors.fill: parent
+                source: root.snapshotPath
+                fillMode: Image.PreserveAspectFit
+                cache: false
+                asynchronous: true
+                onStatusChanged: {
+                  if (status === Image.Ready) {
+                    root.cleanupPriorSnapshot()
+                  }
+                }
+              }
+              Text {
+                textFormat: Text.PlainText;
+                anchors.centerIn: parent;
+                visible: root.snapshotPath === "";
+                text: root.cameraPermissionError !== ""
+                  ? root.cameraPermissionError
+                  : ("Loading " + root.selectedCameraName + "…");
+                color: root.cameraPermissionError !== "" ? root.urgent : root.foreground;
+                font.family: root.fontFamily;
+                font.pixelSize: Style.font.body
+              }
               Rectangle {
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom
@@ -2447,6 +2570,16 @@ Panel {
     }
     function setSitesSubView(view: string): void {
       root.sitesSubView = view === "devices" ? "devices" : "sites"
+    }
+    function openSiteByIndex(index: int): void {
+      var sites = root.data && root.data.sites ? root.data.sites : []
+      if (index >= 0 && index < sites.length) {
+        root.open()
+        root.openSite(sites[index])
+      }
+    }
+    function backToSites(): void {
+      root.backToSites()
     }
     function rotate(longitude: real): void {
       if (overviewView && overviewView.fleetGlobe) overviewView.fleetGlobe.centreLongitude = GlobeModel.wrapLongitude(longitude)

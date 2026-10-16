@@ -10,6 +10,7 @@ Rectangle {
   readonly property var devData: root.modelData || ({})
   property int index: 0
   property string category: ""
+  property bool isChooserOpen: false
 
   property color foreground: (Color.foreground || "#D8DEE9")
   property color dim: (Color.dim || Qt.darker(foreground, 1.35))
@@ -27,16 +28,18 @@ Rectangle {
   signal webRequested(string ip)
 
   Layout.fillWidth: true
-  implicitHeight: devInnerCol.implicitHeight + Style.space(14)
+  implicitHeight: devInnerCol.implicitHeight + Style.space(16)
   radius: 4
-  color: devCardMouse.containsMouse ? root.cardHover : root.card
+  color: root.isChooserOpen ? root.cardHover : (devCardMouse.containsMouse ? root.cardHover : root.card)
   border.width: 1
-  border.color: devCardMouse.containsMouse ? root.accent : root.outline
+  border.color: root.isChooserOpen ? root.accent : (devCardMouse.containsMouse ? root.accent : root.outline)
 
   MouseArea {
     id: devCardMouse
     anchors.fill: parent
     hoverEnabled: true
+    cursorShape: Qt.PointingHandCursor
+    onClicked: root.isChooserOpen = !root.isChooserOpen
   }
 
   ColumnLayout {
@@ -68,7 +71,7 @@ Rectangle {
         font.pixelSize: Style.font.caption
         font.bold: true
         elide: Text.ElideRight
-        Layout.fillWidth: true
+        Layout.maximumWidth: Style.space(165)
         Layout.alignment: Qt.AlignVCenter
       }
 
@@ -79,29 +82,40 @@ Rectangle {
         color: root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption - 1
+        elide: Text.ElideRight
+        Layout.maximumWidth: Style.space(95)
         Layout.alignment: Qt.AlignVCenter
       }
+
+      Item { Layout.fillWidth: true }
 
       // Site Badge
       Rectangle {
         visible: !!root.devData.site
         height: Style.space(16)
-        implicitWidth: siteBadgeText.implicitWidth + Style.space(10)
+        implicitWidth: Math.min(Style.space(115), siteBadgeText.implicitWidth + Style.space(10))
         radius: 3
         color: root.track
         border.width: 1
         border.color: root.outline
         Layout.alignment: Qt.AlignVCenter
+        clip: true
 
         Text {
           textFormat: Text.PlainText;
           id: siteBadgeText
-          anchors.centerIn: parent
+          anchors.verticalCenter: parent.verticalCenter
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.leftMargin: Style.space(5)
+          anchors.rightMargin: Style.space(5)
+          horizontalAlignment: Text.AlignHCenter
           text: root.devData.site || ""
           color: root.foreground
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption - 2
           font.bold: true
+          elide: Text.ElideRight
         }
       }
     }
@@ -256,7 +270,76 @@ Rectangle {
             fontFamily: root.fontFamily
           }
         }
+
+        // Multi-Protocol Action Chooser Button
+        Rectangle {
+          id: actionChooserBtn
+          implicitHeight: Style.space(20)
+          implicitWidth: actionChooserBtnRow.implicitWidth + Style.space(12)
+          radius: 3
+          color: root.isChooserOpen ? root.accent : (chooserMouse.containsMouse ? root.cardHover : root.track)
+          border.width: 1
+          border.color: root.isChooserOpen ? root.accent : root.outline
+
+          RowLayout {
+            id: actionChooserBtnRow
+            anchors.centerIn: parent
+            spacing: Style.space(3)
+            Text {
+              textFormat: Text.PlainText;
+              text: "⚡"
+              color: root.isChooserOpen ? "#ffffff" : root.accent
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption - 3
+            }
+            Text {
+              textFormat: Text.PlainText;
+              id: actionChooserText
+              text: "Actions"
+              color: root.isChooserOpen ? "#ffffff" : root.accent
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption - 2
+              font.bold: true
+            }
+          }
+
+          MouseArea {
+            id: chooserMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.isChooserOpen = !root.isChooserOpen
+          }
+
+          PanelToolTip {
+            visible: chooserMouse.containsMouse
+            text: "Open multi-protocol action chooser (SSH, Ping, Web Console, Direct IP, UniFi OS)"
+            fontFamily: root.fontFamily
+          }
+        }
       }
+    }
+
+    // Expandable Multi-Protocol Action Chooser Popover
+    MultiProtocolChooser {
+      visible: root.isChooserOpen
+      Layout.fillWidth: true
+      device: root.devData
+      foreground: root.foreground
+      dim: root.dim
+      accent: root.accent
+      card: root.card
+      cardHover: root.cardHover
+      track: root.track
+      outline: root.outline
+      urgent: root.urgent
+      healthy: root.healthy
+      fontFamily: root.fontFamily
+      onLaunchSsh: function(ip, user) { root.sshRequested(ip, user) }
+      onLaunchPing: function(ip) { root.pingRequested(ip) }
+      onOpenWeb: function(url) { root.webRequested(url) }
+      onCloseRequested: { root.isChooserOpen = false }
     }
   }
 }
+

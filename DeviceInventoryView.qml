@@ -2,12 +2,17 @@ import QtQuick
 import QtQuick.Layouts
 import qs.Commons
 import qs.Ui
+import "components"
 
 ColumnLayout {
   id: root
 
   property var devices: []
   property string currentFilter: "all"
+  property bool partial: false
+  property var failedEndpoints: []
+  property int activeChooserIndex: -1
+  property string preferredTerminal: "xdg-terminal-exec"
   property color foreground: (Color.foreground || "#D8DEE9")
   property color dim: (Color.dim || Qt.darker(foreground, 1.35))
   property color accent: (Color.accent || "#89B4FA")
@@ -125,24 +130,78 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: Style.space(6)
 
+    // Empty or Partial state banner
+    Rectangle {
+      id: emptyStateRect
+      visible: root.filteredDevices().length === 0
+      Layout.fillWidth: true
+      implicitHeight: Style.space(56)
+      radius: 4
+      color: root.track
+      border.width: 1
+
+      readonly property bool devicesUnavailable: {
+        if (!root.partial || !root.failedEndpoints) return false
+        for (var i = 0; i < root.failedEndpoints.length; i++) {
+          var ep = String(root.failedEndpoints[i])
+          if (ep.indexOf("/v1/devices") >= 0 || ep.indexOf("stat/device") >= 0) return true
+        }
+        return false
+      }
+
+      border.color: emptyStateRect.devicesUnavailable ? root.urgent : root.outline
+
+      ColumnLayout {
+        anchors.centerIn: parent
+        spacing: Style.space(3)
+
+        Text {
+          textFormat: Text.PlainText;
+          Layout.alignment: Qt.AlignHCenter
+          text: emptyStateRect.devicesUnavailable
+            ? (root.failedEndpoints && root.failedEndpoints.indexOf("/v1/devices") >= 0 ? "Device inventory unavailable (endpoint /v1/devices error)" : "Device inventory unavailable (endpoint stat/device error)")
+            : (root.currentFilter !== "all" ? "No devices matching filter" : "No devices discovered in fleet")
+          color: emptyStateRect.devicesUnavailable ? root.urgent : root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: emptyStateRect.devicesUnavailable
+        }
+
+        Text {
+          textFormat: Text.PlainText;
+          visible: emptyStateRect.devicesUnavailable
+          Layout.alignment: Qt.AlignHCenter
+          text: "Telemetry is partial. Check UI Account permissions or API key."
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption - 2
+        }
+      }
+    }
+
     Repeater {
       model: root.filteredDevices()
       delegate: Rectangle {
         id: devCard
         required property var modelData
         required property int index
+        readonly property bool isChooserOpen: root.activeChooserIndex === index
 
         Layout.fillWidth: true
-        implicitHeight: devInnerCol.implicitHeight + Style.space(14)
+        implicitHeight: devInnerCol.implicitHeight + Style.space(16)
         radius: 4
-        color: devCardMouse.containsMouse ? root.cardHover : root.card
+        color: devCard.isChooserOpen ? root.cardHover : (devCardMouse.containsMouse ? root.cardHover : root.card)
         border.width: 1
-        border.color: devCardMouse.containsMouse ? root.accent : root.outline
+        border.color: devCard.isChooserOpen ? root.accent : (devCardMouse.containsMouse ? root.accent : root.outline)
 
         MouseArea {
           id: devCardMouse
           anchors.fill: parent
           hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            root.activeChooserIndex = (root.activeChooserIndex === index) ? -1 : index
+          }
         }
 
         ColumnLayout {
@@ -174,7 +233,7 @@ ColumnLayout {
               font.pixelSize: Style.font.caption
               font.bold: true
               elide: Text.ElideRight
-              Layout.fillWidth: true
+              Layout.maximumWidth: Style.space(165)
               Layout.alignment: Qt.AlignVCenter
             }
 
@@ -185,29 +244,40 @@ ColumnLayout {
               color: root.dim
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption - 1
+              elide: Text.ElideRight
+              Layout.maximumWidth: Style.space(95)
               Layout.alignment: Qt.AlignVCenter
             }
+
+            Item { Layout.fillWidth: true }
 
             // Site Badge
             Rectangle {
               visible: !!modelData.site
               height: Style.space(16)
-              implicitWidth: siteBadgeText.implicitWidth + Style.space(10)
+              implicitWidth: Math.min(Style.space(115), siteBadgeText.implicitWidth + Style.space(10))
               radius: 3
               color: root.track
               border.width: 1
               border.color: root.outline
               Layout.alignment: Qt.AlignVCenter
+              clip: true
 
               Text {
                 textFormat: Text.PlainText;
                 id: siteBadgeText
-                anchors.centerIn: parent
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: Style.space(5)
+                anchors.rightMargin: Style.space(5)
+                horizontalAlignment: Text.AlignHCenter
                 text: modelData.site || ""
                 color: root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 2
                 font.bold: true
+                elide: Text.ElideRight
               }
             }
           }
@@ -331,7 +401,78 @@ ColumnLayout {
                   fontFamily: root.fontFamily
                 }
               }
+
+              // Multi-Protocol Action Chooser Button
+              Rectangle {
+                id: actionChooserBtn
+                implicitHeight: Style.space(20)
+                implicitWidth: actionChooserBtnRow.implicitWidth + Style.space(12)
+                radius: 3
+                color: devCard.isChooserOpen ? root.accent : (chooserMouse.containsMouse ? root.cardHover : root.track)
+                border.width: 1
+                border.color: devCard.isChooserOpen ? root.accent : root.outline
+
+                RowLayout {
+                  id: actionChooserBtnRow
+                  anchors.centerIn: parent
+                  spacing: Style.space(3)
+                  Text {
+                    textFormat: Text.PlainText;
+                    text: "⚡"
+                    color: devCard.isChooserOpen ? root.accentForeground : root.accent
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 3
+                  }
+                  Text {
+                    textFormat: Text.PlainText;
+                    id: actionChooserText
+                    text: "Actions"
+                    color: devCard.isChooserOpen ? root.accentForeground : root.accent
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 2
+                    font.bold: true
+                  }
+                }
+
+                MouseArea {
+                  id: chooserMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    root.activeChooserIndex = (root.activeChooserIndex === index) ? -1 : index
+                  }
+                }
+
+                PanelToolTip {
+                  visible: chooserMouse.containsMouse
+                  text: "Open multi-protocol action chooser (SSH, Ping, Web Console, Direct IP, UniFi OS)"
+                  fontFamily: root.fontFamily
+                }
+              }
             }
+          }
+
+          // Expandable Multi-Protocol Action Chooser Popover
+          MultiProtocolChooser {
+            visible: devCard.isChooserOpen
+            Layout.fillWidth: true
+            device: modelData
+            preferredTerminal: root.preferredTerminal
+            foreground: root.foreground
+            dim: root.dim
+            accent: root.accent
+            card: root.card
+            cardHover: root.cardHover
+            track: root.track
+            outline: root.outline
+            urgent: root.urgent
+            healthy: root.healthy
+            fontFamily: root.fontFamily
+            onLaunchSsh: function(ip, user) { root.sshRequested(ip, user) }
+            onLaunchPing: function(ip) { root.pingRequested(ip) }
+            onOpenWeb: function(url) { root.webRequested(url) }
+            onCloseRequested: { root.activeChooserIndex = -1 }
           }
         }
       }

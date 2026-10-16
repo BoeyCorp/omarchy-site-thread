@@ -29,8 +29,21 @@ Rectangle {
 
   ColumnLayout {
     anchors.fill: parent
-    anchors.margins: Style.space(3)
-    spacing: 1
+    anchors.margins: Style.space(2)
+    spacing: 0
+
+    Text {
+      textFormat: Text.PlainText;
+      visible: root.label !== "" && root.subvalue !== ""
+      text: root.label
+      color: (Color.dim || "#888888")
+      font.family: root.fontFamily
+      font.pixelSize: 7
+      font.bold: true
+      Layout.fillWidth: true
+      horizontalAlignment: Text.AlignHCenter
+      elide: Text.ElideRight
+    }
 
     RowLayout {
       Layout.alignment: Qt.AlignHCenter

@@ -69,8 +69,8 @@ ColumnLayout {
 
     ColumnLayout {
       Layout.fillWidth: true
+      Layout.topMargin: Style.space(4)
       spacing: Style.space(12)
-      anchors.topMargin: Style.space(8)
 
       // 1. Bar Badge Mode Selector
       ColumnLayout {
@@ -267,11 +267,11 @@ ColumnLayout {
       // 4. Polling Refresh Interval
       ColumnLayout {
         Layout.fillWidth: true
-        spacing: Style.space(4)
+        spacing: Style.space(6)
 
         Text {
           textFormat: Text.PlainText;
-          text: "REFRESH INTERVAL"
+          text: "ADAPTIVE DUAL-RATE POLLING"
           color: root.foreground
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption - 1
@@ -280,7 +280,7 @@ ColumnLayout {
 
         Text {
           textFormat: Text.PlainText;
-          text: "Frequency of background Network and Protect telemetry queries"
+          text: "Active rate (while popup panel or Analytics window is open)"
           color: root.dim
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption - 2
@@ -291,25 +291,22 @@ ColumnLayout {
 
           Repeater {
             model: [
-              { sec: 15, label: "15s" },
-              { sec: 30, label: "30s" },
-              { sec: 60, label: "60s" },
-              { sec: 120, label: "2m" },
-              { sec: 300, label: "5m" }
+              { sec: 10, label: "10s" },
+              { sec: 15, label: "15s (default)" }
             ]
             delegate: Rectangle {
               required property var modelData
-              readonly property bool isSelected: (root.settings.refreshSeconds || 30) === modelData.sec
+              readonly property bool isSelected: (root.settings.activeRefreshSeconds || 15) === modelData.sec
               implicitHeight: Style.space(24)
-              implicitWidth: refPillText.implicitWidth + Style.space(14)
+              implicitWidth: activePillText.implicitWidth + Style.space(14)
               radius: 4
-              color: isSelected ? root.accent : (refMouse.containsMouse ? root.cardHover : root.track)
+              color: isSelected ? root.accent : (activeMouse.containsMouse ? root.cardHover : root.track)
               border.width: 1
               border.color: isSelected ? root.accent : root.outline
 
               Text {
                 textFormat: Text.PlainText;
-                id: refPillText
+                id: activePillText
                 anchors.centerIn: parent
                 text: modelData.label
                 color: isSelected ? root.accentForeground : root.foreground
@@ -319,11 +316,61 @@ ColumnLayout {
               }
 
               MouseArea {
-                id: refMouse
+                id: activeMouse
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: root.settingChanged("refreshSeconds", modelData.sec)
+                onClicked: root.settingChanged("activeRefreshSeconds", modelData.sec)
+              }
+            }
+          }
+        }
+
+        Text {
+          textFormat: Text.PlainText;
+          text: "Idle rate (while closed in background)"
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption - 2
+        }
+
+        RowLayout {
+          spacing: Style.space(6)
+
+          Repeater {
+            model: [
+              { sec: 60, label: "1m" },
+              { sec: 120, label: "2m (default)" },
+              { sec: 180, label: "3m" },
+              { sec: 300, label: "5m" }
+            ]
+            delegate: Rectangle {
+              required property var modelData
+              readonly property bool isSelected: (root.settings.idleRefreshSeconds || 120) === modelData.sec
+              implicitHeight: Style.space(24)
+              implicitWidth: idlePillText.implicitWidth + Style.space(14)
+              radius: 4
+              color: isSelected ? root.accent : (idleMouse.containsMouse ? root.cardHover : root.track)
+              border.width: 1
+              border.color: isSelected ? root.accent : root.outline
+
+              Text {
+                textFormat: Text.PlainText;
+                id: idlePillText
+                anchors.centerIn: parent
+                text: modelData.label
+                color: isSelected ? root.accentForeground : root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 1
+                font.bold: isSelected
+              }
+
+              MouseArea {
+                id: idleMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.settingChanged("idleRefreshSeconds", modelData.sec)
               }
             }
           }
@@ -675,6 +722,114 @@ ColumnLayout {
                 font.pixelSize: 8
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
+              }
+            }
+
+            // Scopes & Capabilities Checklist
+            ColumnLayout {
+              visible: !!(root.diagnostics && root.diagnostics.capabilities)
+              Layout.fillWidth: true
+              spacing: Style.space(4)
+
+              Text {
+                textFormat: Text.PlainText;
+                text: "API PERMISSIONS & SCOPES"
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+                font.bold: true
+              }
+
+              RowLayout {
+                Layout.fillWidth: true
+                spacing: Style.space(6)
+
+                // Scope 1: devices:write
+                Rectangle {
+                  Layout.fillWidth: true
+                  implicitHeight: Style.space(22)
+                  radius: 3
+                  color: root.track
+                  border.width: 1
+                  border.color: (root.diagnostics && root.diagnostics.capabilities && root.diagnostics.capabilities.powerCycle && !root.diagnostics.capabilities.powerCycle.allowed) ? root.urgent : root.outline
+
+                  RowLayout {
+                    anchors.centerIn: parent
+                    spacing: Style.space(4)
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: (root.diagnostics && root.diagnostics.capabilities && root.diagnostics.capabilities.powerCycle && !root.diagnostics.capabilities.powerCycle.allowed) ? "" : ""
+                      color: (root.diagnostics && root.diagnostics.capabilities && root.diagnostics.capabilities.powerCycle && !root.diagnostics.capabilities.powerCycle.allowed) ? root.urgent : root.healthy
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                    }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: "devices:write (PoE)"
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                    }
+                  }
+                }
+
+                // Scope 2: firmware:upgrade
+                Rectangle {
+                  Layout.fillWidth: true
+                  implicitHeight: Style.space(22)
+                  radius: 3
+                  color: root.track
+                  border.width: 1
+                  border.color: (root.diagnostics && root.diagnostics.capabilities && root.diagnostics.capabilities.firmwareUpgrade && !root.diagnostics.capabilities.firmwareUpgrade.allowed) ? root.urgent : root.outline
+
+                  RowLayout {
+                    anchors.centerIn: parent
+                    spacing: Style.space(4)
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: (root.diagnostics && root.diagnostics.capabilities && root.diagnostics.capabilities.firmwareUpgrade && !root.diagnostics.capabilities.firmwareUpgrade.allowed) ? "" : ""
+                      color: (root.diagnostics && root.diagnostics.capabilities && root.diagnostics.capabilities.firmwareUpgrade && !root.diagnostics.capabilities.firmwareUpgrade.allowed) ? root.urgent : root.healthy
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                    }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: "firmware:upgrade"
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                    }
+                  }
+                }
+
+                // Scope 3: protect:stream
+                Rectangle {
+                  Layout.fillWidth: true
+                  implicitHeight: Style.space(22)
+                  radius: 3
+                  color: root.track
+                  border.width: 1
+                  border.color: (root.diagnostics && root.diagnostics.capabilities && root.diagnostics.capabilities.protectStreams && !root.diagnostics.capabilities.protectStreams.allowed) ? root.urgent : root.outline
+
+                  RowLayout {
+                    anchors.centerIn: parent
+                    spacing: Style.space(4)
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: (root.diagnostics && root.diagnostics.capabilities && root.diagnostics.capabilities.protectStreams && !root.diagnostics.capabilities.protectStreams.allowed) ? "" : ""
+                      color: (root.diagnostics && root.diagnostics.capabilities && root.diagnostics.capabilities.protectStreams && !root.diagnostics.capabilities.protectStreams.allowed) ? root.urgent : root.healthy
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption - 2
+                    }
+                    Text {
+                      textFormat: Text.PlainText;
+                      text: "protect:stream"
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: 8
+                    }
+                  }
+                }
               }
             }
 

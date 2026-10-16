@@ -31,38 +31,54 @@ ColumnLayout {
     pingHostRequested(host, label)
   }
 
-        spacing: Style.space(10)
+  readonly property bool partial: !!(root.fleetData && root.fleetData.partial)
+  readonly property var failedEndpoints: (root.fleetData && root.fleetData.failedEndpoints) || []
+  readonly property var unavailableTelemetry: (root.fleetData && root.fleetData.unavailableTelemetry) || []
+  readonly property bool clientsUnavailable: {
+    if (root.rawClients && root.rawClients.length > 0) return false
+    if (!root.partial) return false
+    if (root.unavailableTelemetry && root.unavailableTelemetry.indexOf("clients") >= 0) return true
+    if (root.failedEndpoints) {
+      for (var i = 0; i < root.failedEndpoints.length; i++) {
+        var ep = String(root.failedEndpoints[i])
+        if (ep.indexOf("stat/sta") >= 0 || ep.indexOf("clients") >= 0) return true
+      }
+    }
+    return false
+  }
 
-        readonly property var rawClients: root.fleetData && root.fleetData.clients ? root.fleetData.clients : []
-        readonly property var filteredClients: {
-          var list = rawClients
-          var query = root.clientSearch.toLowerCase().trim()
-          var siteFilter = root.clientSiteFilter
-          var medFilter = root.clientMediumFilter
+  spacing: Style.space(10)
 
-          return list.filter(function(c) {
-            if (siteFilter !== "All" && c.siteName !== siteFilter) return false
-            if (medFilter === "WiFi" && c.isWired) return false
-            if (medFilter === "Wired" && !c.isWired) return false
-            if (query !== "") {
-              var s = ((c.name || "") + " " + (c.hostname || "") + " " + (c.ip || "") + " " + (c.mac || "") + " " + (c.uplinkName || "") + " " + (c.essid || "")).toLowerCase()
-              if (s.indexOf(query) === -1) return false
-            }
-            return true
-          })
-        }
+  readonly property var rawClients: root.fleetData && root.fleetData.clients ? root.fleetData.clients : []
+  readonly property var filteredClients: {
+    var list = rawClients
+    var query = root.clientSearch.toLowerCase().trim()
+    var siteFilter = root.clientSiteFilter
+    var medFilter = root.clientMediumFilter
 
-        // Client Table Card with Integrated Search & Filters
-        SectionCard {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          title: "FLEET CLIENT ROSTER & UPLINK TOPOLOGY"
-          subtitle: "WiFi signal metrics (dBm), radio protocols (WiFi 6/7), uplink associations, and transfer stats"
-          iconText: ""
-          titleColor: root.foreground
-          fontFamily: root.fontFamily
-          badgeText: String(tab1View.filteredClients.length) + " / " + String(tab1View.rawClients.length) + " CLIENTS"
-          badgeColor: root.accent
+    return list.filter(function(c) {
+      if (siteFilter !== "All" && c.siteName !== siteFilter) return false
+      if (medFilter === "WiFi" && c.isWired) return false
+      if (medFilter === "Wired" && !c.isWired) return false
+      if (query !== "") {
+        var s = ((c.name || "") + " " + (c.hostname || "") + " " + (c.ip || "") + " " + (c.mac || "") + " " + (c.uplinkName || "") + " " + (c.essid || "")).toLowerCase()
+        if (s.indexOf(query) === -1) return false
+      }
+      return true
+    })
+  }
+
+  // Client Table Card with Integrated Search & Filters
+  SectionCard {
+    Layout.fillWidth: true
+    Layout.fillHeight: true
+    title: "FLEET CLIENT ROSTER & UPLINK TOPOLOGY"
+    subtitle: "WiFi signal metrics (dBm), radio protocols (WiFi 6/7), uplink associations, and transfer stats"
+    iconText: ""
+    titleColor: root.foreground
+    fontFamily: root.fontFamily
+    badgeText: root.clientsUnavailable ? "UNAVAILABLE" : (String(tab1View.filteredClients.length) + " / " + String(tab1View.rawClients.length) + " CLIENTS")
+    badgeColor: root.clientsUnavailable ? root.urgent : root.accent
 
           // Compact Search & Filter Toolbar
           RowLayout {
@@ -102,7 +118,7 @@ ColumnLayout {
                     id: medFilterText
                     textFormat: Text.PlainText;
                     anchors.centerIn: parent
-                    text: modelData === "All" ? "All Mediums" : (modelData === "WiFi" ? " WiFi Only" : "󰈀 Wired Only")
+                    text: modelData === "All" ? "All Mediums" : (modelData === "WiFi" ? " WiFi Only" : "\uf0e8 Wired Only")
                     color: root.clientMediumFilter === modelData ? root.accent : root.dim
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 2
@@ -131,16 +147,41 @@ ColumnLayout {
               width: parent.width
               spacing: Style.space(6)
 
-              Text {
-                textFormat: Text.PlainText;
+              Rectangle {
                 visible: tab1View.filteredClients.length === 0
-                text: tab1View.rawClients.length === 0 ? "Loading client telemetry from UniFi Site Manager..." : "No clients match the current search or filters."
-                color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.bodySmall
-                horizontalAlignment: Text.AlignHCenter
-                width: parent.width
-                topPadding: Style.space(30)
+                width: clientListCol.width
+                implicitHeight: Style.space(56)
+                radius: 5
+                color: root.track
+                border.width: 1
+                border.color: root.clientsUnavailable ? root.urgent : root.outline
+
+                ColumnLayout {
+                  anchors.centerIn: parent
+                  spacing: Style.space(3)
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    Layout.alignment: Qt.AlignHCenter
+                    text: root.clientsUnavailable
+                      ? "Client telemetry unavailable (endpoint stat/sta error)"
+                      : (tab1View.rawClients.length === 0 ? "No clients discovered in fleet" : "No clients match the current search or filters.")
+                    color: root.clientsUnavailable ? root.urgent : root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    font.bold: root.clientsUnavailable
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText;
+                    visible: root.clientsUnavailable
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "Telemetry is partial. Check UI Account permissions or API key."
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 2
+                  }
+                }
               }
 
               // High-density table column headers
@@ -158,12 +199,16 @@ ColumnLayout {
 
                   Text {
                     textFormat: Text.PlainText;
-                    Layout.preferredWidth: 32
+                    Layout.minimumWidth: 28
+                    Layout.maximumWidth: 28
+                    Layout.fillWidth: false
+                    Layout.preferredWidth: 28
                     text: "TYPE"
                     color: root.dim
                     font.family: root.fontFamily
                     font.pixelSize: 8
                     font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
                   }
 
                   Text {
@@ -181,8 +226,8 @@ ColumnLayout {
                   Text {
                     textFormat: Text.PlainText;
                     Layout.fillWidth: true
-                    Layout.minimumWidth: 140
-                    Layout.preferredWidth: 180
+                    Layout.minimumWidth: 120
+                    Layout.preferredWidth: 150
                     text: "UPLINK ASSOCIATION"
                     color: root.dim
                     font.family: root.fontFamily
@@ -192,6 +237,9 @@ ColumnLayout {
 
                   Text {
                     textFormat: Text.PlainText;
+                    Layout.minimumWidth: 130
+                    Layout.maximumWidth: 130
+                    Layout.fillWidth: false
                     Layout.preferredWidth: 130
                     text: "SIGNAL / PROTOCOL"
                     color: root.dim
@@ -202,6 +250,9 @@ ColumnLayout {
 
                   Text {
                     textFormat: Text.PlainText;
+                    Layout.minimumWidth: 140
+                    Layout.maximumWidth: 140
+                    Layout.fillWidth: false
                     Layout.preferredWidth: 140
                     text: "TRAFFIC & UPTIME"
                     color: root.dim
@@ -212,6 +263,9 @@ ColumnLayout {
 
                   Text {
                     textFormat: Text.PlainText;
+                    Layout.minimumWidth: 58
+                    Layout.maximumWidth: 58
+                    Layout.fillWidth: false
                     Layout.preferredWidth: 58
                     text: "ACTION"
                     color: root.dim
@@ -249,6 +303,9 @@ ColumnLayout {
 
                     // Col 1: Type icon pill
                     Rectangle {
+                      Layout.minimumWidth: 28
+                      Layout.maximumWidth: 28
+                      Layout.fillWidth: false
                       Layout.preferredWidth: 28
                       Layout.preferredHeight: 24
                       radius: 4
@@ -259,7 +316,7 @@ ColumnLayout {
                       Text {
                         textFormat: Text.PlainText;
                         anchors.centerIn: parent
-                        text: modelData.isWired ? "󰈀" : ""
+                        text: modelData.isWired ? "\uf0e8" : ""
                         color: modelData.isWired ? root.backup : root.accent
                         font.family: root.fontFamily
                         font.pixelSize: 11
@@ -285,14 +342,15 @@ ColumnLayout {
                           font.pixelSize: Style.font.caption
                           font.bold: true
                           elide: Text.ElideRight
-                          Layout.fillWidth: true
+                          Layout.maximumWidth: 165
                         }
 
                         Rectangle {
                           height: 14
-                          width: siteTagText.implicitWidth + 8
+                          implicitWidth: Math.min(95, siteTagText.implicitWidth + 8)
                           radius: 3
                           color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.15)
+                          clip: true
 
                           Text {
                             id: siteTagText
@@ -305,6 +363,8 @@ ColumnLayout {
                             font.bold: true
                           }
                         }
+
+                        Item { Layout.fillWidth: true }
                       }
 
                       Text {
@@ -321,8 +381,8 @@ ColumnLayout {
                     // Col 3: Uplink Association
                     ColumnLayout {
                       Layout.fillWidth: true
-                      Layout.minimumWidth: 140
-                      Layout.preferredWidth: 180
+                      Layout.minimumWidth: 120
+                      Layout.preferredWidth: 150
                       spacing: 1
 
                       Text {
@@ -349,10 +409,14 @@ ColumnLayout {
 
                     // Col 4: Signal Strength & Protocol
                     ColumnLayout {
+                      Layout.minimumWidth: 130
+                      Layout.maximumWidth: 130
+                      Layout.fillWidth: false
                       Layout.preferredWidth: 130
                       spacing: 1
 
                       RowLayout {
+                        Layout.fillWidth: true
                         spacing: 5
 
                         Rectangle {
@@ -369,6 +433,8 @@ ColumnLayout {
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 1
                           font.bold: true
+                          elide: Text.ElideRight
+                          Layout.fillWidth: true
                         }
                       }
 
@@ -385,6 +451,9 @@ ColumnLayout {
 
                     // Col 5: Transfer Stats & Uptime
                     ColumnLayout {
+                      Layout.minimumWidth: 140
+                      Layout.maximumWidth: 140
+                      Layout.fillWidth: false
                       Layout.preferredWidth: 140
                       spacing: 1
 
@@ -404,11 +473,16 @@ ColumnLayout {
                         color: root.dim
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 3
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
                       }
                     }
 
                     // Col 6: Quick Action Ping
                     Rectangle {
+                      Layout.minimumWidth: 58
+                      Layout.maximumWidth: 58
+                      Layout.fillWidth: false
                       Layout.preferredWidth: 58
                       Layout.preferredHeight: 22
                       radius: 4

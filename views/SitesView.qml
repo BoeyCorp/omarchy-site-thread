@@ -368,7 +368,7 @@ Column {
                       var u5 = sp.length > 1 ? (sp[1].utilization + "%") : "14%"
                       var u6 = sp.length > 2 ? (sp[2].utilization + "%") : "5%"
                       var clients = (root.fleetData && root.fleetData.network && root.fleetData.network.wifiClients !== undefined) ? root.fleetData.network.wifiClients : 0
-                      return "Tri-band RF Congestion: 2.4G " + u24 + " · 5G " + u5 + " · 6G " + u6 + " · " + clients + " wireless clients"
+                      return "RF Congestion: 2.4G " + u24 + " · 5G " + u5 + " · 6G " + u6 + " · " + clients + " WiFi clients"
                     }
                     color: root.dim
                     font.family: root.fontFamily
@@ -560,7 +560,7 @@ Column {
               model: root.cloudMode
                 ? (root.fleetData.sites || [])
                 : (root.fleetData.network && root.fleetData.network.devices ? root.fleetData.network.devices : [])
-              SiteRow {
+              delegate: SiteRow {
                 id: siteCardSurface
                 width: root.width
                 cloudMode: root.cloudMode
@@ -591,6 +591,8 @@ Column {
               width: root.width
               devices: root.getAllFleetDevices()
               currentFilter: root.deviceFilter
+              partial: !!(root.fleetData && root.fleetData.partial)
+              failedEndpoints: (root.fleetData && root.fleetData.failedEndpoints) || []
               foreground: root.foreground
               dim: root.dim
               accent: root.accent

@@ -37,9 +37,25 @@ ColumnLayout {
     copyToClipboardRequested(text, label)
   }
 
-        spacing: Style.space(8)
+  readonly property bool partial: !!(root.fleetData && root.fleetData.partial)
+  readonly property var failedEndpoints: (root.fleetData && root.fleetData.failedEndpoints) || []
+  readonly property var unavailableTelemetry: (root.fleetData && root.fleetData.unavailableTelemetry) || []
+  readonly property bool wlansUnavailable: {
+    if (root.fleetWlans && root.fleetWlans.length > 0) return false
+    if (!root.partial) return false
+    if (root.unavailableTelemetry && root.unavailableTelemetry.indexOf("wlans") >= 0) return true
+    if (root.failedEndpoints) {
+      for (var i = 0; i < root.failedEndpoints.length; i++) {
+        var ep = String(root.failedEndpoints[i])
+        if (ep.indexOf("rest/wlanconf") >= 0 || ep.indexOf("wlans") >= 0) return true
+      }
+    }
+    return false
+  }
 
-        readonly property var rawWlans: root.fleetWlans || []
+  spacing: Style.space(8)
+
+  readonly property var rawWlans: root.fleetWlans || []
         readonly property var siteFilterOptions: {
           var list = ["All"]
           if (root.fleetData && root.fleetData.sites) {
@@ -96,10 +112,13 @@ ColumnLayout {
               // Metric 1: Total SSIDs
               BorderSurface {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 Layout.preferredHeight: Style.space(48)
                 color: root.card
                 radius: 6
                 borderSpec: Border.flat(root.outline, 1)
+                clip: true
 
                 RowLayout {
                   anchors.fill: parent
@@ -108,9 +127,10 @@ ColumnLayout {
 
                   Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
                   ColumnLayout {
+                    Layout.fillWidth: true
                     spacing: 1
-                    Text { textFormat: Text.PlainText; text: "ACTIVE WLANS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                    Text { textFormat: Text.PlainText; text: String(root.fleetWlans.length) + " SSIDs"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true }
+                    Text { textFormat: Text.PlainText; text: "ACTIVE WLANS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; elide: Text.ElideRight; Layout.fillWidth: true }
+                    Text { textFormat: Text.PlainText; text: String(root.fleetWlans.length) + " SSIDs"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
                   }
                 }
               }
@@ -118,10 +138,13 @@ ColumnLayout {
               // Metric 2: Connected WiFi Clients
               BorderSurface {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 Layout.preferredHeight: Style.space(48)
                 color: root.card
                 radius: 6
                 borderSpec: Border.flat(root.outline, 1)
+                clip: true
 
                 RowLayout {
                   anchors.fill: parent
@@ -130,8 +153,9 @@ ColumnLayout {
 
                   Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
                   ColumnLayout {
+                    Layout.fillWidth: true
                     spacing: 1
-                    Text { textFormat: Text.PlainText; text: "WIFI CLIENTS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text { textFormat: Text.PlainText; text: "WIFI CLIENTS"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; elide: Text.ElideRight; Layout.fillWidth: true }
                     Text {
                       textFormat: Text.PlainText;
                       text: {
@@ -143,6 +167,8 @@ ColumnLayout {
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.body
                       font.bold: true
+                      elide: Text.ElideRight
+                      Layout.fillWidth: true
                     }
                   }
                 }
@@ -151,10 +177,13 @@ ColumnLayout {
               // Metric 3: Security & Roaming
               BorderSurface {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 Layout.preferredHeight: Style.space(48)
                 color: root.card
                 radius: 6
                 borderSpec: Border.flat(root.outline, 1)
+                clip: true
 
                 RowLayout {
                   anchors.fill: parent
@@ -163,9 +192,10 @@ ColumnLayout {
 
                   Text { textFormat: Text.PlainText; text: ""; color: root.accent; font.family: root.fontFamily; font.pixelSize: Style.font.title }
                   ColumnLayout {
+                    Layout.fillWidth: true
                     spacing: 1
-                    Text { textFormat: Text.PlainText; text: "SECURITY POSTURE"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
-                    Text { textFormat: Text.PlainText; text: "WPA3 & 802.11k/v/r Active"; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
+                    Text { textFormat: Text.PlainText; text: "SECURITY POSTURE"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; elide: Text.ElideRight; Layout.fillWidth: true }
+                    Text { textFormat: Text.PlainText; text: "WPA3 & 802.11k/v/r Active"; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
                   }
                 }
               }
@@ -173,10 +203,13 @@ ColumnLayout {
               // Metric 4: Auto-RF Optimization
               BorderSurface {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 0
                 Layout.preferredHeight: Style.space(48)
                 color: root.card
                 radius: 6
                 borderSpec: Border.flat(root.outline, 1)
+                clip: true
 
                 RowLayout {
                   anchors.fill: parent
@@ -185,16 +218,18 @@ ColumnLayout {
 
                   Text { textFormat: Text.PlainText; text: ""; color: root.healthy; font.family: root.fontFamily; font.pixelSize: Style.font.title }
                   ColumnLayout {
+                    Layout.fillWidth: true
                     spacing: 1
-                    Text { textFormat: Text.PlainText; text: "NIGHTLY AUTO-RF"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+                    Text { textFormat: Text.PlainText; text: "NIGHTLY AUTO-RF"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; elide: Text.ElideRight; Layout.fillWidth: true }
                     Text {
                       textFormat: Text.PlainText;
                       text: (root.fleetSpectrum && root.fleetSpectrum.autoRf) ? (root.fleetSpectrum.autoRf.status + " · " + root.fleetSpectrum.autoRf.lastRun) : "Optimized"
                       color: root.foreground
                       font.family: root.fontFamily
-                      font.pixelSize: Style.font.caption
+                      font.pixelSize: Style.font.caption - 1
                       font.bold: true
                       elide: Text.ElideRight
+                      Layout.fillWidth: true
                     }
                   }
                 }
@@ -260,11 +295,50 @@ ColumnLayout {
             // Section: Wireless Networks List
             Text {
               textFormat: Text.PlainText;
-              text: "FLEET WIRELESS NETWORKS & QR ONBOARDING (" + tab5View.filteredWlans.length + ")"
-              color: root.accent
+              text: root.wlansUnavailable
+                ? "FLEET WIRELESS NETWORKS (UNAVAILABLE)"
+                : ("FLEET WIRELESS NETWORKS & QR ONBOARDING (" + tab5View.filteredWlans.length + ")")
+              color: root.wlansUnavailable ? root.urgent : root.accent
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
               font.bold: true
+            }
+
+            Rectangle {
+              visible: tab5View.filteredWlans.length === 0
+              Layout.fillWidth: true
+              implicitHeight: Style.space(56)
+              radius: 5
+              color: root.track
+              border.width: 1
+              border.color: root.wlansUnavailable ? root.urgent : root.outline
+
+              ColumnLayout {
+                anchors.centerIn: parent
+                spacing: Style.space(3)
+
+                Text {
+                  textFormat: Text.PlainText;
+                  Layout.alignment: Qt.AlignHCenter
+                  text: root.wlansUnavailable
+                    ? "WLAN telemetry unavailable (endpoint rest/wlanconf error)"
+                    : (tab5View.rawWlans.length === 0 ? "No wireless networks discovered in fleet" : "No wireless networks match the current search or filters.")
+                  color: root.wlansUnavailable ? root.urgent : root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  font.bold: root.wlansUnavailable
+                }
+
+                Text {
+                  textFormat: Text.PlainText;
+                  visible: root.wlansUnavailable
+                  Layout.alignment: Qt.AlignHCenter
+                  text: "Telemetry is partial. Check UI Account permissions or API key."
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 2
+                }
+              }
             }
 
             // WLAN Cards Flow

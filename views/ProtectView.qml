@@ -11,6 +11,17 @@ Column {
   id: root
 
   property var fleetData: ({})
+  property var capabilities: root.fleetData && root.fleetData.capabilities ? root.fleetData.capabilities : null
+  readonly property bool canStreamProtect: {
+    if (!root.capabilities || !root.capabilities.protectStreams) return true
+    return root.capabilities.protectStreams.allowed !== false
+  }
+  readonly property string protectWarning: {
+    if (root.capabilities && root.capabilities.protectStreams && !root.canStreamProtect) {
+      return root.capabilities.protectStreams.warning || root.capabilities.protectStreams.missingPermission || "Missing 'protect:stream' scope: Camera snapshots and live streams unavailable"
+    }
+    return "Missing 'protect:stream' scope: Camera snapshots and live streams require 'protect.read' or 'protect:stream' permission"
+  }
   property bool cloudMode: false
   property string selectedCameraId: ""
   property string selectedCameraName: ""
@@ -23,12 +34,50 @@ Column {
   property string fontFamily: Style.font.family
 
   signal selectCameraRequested(string camId, string camName)
+  signal cleanupPriorSnapshotRequested()
   function selectCamera(camId, camName) {
     selectCameraRequested(camId, camName)
   }
 
             spacing: Style.space(8)
             PanelSectionHeader { width: root.width; text: root.cloudMode ? "PROTECT ACROSS ALL SITES" : "PROTECT CAMERAS"; foreground: root.foreground; fontFamily: root.fontFamily }
+
+            // Inline Protect Permission Warning Banner
+            Rectangle {
+              id: protectPermissionBanner
+              visible: !root.canStreamProtect
+              width: root.width
+              implicitHeight: protPermRow.implicitHeight + Style.space(12)
+              radius: 4
+              color: Qt.rgba(root.urgent.r, root.urgent.g, root.urgent.b, 0.12)
+              border.width: 1
+              border.color: root.urgent
+
+              RowLayout {
+                id: protPermRow
+                anchors.fill: parent
+                anchors.margins: Style.space(6)
+                spacing: Style.space(8)
+
+                Text {
+                  textFormat: Text.PlainText;
+                  text: ""
+                  color: root.urgent
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                }
+
+                Text {
+                  textFormat: Text.PlainText;
+                  Layout.fillWidth: true
+                  text: root.protectWarning
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 1
+                  wrapMode: Text.WordWrap
+                }
+              }
+            }
 
             Rectangle {
               visible: root.selectedCameraId !== ""
@@ -37,8 +86,29 @@ Column {
               radius: Style.cornerRadius
               color: Qt.rgba(0, 0, 0, 0.35)
               clip: true
-              Image { anchors.fill: parent; source: root.snapshotPath; fillMode: Image.PreserveAspectCrop; cache: false; asynchronous: true }
-              Text { textFormat: Text.PlainText; anchors.centerIn: parent; visible: root.snapshotPath === ""; text: root.cloudMode ? "Open Site Manager for live video" : "Loading " + root.selectedCameraName; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body }
+              Image {
+                anchors.fill: parent
+                source: root.snapshotPath
+                fillMode: Image.PreserveAspectCrop
+                cache: false
+                asynchronous: true
+                onStatusChanged: {
+                  if (status === Image.Ready) {
+                    root.cleanupPriorSnapshotRequested()
+                  }
+                }
+              }
+              Text {
+                textFormat: Text.PlainText;
+                anchors.centerIn: parent;
+                visible: root.snapshotPath === "";
+                text: !root.canStreamProtect
+                  ? "Missing 'protect:stream' permission for camera snapshots"
+                  : (root.cloudMode ? "Open Site Manager for live video" : "Loading " + root.selectedCameraName);
+                color: !root.canStreamProtect ? root.urgent : root.foreground;
+                font.family: root.fontFamily;
+                font.pixelSize: Style.font.body;
+              }
               Rectangle {
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom

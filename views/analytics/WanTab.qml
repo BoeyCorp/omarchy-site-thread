@@ -11,6 +11,12 @@ ColumnLayout {
   id: root
 
   property var fleetData: ({})
+  readonly property var pluggedWans: {
+    if (!root.fleetData || !Array.isArray(root.fleetData.wans)) return [];
+    return root.fleetData.wans.filter(function(item) {
+      return Boolean(item && item.plugged);
+    });
+  }
 
   property color foreground: (Color.foreground || "#D8DEE9")
   property color dim: (Color.dim || Qt.darker(foreground, 1.35))
@@ -40,7 +46,7 @@ ColumnLayout {
           iconText: ""
           titleColor: root.foreground
           fontFamily: root.fontFamily
-          badgeText: String(root.fleetData && root.fleetData.wans ? root.fleetData.wans.length : 0) + " INTERFACES"
+          badgeText: String(root.pluggedWans.length) + " INTERFACES"
           badgeColor: root.accent
 
           Flickable {
@@ -58,8 +64,8 @@ ColumnLayout {
 
               Text {
                 textFormat: Text.PlainText;
-                visible: !root.fleetData || !root.fleetData.wans || root.fleetData.wans.length === 0
-                text: "Querying gateway WAN interfaces..."
+                visible: !root.fleetData || !root.fleetData.wans || root.pluggedWans.length === 0
+                text: (!root.fleetData || !root.fleetData.wans) ? "Querying gateway WAN interfaces..." : "No plugged WAN interfaces detected across fleet"
                 color: root.dim
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.bodySmall
@@ -73,7 +79,7 @@ ColumnLayout {
                 width: wanCol.width
                 height: Style.space(22)
                 color: "transparent"
-                visible: Boolean(root.fleetData && root.fleetData.wans && root.fleetData.wans.length > 0)
+                visible: root.pluggedWans.length > 0
 
                 RowLayout {
                   anchors.fill: parent
@@ -83,6 +89,9 @@ ColumnLayout {
 
                   Text {
                     textFormat: Text.PlainText;
+                    Layout.minimumWidth: 88
+                    Layout.maximumWidth: 88
+                    Layout.fillWidth: false
                     Layout.preferredWidth: 88
                     text: "STATE"
                     color: root.dim
@@ -93,6 +102,9 @@ ColumnLayout {
 
                   Text {
                     textFormat: Text.PlainText;
+                    Layout.minimumWidth: 100
+                    Layout.maximumWidth: 100
+                    Layout.fillWidth: false
                     Layout.preferredWidth: 100
                     text: "INTERFACE"
                     color: root.dim
@@ -104,7 +116,7 @@ ColumnLayout {
                   Text {
                     textFormat: Text.PlainText;
                     Layout.fillWidth: true
-                    Layout.minimumWidth: 120
+                    Layout.minimumWidth: 130
                     Layout.preferredWidth: 160
                     text: "SITE & GATEWAY"
                     color: root.dim
@@ -116,8 +128,8 @@ ColumnLayout {
                   Text {
                     textFormat: Text.PlainText;
                     Layout.fillWidth: true
-                    Layout.minimumWidth: 140
-                    Layout.preferredWidth: 180
+                    Layout.minimumWidth: 150
+                    Layout.preferredWidth: 190
                     text: "PUBLIC IP & MAC"
                     color: root.dim
                     font.family: root.fontFamily
@@ -139,6 +151,9 @@ ColumnLayout {
 
                   Text {
                     textFormat: Text.PlainText;
+                    Layout.minimumWidth: 58
+                    Layout.maximumWidth: 58
+                    Layout.fillWidth: false
                     Layout.preferredWidth: 58
                     text: "ACTION"
                     color: root.dim
@@ -152,7 +167,7 @@ ColumnLayout {
 
               // High-density tabular interface rows
               Repeater {
-                model: root.fleetData && root.fleetData.wans ? root.fleetData.wans : []
+                model: root.pluggedWans
                 delegate: Rectangle {
                   required property var modelData
                   width: wanCol.width
@@ -176,6 +191,9 @@ ColumnLayout {
 
                     // Col 1: Status Dot & Link Type Tag
                     RowLayout {
+                      Layout.minimumWidth: 88
+                      Layout.maximumWidth: 88
+                      Layout.fillWidth: false
                       Layout.preferredWidth: 88
                       spacing: 6
 
@@ -203,10 +221,15 @@ ColumnLayout {
                           font.bold: true
                         }
                       }
+
+                      Item { Layout.fillWidth: true }
                     }
 
                     // Col 2: Interface / Port Pill & Speed
                     ColumnLayout {
+                      Layout.minimumWidth: 100
+                      Layout.maximumWidth: 100
+                      Layout.fillWidth: false
                       Layout.preferredWidth: 100
                       spacing: 1
 
@@ -242,7 +265,7 @@ ColumnLayout {
                     // Col 3: Site Name & Gateway Model
                     ColumnLayout {
                       Layout.fillWidth: true
-                      Layout.minimumWidth: 120
+                      Layout.minimumWidth: 130
                       Layout.preferredWidth: 160
                       spacing: 1
 
@@ -259,7 +282,7 @@ ColumnLayout {
 
                       Text {
                         textFormat: Text.PlainText;
-                        text: modelData.gatewayModel || "UniFi Gateway"
+                        text: modelData.gatewayModel || modelData.hostname || "UniFi Gateway"
                         color: root.dim
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption - 2
@@ -271,8 +294,8 @@ ColumnLayout {
                     // Col 4: Public IPv4 & IPv6 / MAC
                     ColumnLayout {
                       Layout.fillWidth: true
-                      Layout.minimumWidth: 140
-                      Layout.preferredWidth: 180
+                      Layout.minimumWidth: 150
+                      Layout.preferredWidth: 190
                       spacing: 1
 
                       Text {
@@ -315,6 +338,7 @@ ColumnLayout {
                       }
 
                       RowLayout {
+                        Layout.fillWidth: true
                         spacing: 4
 
                         Text {
@@ -332,12 +356,17 @@ ColumnLayout {
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 2
                           font.bold: true
+                          elide: Text.ElideRight
+                          Layout.fillWidth: true
                         }
                       }
                     }
 
                     // Col 6: Quick Action Ping
                     Rectangle {
+                      Layout.minimumWidth: 58
+                      Layout.maximumWidth: 58
+                      Layout.fillWidth: false
                       Layout.preferredWidth: 58
                       Layout.preferredHeight: 22
                       radius: 4

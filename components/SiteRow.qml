@@ -9,10 +9,11 @@ import "../Model.js" as Model
 
 BorderSurface {
   id: siteCardSurface
-  property var modelData: ({})
-  readonly property var rowData: siteCardSurface.modelData || ({})
+  required property var modelData
+  readonly property var rowData: (siteCardSurface.modelData && typeof siteCardSurface.modelData === "object") ? siteCardSurface.modelData : ({})
   property bool cloudMode: false
   property var siteConsole: null
+  property bool isChooserOpen: false
 
   property color foreground: (Color.foreground || "#D8DEE9")
   property color dim: (Color.dim || Qt.darker(foreground, 1.35))
@@ -32,7 +33,8 @@ BorderSurface {
   signal launchPingRequested(string ip)
   signal directConnectRequested(var consoleObj)
 
-  implicitHeight: siteCardCol.implicitHeight + Style.space(14)
+  implicitHeight: siteCardCol.implicitHeight + Style.space(18)
+  height: implicitHeight
   color: siteCardMouse.containsMouse ? siteCardSurface.cardHover : siteCardSurface.card
   radius: Style.cornerRadius
   borderSpec: Border.flat(siteCardMouse.containsMouse ? siteCardSurface.accent : siteCardSurface.outline, 1)
@@ -40,9 +42,10 @@ BorderSurface {
   MouseArea {
     id: siteCardMouse
     anchors.fill: parent
+    hoverEnabled: true
     enabled: siteCardSurface.cloudMode
     cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-    onClicked: siteCardSurface.siteClicked(siteCardSurface.modelData)
+    onClicked: siteCardSurface.siteClicked(siteCardSurface.rowData)
   }
 
   ColumnLayout {
@@ -137,7 +140,7 @@ BorderSurface {
       Text {
         textFormat: Text.PlainText;
         text: siteCardSurface.cloudMode
-          ? (String(siteCardSurface.rowData.deviceCount || 0) + " dev · " + String(siteCardSurface.rowData.clientCount || 0) + " cli ( " + (siteCardSurface.rowData.wifiClients || 0) + " / 󰈀 " + (siteCardSurface.rowData.wiredClients || 0) + ")" + (siteCardSurface.rowData.isp ? " · " + Model.safe(siteCardSurface.rowData.isp) : "") + " · WAN " + Number(siteCardSurface.rowData.wanUptime || 100).toFixed(1) + "%")
+          ? (String(siteCardSurface.rowData.deviceCount || 0) + " dev · " + String(siteCardSurface.rowData.clientCount || 0) + " cli ( " + (siteCardSurface.rowData.wifiClients || 0) + " / \uf0e8 " + (siteCardSurface.rowData.wiredClients || 0) + ")" + (siteCardSurface.rowData.isp ? " · " + Model.safe(siteCardSurface.rowData.isp) : "") + " · WAN " + (Number(siteCardSurface.rowData.wanUptime || 100) >= 99.95 ? "100" : Number(siteCardSurface.rowData.wanUptime || 100).toFixed(1)) + "%")
           : (Model.safe(siteCardSurface.rowData.model, "") + (siteCardSurface.rowData.ip ? " · " + Model.safe(siteCardSurface.rowData.ip) : ""))
         color: siteCardSurface.dim
         font.family: siteCardSurface.fontFamily
@@ -256,7 +259,85 @@ BorderSurface {
             fontFamily: siteCardSurface.fontFamily
           }
         }
+
+        // Multi-Protocol Action Chooser Button
+        Rectangle {
+          id: actionChooserBtn
+          visible: siteCardSurface.cloudMode && siteCardSurface.rowData.gatewayIp !== undefined && siteCardSurface.rowData.gatewayIp !== ""
+          implicitWidth: Style.space(22)
+          implicitHeight: Style.space(20)
+          radius: 3
+          color: siteCardSurface.isChooserOpen ? siteCardSurface.accent : (siteChooserMouse.containsMouse ? siteCardSurface.cardHover : siteCardSurface.track)
+          border.width: 1
+          border.color: siteCardSurface.isChooserOpen ? siteCardSurface.accent : siteCardSurface.outline
+
+          Text {
+            textFormat: Text.PlainText;
+            anchors.centerIn: parent
+            text: "⚡"
+            color: siteCardSurface.isChooserOpen ? siteCardSurface.accentForeground : siteCardSurface.accent
+            font.family: siteCardSurface.fontFamily
+            font.pixelSize: Style.font.caption - 2
+          }
+
+          MouseArea {
+            id: siteChooserMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              siteCardSurface.isChooserOpen = !siteCardSurface.isChooserOpen
+            }
+          }
+
+          PanelToolTip {
+            visible: siteChooserMouse.containsMouse
+            text: "Open multi-protocol action chooser for " + (siteCardSurface.rowData.name || "gateway")
+            fontFamily: siteCardSurface.fontFamily
+          }
+        }
       }
+    }
+
+    // Expandable Multi-Protocol Action Chooser
+    MultiProtocolChooser {
+      visible: siteCardSurface.isChooserOpen
+      Layout.fillWidth: true
+      device: ({
+        name: (siteCardSurface.rowData.name || "Site") + " Gateway",
+        model: siteCardSurface.rowData.gatewayModel || "Gateway",
+        ip: siteCardSurface.rowData.gatewayIp,
+        hostId: siteCardSurface.rowData.hostId,
+        site: siteCardSurface.rowData.name,
+        online: siteCardSurface.rowData.status !== "down"
+      })
+      consoleObj: siteCardSurface.siteConsole
+      foreground: siteCardSurface.foreground
+      dim: siteCardSurface.dim
+      accent: siteCardSurface.accent
+      card: siteCardSurface.card
+      cardHover: siteCardSurface.cardHover
+      track: siteCardSurface.track
+      outline: siteCardSurface.outline
+      urgent: siteCardSurface.urgent
+      healthy: siteCardSurface.healthy
+      fontFamily: siteCardSurface.fontFamily
+      onLaunchSsh: function(ip, user) { siteCardSurface.launchSshRequested(ip, user) }
+      onLaunchPing: function(ip) { siteCardSurface.launchPingRequested(ip) }
+      onOpenDirectConnect: function(c) { siteCardSurface.directConnectRequested(c) }
+      onCloseRequested: { siteCardSurface.isChooserOpen = false }
+    }
+
+    // Row 3: Live WAN Sparkline (Compact 60s / 1h mini throughput chart)
+    WanSparkline {
+      id: siteWanSparkline
+      visible: siteCardSurface.cloudMode && siteCardSurface.rowData.status !== undefined
+      site: siteCardSurface.rowData
+      compact: true
+      interactive: true
+      Layout.fillWidth: true
+      Layout.topMargin: Style.space(2)
+      implicitHeight: Style.space(26)
     }
   }
 }

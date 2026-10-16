@@ -69,16 +69,25 @@ ColumnLayout {
   }
 
   function getSiteThroughput(site) {
-    var baseClients = (site && site.clientCount) ? site.clientCount : 10
-    var ratio = Math.max(0.1, baseClients / 27.0)
-    var rx = []
-    var tx = []
-    var baseRx = [12, 18, 14, 25, 42, 38, 55, 78, 84, 62, 45, 52, 68, 74, 58, 48, 62, 54, 40, 32, 28, 35, 42, 50]
-    var baseTx = [4, 6, 5, 8, 12, 11, 16, 20, 22, 18, 14, 15, 19, 21, 16, 14, 17, 15, 12, 10, 8, 9, 11, 14]
-    for (var i = 0; i < 24; i++) {
-      rx.push(Math.round(baseRx[i] * ratio * 10) / 10)
-      tx.push(Math.round(baseTx[i] * ratio * 10) / 10)
+    if (typeof Model !== "undefined" && typeof Model.getSiteThroughput24h === "function") {
+      return Model.getSiteThroughput24h(site)
     }
+    if (site && site.wanHistory24h && Array.isArray(site.wanHistory24h.rx) && site.wanHistory24h.rx.length === 24) {
+      return { rx: site.wanHistory24h.rx, tx: site.wanHistory24h.tx || site.wanHistory24h.rx }
+    }
+    var isDown = String(site ? site.status : "") === "down"
+    if (isDown) return { rx: Array(24).fill(0), tx: Array(24).fill(0) }
+    var baseClients = (site && site.clientCount) ? site.clientCount : 10
+    var curRx = (site && site.rxRate !== undefined) ? site.rxRate : (baseClients * 1.35)
+    var curTx = (site && site.txRate !== undefined) ? site.txRate : (curRx * 0.28)
+    var rx = [], tx = []
+    for (var i = 0; i < 24; i++) {
+      var factor = 0.5 + 0.4 * Math.sin((i / 23) * Math.PI * 2)
+      rx.push(Math.round(curRx * factor * 10) / 10)
+      tx.push(Math.round(curTx * factor * 10) / 10)
+    }
+    rx[23] = Math.round(curRx * 10) / 10
+    tx[23] = Math.round(curTx * 10) / 10
     return { rx: rx, tx: tx }
   }
 
@@ -99,16 +108,13 @@ ColumnLayout {
       totalTx.push(0)
     }
 
-    if (activeSites.length === 0) {
-      totalRx = [12, 18, 14, 25, 42, 38, 55, 78, 84, 62, 45, 52, 68, 74, 58, 48, 62, 54, 40, 32, 28, 35, 42, 50]
-      totalTx = [4, 6, 5, 8, 12, 11, 16, 20, 22, 18, 14, 15, 19, 21, 16, 14, 17, 15, 12, 10, 8, 9, 11, 14]
-    } else {
-      for (var s = 0; s < activeSites.length; s++) {
-        var prof = getSiteThroughput(activeSites[s])
-        for (var i = 0; i < 24; i++) {
-          totalRx[i] = Math.round((totalRx[i] + (prof.rx[i] || 0)) * 10) / 10
-          totalTx[i] = Math.round((totalTx[i] + (prof.tx[i] || 0)) * 10) / 10
-        }
+    for (var s = 0; s < activeSites.length; s++) {
+      var prof = getSiteThroughput(activeSites[s])
+      var pRx = (prof && prof.rx) ? prof.rx : []
+      var pTx = (prof && prof.tx) ? prof.tx : []
+      for (var i = 0; i < 24; i++) {
+        if (pRx[i] !== undefined) totalRx[i] = Math.round((totalRx[i] + pRx[i]) * 10) / 10
+        if (pTx[i] !== undefined) totalTx[i] = Math.round((totalTx[i] + pTx[i]) * 10) / 10
       }
     }
 
@@ -566,14 +572,11 @@ ColumnLayout {
             titleColor: root.foreground
             fontFamily: root.fontFamily
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.preferredHeight: 3
 
             ColumnLayout {
               Layout.fillWidth: true
-              Layout.fillHeight: true
-              Layout.margins: Style.space(8)
-              spacing: Style.space(6)
+              Layout.topMargin: Style.space(2)
+              spacing: Style.space(5)
 
               readonly property int totalClients: root.fleetData && root.fleetData.network && root.fleetData.network.clientCount !== undefined ? root.fleetData.network.clientCount : 0
               readonly property int wifiClients: root.fleetData && root.fleetData.network && root.fleetData.network.wifiClients !== undefined ? root.fleetData.network.wifiClients : 0
@@ -586,6 +589,7 @@ ColumnLayout {
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
                 font.bold: true
+                Layout.fillWidth: true
               }
               Rectangle {
                 Layout.fillWidth: true
@@ -607,6 +611,7 @@ ColumnLayout {
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption - 1
                 font.bold: true
+                Layout.fillWidth: true
               }
               Rectangle {
                 Layout.fillWidth: true
@@ -621,7 +626,7 @@ ColumnLayout {
                 }
               }
 
-              Text { textFormat: Text.PlainText; text: "6 GHz WiFi 7 (U7 Pro Ready) · Low-Latency Priority Active"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2 }
+              Text { textFormat: Text.PlainText; text: "6 GHz WiFi 7 (U7 Pro Ready) · Low-Latency Priority Active"; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption - 2; Layout.fillWidth: true }
             }
           }
         }
@@ -644,7 +649,6 @@ ColumnLayout {
             badgeText: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.status === "connected") ? "MESH ACTIVE" : "DEGRADED"
             badgeColor: (root.fleetData && root.fleetData.sdwan && root.fleetData.sdwan.status === "connected") ? root.healthy : root.backup
             Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(140)
 
             Column {
               Layout.fillWidth: true

@@ -11,6 +11,9 @@ ColumnLayout {
   id: root
 
   property var fleetConsoles: []
+  property var fleetData: null
+  readonly property bool partial: !!(root.fleetData && root.fleetData.partial)
+  readonly property var failedEndpoints: (root.fleetData && root.fleetData.failedEndpoints) || []
   property string consoleSearch: ""
   property string consoleSiteFilter: "All"
   property int selectedConsoleIndex: 0
@@ -357,6 +360,43 @@ ColumnLayout {
                   id: consolesCol
                   width: parent.width
                   spacing: Style.space(4)
+
+                  Rectangle {
+                    visible: tab4View.filteredConsoles.length === 0
+                    width: consolesCol.width
+                    implicitHeight: Style.space(56)
+                    radius: 5
+                    color: root.track
+                    border.width: 1
+                    border.color: (root.partial && root.failedEndpoints && root.failedEndpoints.indexOf("/v1/hosts") >= 0) ? root.urgent : root.outline
+
+                    ColumnLayout {
+                      anchors.centerIn: parent
+                      spacing: Style.space(3)
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        Layout.alignment: Qt.AlignHCenter
+                        text: (root.partial && root.failedEndpoints && root.failedEndpoints.indexOf("/v1/hosts") >= 0)
+                          ? "Console telemetry unavailable (endpoint /v1/hosts error)"
+                          : "No consoles found"
+                        color: (root.partial && root.failedEndpoints && root.failedEndpoints.indexOf("/v1/hosts") >= 0) ? root.urgent : root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption
+                        font.bold: (root.partial && root.failedEndpoints && root.failedEndpoints.indexOf("/v1/hosts") >= 0)
+                      }
+
+                      Text {
+                        textFormat: Text.PlainText;
+                        visible: (root.partial && root.failedEndpoints && root.failedEndpoints.indexOf("/v1/hosts") >= 0)
+                        Layout.alignment: Qt.AlignHCenter
+                        text: "Telemetry is partial. Check UI Account permissions or API key."
+                        color: root.dim
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                      }
+                    }
+                  }
 
                   Repeater {
                     model: tab4View.filteredConsoles
@@ -816,6 +856,7 @@ ColumnLayout {
 
                     // Applications List
                     Column {
+                      width: appsContentCol.width
                       Layout.fillWidth: true
                       spacing: Style.space(4)
 
@@ -827,7 +868,8 @@ ColumnLayout {
                           required property int index
 
                           width: appsContentCol.width
-                          implicitHeight: appRowLayout.implicitHeight + Style.space(8)
+                          height: Style.space(38)
+                          implicitHeight: height
                           radius: 4
                           color: appRowMouse.containsMouse ? root.cardHover : root.card
                           border.width: 1
@@ -857,7 +899,7 @@ ColumnLayout {
                               Text {
                                 textFormat: Text.PlainText;
                                 anchors.centerIn: parent
-                                text: appRowRect.modelData.id === "network" ? ""
+                                text: appRowRect.modelData.id === "network" ? "\uf0e8"
                                   : (appRowRect.modelData.id === "protect" ? ""
                                   : (appRowRect.modelData.id === "drive" ? ""
                                   : (appRowRect.modelData.id === "innerspace" ? ""
@@ -930,11 +972,18 @@ ColumnLayout {
                                 color: root.dim
                                 font.family: root.fontFamily
                                 font.pixelSize: 8
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
                               }
+                            }
+
+                            Item {
+                              Layout.fillWidth: true
                             }
 
                             // App Action Buttons
                             RowLayout {
+                              Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                               spacing: Style.space(4)
 
                               // Direct App Launch Button
