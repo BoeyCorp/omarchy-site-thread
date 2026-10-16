@@ -14,6 +14,7 @@ BorderSurface {
   property bool cloudMode: false
   property var siteConsole: null
   property bool isChooserOpen: false
+  property string timeRange: "24 hours"
 
   property color foreground: (Color.foreground || "#D8DEE9")
   property color dim: (Color.dim || Qt.darker(foreground, 1.35))
@@ -328,16 +329,25 @@ BorderSurface {
       onCloseRequested: { siteCardSurface.isChooserOpen = false }
     }
 
-    // Row 3: Live WAN Sparkline (Compact 60s / 1h mini throughput chart)
+    // Row 3: 24-Hour WAN Sparkline (matching Overview tab, filtered for this site)
     WanSparkline {
       id: siteWanSparkline
       visible: siteCardSurface.cloudMode && siteCardSurface.rowData.status !== undefined
       site: siteCardSurface.rowData
-      compact: true
+      throughputData: siteCardSurface.rowData ? Model.getSiteThroughput24h(siteCardSurface.rowData) : null
+      compact: false
       interactive: true
+      range: siteCardSurface.timeRange // range: "24h"
+      onRangeSelected: function(r) { siteCardSurface.timeRange = r }
+      downloadColor: siteCardSurface.accent
+      uploadColor: siteCardSurface.healthy
+      foreground: siteCardSurface.foreground
+      dim: siteCardSurface.dim
+      outline: siteCardSurface.outline
+      fontFamily: siteCardSurface.fontFamily
       Layout.fillWidth: true
-      Layout.topMargin: Style.space(2)
-      implicitHeight: Style.space(26)
+      Layout.topMargin: Style.space(4)
+      implicitHeight: Style.space(100)
     }
   }
 }

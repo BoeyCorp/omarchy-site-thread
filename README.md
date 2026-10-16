@@ -37,8 +37,7 @@ The bar popup provides a compact 4-tab NOC dashboard designed for fast situation
 **Tab 0: Overview (Cockpit)** – Fleet health at a glance, global topology, and urgent incident monitoring.
 - **Fleet KPI Cards**: High-level status counters summarizing total online sites, WAN uplink stability, total hardware counts (highlighting offline units in urgent red), and client load broken down by Wi-Fi and wired connections.
 - **Interactive 3D Vector Globe**: A real-time orthographic vector wireframe globe mapping site locations with geographic pins and interconnecting Site Magic SD-WAN links. Supports mouse drag rotation, scroll zooming, and continuous auto-rotation.
-- **In-View Site Cards**: Dynamic site cards that orient with the globe camera, surfacing local throughput, client totals, and direct click-to-focus controls for sites currently visible.
-- **Live Fleet WAN Sparklines**: Rolling throughput graph and live bandwidth indicators showing fleet-wide upload and download rates.
+- **Fleet WAN Sparklines**: Real 24-hour historical throughput graph (at 5-minute interval fidelity) and bandwidth indicators showing fleet-wide upload and download rates.
 - **Priority Attention Banner**: An alert strip highlighting active hardware and connectivity disruptions, detailing affected devices, host locations, and downtime duration.
 - **Quick Action Header**: Instant shortcuts to launch the standalone 7-tab Fleet Analytics window, trigger manual background syncs, and open preferences.
 
@@ -49,7 +48,7 @@ The bar popup provides a compact 4-tab NOC dashboard designed for fast situation
   - **Site Magic SD-WAN**: Reports active mesh connectivity across gateways with a quick link to the SD-WAN topology view.
   - **WiFi & RF Spectrum Health**: Fleet SSID counts and real-time tri-band channel utilization across 2.4 GHz, 5 GHz, and 6 GHz spectrums.
   - **Fleet Firmware & Backups**: Upgrade readiness indicators, pending update counts, and cloud backup freshness across all consoles.
-- **Per-Site Health Rows**: Detailed cards for each managed site indicating gateway model badges (e.g. UCG Max, UCG Ultra, UXG Pro), online status, device counts, client distribution, WAN uptime percentages, and a 60-second / 1-hour rolling throughput sparkline.
+- **Per-Site Health Rows**: Detailed cards for each managed site indicating gateway model badges (e.g. UCG Max, UCG Ultra, UXG Pro), online status, device counts, client distribution, WAN uptime percentages, and a 24-hour WAN throughput sparkline.
 - **Multi-Protocol Action Chooser**: 1-click launcher buttons to open the site's UniFi OS console web interface, open an SSH terminal session to the gateway, or launch an active ICMP ping latency monitor.
 - **Click-to-Drilldown**: Click any site row or card to transition directly into that site's live Network view and Hierarchical Topology Tree.
 
@@ -145,7 +144,7 @@ Opened from the header button or keyboard shortcut (`a` / `m`). Includes an inst
   - Native Wayland clipboard copying via `wl-copy`
 - **Hierarchical Site Topology**: Collapsible `Gateway ➔ Switch ➔ AP ➔ Clients` tree with secondary client collapse controls, port speeds, PoE delivery, and RF band badges.
 - **Adaptive Dual-Rate Polling**: Minimizes background resource consumption and cloud API overhead by switching between an active interval (10s–15s) when the UI is open and an idle interval (60s–300s) when closed in the background.
-- **Live WAN Sparklines**: Rolling 60s/1h throughput graphs in site rows and fleet overview, plus differentiated 24-hour historical curves in Analytics.
+- **24-Hour WAN Sparklines**: Embedded 24-hour historical throughput curves (at 5-minute fidelity) across site rows, site cards, and fleet overview, perfectly matching the 24-hour WAN throughput telemetry in Analytics.
 - **Scope Detection & Safe Operations**: Enforces least-privilege API token security with inline permission warning banners, disabled trigger controls, and forbidden cursors when credentials lack required scopes.
 - **Durable Operations History**: Persistent audit trail (`~/.config/site-thread/operations_history.json`) mapping hardware MACs to friendly device hostnames and tracking operation acceptance through completion.
 - **Full IPC Automation**: Comprehensive Quickshell IPC interface for Hyprland keybindings, shell scripts, and external automation.

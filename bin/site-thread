@@ -1677,6 +1677,22 @@ def build_capabilities(
     }
 
 
+def _interpolate_288(pts: list[float], final_val: float | None = None) -> list[float]:
+    res: list[float] = []
+    n = len(pts)
+    for k in range(288):
+        x = (k / 287.0) * (n - 1)
+        i0 = int(x)
+        i1 = min(n - 1, i0 + 1)
+        t = x - i0
+        mu = (1.0 - math.cos(t * math.pi)) / 2.0
+        val = pts[i0] * (1.0 - mu) + pts[i1] * mu
+        res.append(round(val, 1))
+    if final_val is not None:
+        res[-1] = final_val
+    return res
+
+
 def demo_summary() -> dict[str, Any]:
     now = int(time.time())
     devices = [
@@ -1697,8 +1713,9 @@ def demo_summary() -> dict[str, Any]:
             "offlineCount": 0, "updateCount": 1, "wanUptime": 100, "permission": "owner", "status": "up", "statusText": "Online",
             "rxRate": 68.4, "txRate": 16.2,
             "wanHistory24h": {
-                "rx": [8.2, 5.4, 4.1, 4.8, 6.2, 12.5, 26.4, 31.8, 24.2, 16.5, 14.1, 15.8, 18.2, 16.0, 22.4, 38.6, 52.1, 74.3, 88.6, 92.4, 85.1, 76.5, 71.2, 68.4],
-                "tx": [1.8, 1.2, 0.9, 1.1, 1.5, 3.2, 6.8, 7.9, 5.5, 3.8, 3.2, 3.6, 4.2, 3.9, 5.8, 9.4, 12.8, 18.2, 21.5, 22.8, 20.4, 18.1, 16.8, 16.2]
+                "rx": _interpolate_288([8.2, 5.4, 4.1, 4.8, 6.2, 12.5, 26.4, 31.8, 24.2, 16.5, 14.1, 15.8, 18.2, 16.0, 22.4, 38.6, 52.1, 74.3, 88.6, 92.4, 85.1, 76.5, 71.2, 68.4], 68.4),
+                "tx": _interpolate_288([1.8, 1.2, 0.9, 1.1, 1.5, 3.2, 6.8, 7.9, 5.5, 3.8, 3.2, 3.6, 4.2, 3.9, 5.8, 9.4, 12.8, 18.2, 21.5, 22.8, 20.4, 18.1, 16.8, 16.2], 16.2),
+                "intervalMinutes": 5,
             }
         },
         {
@@ -1708,8 +1725,9 @@ def demo_summary() -> dict[str, Any]:
             "offlineCount": 0, "updateCount": 0, "wanUptime": 99.99, "permission": "admin", "status": "backup", "statusText": "Backup WAN active",
             "rxRate": 142.8, "txRate": 38.5,
             "wanHistory24h": {
-                "rx": [18.5, 14.2, 12.8, 13.5, 16.0, 24.5, 48.2, 78.6, 135.4, 162.8, 174.2, 158.6, 108.4, 142.0, 165.8, 168.4, 152.0, 124.6, 76.2, 52.4, 38.6, 68.2, 118.5, 142.8],
-                "tx": [7.2, 5.8, 5.1, 5.4, 6.2, 9.5, 16.8, 24.2, 36.8, 44.5, 48.2, 42.6, 28.4, 38.2, 45.6, 46.8, 41.2, 33.5, 20.4, 15.2, 11.8, 18.6, 31.4, 38.5]
+                "rx": _interpolate_288([18.5, 14.2, 12.8, 13.5, 16.0, 24.5, 48.2, 78.6, 135.4, 162.8, 174.2, 158.6, 108.4, 142.0, 165.8, 168.4, 152.0, 124.6, 76.2, 52.4, 38.6, 68.2, 118.5, 142.8], 142.8),
+                "tx": _interpolate_288([7.2, 5.8, 5.1, 5.4, 6.2, 9.5, 16.8, 24.2, 36.8, 44.5, 48.2, 42.6, 28.4, 38.2, 45.6, 46.8, 41.2, 33.5, 20.4, 15.2, 11.8, 18.6, 31.4, 38.5], 38.5),
+                "intervalMinutes": 5,
             }
         },
         {
@@ -1719,8 +1737,9 @@ def demo_summary() -> dict[str, Any]:
             "offlineCount": 11, "updateCount": 2, "wanUptime": 99.72, "permission": "admin", "status": "down", "statusText": "Site unreachable",
             "rxRate": 0.0, "txRate": 0.0,
             "wanHistory24h": {
-                "rx": [22.4, 21.8, 20.5, 21.0, 24.6, 32.8, 38.5, 41.2, 39.6, 42.4, 40.8, 38.2, 35.4, 37.8, 36.2, 34.0, 31.5, 28.2, 25.0, 18.2, 0.0, 0.0, 0.0, 0.0],
-                "tx": [12.1, 11.5, 10.8, 11.2, 13.4, 17.5, 20.8, 22.4, 21.5, 23.1, 22.0, 20.8, 19.2, 20.4, 19.8, 18.5, 17.0, 15.2, 13.8, 8.4, 0.0, 0.0, 0.0, 0.0]
+                "rx": _interpolate_288([22.4, 21.8, 20.5, 21.0, 24.6, 32.8, 38.5, 41.2, 39.6, 42.4, 40.8, 38.2, 35.4, 37.8, 36.2, 34.0, 31.5, 28.2, 25.0, 18.2, 0.0, 0.0, 0.0, 0.0], 0.0),
+                "tx": _interpolate_288([12.1, 11.5, 10.8, 11.2, 13.4, 17.5, 20.8, 22.4, 21.5, 23.1, 22.0, 20.8, 19.2, 20.4, 19.8, 18.5, 17.0, 15.2, 13.8, 8.4, 0.0, 0.0, 0.0, 0.0], 0.0),
+                "intervalMinutes": 5,
             }
         },
     ]
@@ -2713,6 +2732,7 @@ class TelemetryDetails(tuple):
     failed_endpoints: list[str]
     endpoint_errors: dict[str, str]
     unavailable_telemetry: list[str]
+    wan_history: dict[str, dict[str, list[float]]]
 
     def __new__(
         cls,
@@ -2720,11 +2740,13 @@ class TelemetryDetails(tuple):
         failed_endpoints: list[str] | None = None,
         endpoint_errors: dict[str, str] | None = None,
         unavailable_telemetry: list[str] | None = None,
+        wan_history: dict[str, dict[str, list[float]]] | None = None,
     ):
         obj = super().__new__(cls, items)
         obj.failed_endpoints = failed_endpoints or []
         obj.endpoint_errors = endpoint_errors or {}
         obj.unavailable_telemetry = unavailable_telemetry or []
+        obj.wan_history = wan_history or {}
         return obj
 
 
@@ -2892,17 +2914,32 @@ def extract_telemetry_details(
             tasks.append((hid, actual_sid, f"/network/api/s/{actual_slug}/stat/sta"))
             tasks.append((hid, actual_sid, f"/network/api/s/{actual_slug}/stat/device"))
             tasks.append((hid, actual_sid, f"/network/api/s/{actual_slug}/rest/wlanconf"))
+            tasks.append((hid, actual_sid, f"/network/api/s/{actual_slug}/stat/report/5minutes.site"))
 
     def fetch_stat(item: tuple[str, str, str]) -> tuple[str, str, str, int, list[dict[str, Any]], str]:
         hid, sid, path = item
         full_ep = connector_path(hid, path)
         try:
-            status, res = cloud_json_request(key, full_ep)
-            if status != 200 and not path.startswith("/network/api/s/default/"):
-                fallback_path = re.sub(r"/network/api/s/[^/]+/", "/network/api/s/default/", path)
-                fallback_status, fallback_res = cloud_json_request(key, connector_path(hid, fallback_path))
-                if fallback_status == 200:
-                    status, res = fallback_status, fallback_res
+            if "stat/report/5minutes.site" in path or "stat/report/hourly.site" in path:
+                now_ms = int(time.time() * 1000)
+                body = {
+                    "attrs": ["bytes", "rx_bytes", "tx_bytes", "wan-rx_bytes", "wan-tx_bytes"],
+                    "start": now_ms - 86400000,
+                    "end": now_ms,
+                }
+                status, res = cloud_json_request(key, full_ep, method="POST", payload=body)
+                if status != 200 and not path.startswith("/network/api/s/default/"):
+                    fallback_path = re.sub(r"/network/api/s/[^/]+/", "/network/api/s/default/", path)
+                    fallback_status, fallback_res = cloud_json_request(key, connector_path(hid, fallback_path), method="POST", payload=body)
+                    if fallback_status == 200:
+                        status, res = fallback_status, fallback_res
+            else:
+                status, res = cloud_json_request(key, full_ep)
+                if status != 200 and not path.startswith("/network/api/s/default/"):
+                    fallback_path = re.sub(r"/network/api/s/[^/]+/", "/network/api/s/default/", path)
+                    fallback_status, fallback_res = cloud_json_request(key, connector_path(hid, fallback_path))
+                    if fallback_status == 200:
+                        status, res = fallback_status, fallback_res
             if status == 200 and isinstance(res, dict):
                 data = res.get("data", [])
                 return hid, sid, path, status, data if isinstance(data, list) else [], ""
@@ -2920,6 +2957,7 @@ def extract_telemetry_details(
     host_stas: dict[str, list[dict[str, Any]]] = {}
     host_devs: dict[str, list[dict[str, Any]]] = {}
     host_wlans: dict[str, list[dict[str, Any]]] = {}
+    host_hourly: dict[tuple[str, str], list[dict[str, Any]]] = {}
     stat_failures: list[tuple[str, str, str, int, str]] = []
 
     if tasks:
@@ -2934,10 +2972,13 @@ def extract_telemetry_details(
                         host_stas.setdefault(hid, []).extend(items)
                     elif "rest/wlanconf" in path:
                         host_wlans.setdefault(hid, []).extend(items)
+                    elif "stat/report/5minutes.site" in path or "stat/report/hourly.site" in path:
+                        host_hourly.setdefault((hid, sid), []).extend(items)
                     else:
                         host_devs.setdefault(hid, []).extend(items)
                 else:
-                    stat_failures.append((hid, sid, path, status, err_msg))
+                    if "stat/report/5minutes.site" not in path and "stat/report/hourly.site" not in path:
+                        stat_failures.append((hid, sid, path, status, err_msg))
 
     ret_failed_endpoints: list[str] = []
     ret_endpoint_errors: dict[str, str] = {}
@@ -3142,6 +3183,31 @@ def extract_telemetry_details(
                 "ports": ports,
             })
 
+    wan_history: dict[str, dict[str, Any]] = {}
+    for (hid, sid), points in host_hourly.items():
+        valid_points = [p for p in points if isinstance(p, dict)]
+        if not valid_points:
+            continue
+        is_5m = len(valid_points) > 48
+        target_len = 288 if is_5m else 24
+        divisor = 37500000.0 if is_5m else 450000000.0
+        slice_points = valid_points[-target_len:] if len(valid_points) >= target_len else valid_points
+        rx_pts = [round(float(p.get("wan-rx_bytes") or p.get("rx_bytes") or 0.0) / divisor, 2) for p in slice_points]
+        tx_pts = [round(float(p.get("wan-tx_bytes") or p.get("tx_bytes") or 0.0) / divisor, 2) for p in slice_points]
+        if len(rx_pts) < target_len:
+            pad = target_len - len(rx_pts)
+            rx_pts = [0.0] * pad + rx_pts
+            tx_pts = [0.0] * pad + tx_pts
+        hist_entry = {
+            "rx": rx_pts,
+            "tx": tx_pts,
+            "intervalMinutes": 5 if is_5m else 60,
+        }
+        if sid:
+            wan_history[sid] = hist_entry
+        if hid:
+            wan_history[hid] = hist_entry
+
     wlans = extract_real_wlans(host_wlans, host_stas, host_devs, dict(site_map) | site_name_by_id)
     spectrum = extract_real_spectrum(host_devs, host_stas, site_map)
     return TelemetryDetails(
@@ -3149,6 +3215,7 @@ def extract_telemetry_details(
         failed_endpoints=ret_failed_endpoints,
         endpoint_errors=ret_endpoint_errors,
         unavailable_telemetry=ret_unavailable,
+        wan_history=wan_history,
     )
 
 
@@ -3239,6 +3306,7 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
 
         rx_val = nested_number(stats, "rxRate")
         tx_val = nested_number(stats, "txRate")
+        rate_from_stats = True
         if not rx_val and not tx_val:
             rx_bytes_r = nested_number(stats, "rx_bytes-r")
             tx_bytes_r = nested_number(stats, "tx_bytes-r")
@@ -3248,12 +3316,15 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
             elif status != "down" and client_count > 0:
                 rx_val = round(max(1.5, client_count * 1.35), 1)
                 tx_val = round(max(0.4, rx_val * 0.28), 1)
+                rate_from_stats = False
             else:
                 rx_val = 0.0
                 tx_val = 0.0
+                rate_from_stats = False
         if status == "down":
             rx_val = 0.0
             tx_val = 0.0
+            rate_from_stats = False
 
         sites.append({
             "id": model_string(first_value(item, "siteId", "id"), max_length=128),
@@ -3279,6 +3350,7 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
             "statusText": status_text,
             "rxRate": rx_val,
             "txRate": tx_val,
+            "rateFromStats": rate_from_stats,
         })
 
     sites.sort(key=site_sort_key)
@@ -3325,6 +3397,32 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
                 failed_endpoints.append(ep)
     if hasattr(details_res, "endpoint_errors"):
         endpoint_errors.update(details_res.endpoint_errors)
+
+    if hasattr(details_res, "wan_history") and details_res.wan_history:
+        for s in sites:
+            s_id = s.get("id")
+            s_hid = s.get("hostId")
+            hist = details_res.wan_history.get(s_id) or details_res.wan_history.get(s_hid)
+            if hist:
+                s["wanHistory24h"] = {
+                    "rx": list(hist["rx"]),
+                    "tx": list(hist["tx"]),
+                    "intervalMinutes": hist.get("intervalMinutes", 5),
+                }
+                if s.get("rateFromStats"):
+                    if s.get("rxRate") is not None and s.get("rxRate") > 0:
+                        s["wanHistory24h"]["rx"][-1] = s["rxRate"]
+                    if s.get("txRate") is not None and s.get("txRate") > 0:
+                        s["wanHistory24h"]["tx"][-1] = s["txRate"]
+                else:
+                    if hist.get("rx") and len(hist["rx"]) > 0:
+                        s["rxRate"] = hist["rx"][-1]
+                    if hist.get("tx") and len(hist["tx"]) > 0:
+                        s["txRate"] = hist["tx"][-1]
+    for s in sites:
+        s.pop("rateFromStats", None)
+        if s.get("status") == "down" and not s.get("wanHistory24h"):
+            s["wanHistory24h"] = {"rx": [0.0] * 288, "tx": [0.0] * 288, "intervalMinutes": 5}
 
     unavailable_telemetry: list[str] = []
     telemetry_status: dict[str, str] = {}

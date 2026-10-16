@@ -16,6 +16,8 @@ Column {
   property bool cloudMode: false
   property string deviceFilter: "all"
   property var fleetDevices: []
+  property string timeRange: "24 hours"
+  readonly property var timeOptions: ["24 hours", "12 hours", "6 hours", "1 hour"]
 
   property color foreground: (Color.foreground || "#D8DEE9")
   property color dim: (Color.dim || Qt.darker(foreground, 1.35))
@@ -169,7 +171,65 @@ Column {
               width: root.width
               spacing: Style.space(8)
 
-              PanelSectionHeader { width: root.width; text: root.cloudMode ? "ALL SITES (" + (root.fleetData.sites ? root.fleetData.sites.length : 0) + ")" : "SITES"; foreground: root.foreground; fontFamily: root.fontFamily }
+              RowLayout {
+                width: root.width
+                spacing: Style.space(4)
+
+                PanelSectionHeader {
+                  text: root.cloudMode ? "ALL SITES (" + (root.fleetData.sites ? root.fleetData.sites.length : 0) + ")" : "SITES"
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  Layout.alignment: Qt.AlignVCenter
+                }
+
+                Item { Layout.fillWidth: true }
+
+                RowLayout {
+                  spacing: Style.space(2)
+                  Layout.alignment: Qt.AlignVCenter
+
+                  Repeater {
+                    model: root.timeOptions
+                    delegate: Rectangle {
+                      required property string modelData
+                      readonly property bool isSelected: root.timeRange === modelData || (root.timeRange === "24h" && modelData === "24 hours") || (root.timeRange === "12h" && modelData === "12 hours") || (root.timeRange === "6h" && modelData === "6 hours") || (root.timeRange === "1h" && modelData === "1 hour")
+                      implicitHeight: Style.space(20)
+                      implicitWidth: optLabel.implicitWidth + Style.space(12)
+                      radius: 3
+                      color: isSelected ? root.accent : (optArea.containsMouse ? root.cardHover : root.track)
+                      border.width: 1
+                      border.color: isSelected ? root.accent : root.outline
+
+                      Text {
+                        id: optLabel
+                        anchors.centerIn: parent
+                        textFormat: Text.PlainText;
+                        text: modelData
+                        color: isSelected ? root.accentForeground : root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                        font.bold: isSelected
+                      }
+
+                      MouseArea {
+                        id: optArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                          root.timeRange = modelData
+                        }
+                      }
+
+                      PanelToolTip {
+                        visible: optArea.containsMouse
+                        text: "Show " + modelData + " throughput telemetry"
+                        fontFamily: root.fontFamily
+                      }
+                    }
+                  }
+                }
+              }
 
               // Site Magic SD-WAN Mesh Banner
             BorderSurface {
@@ -564,6 +624,7 @@ Column {
                 id: siteCardSurface
                 width: root.width
                 cloudMode: root.cloudMode
+                timeRange: root.timeRange
                 siteConsole: (modelData && modelData.hostId) ? root.getSiteConsole(modelData.hostId) : null
                 foreground: root.foreground
                 dim: root.dim
@@ -581,6 +642,11 @@ Column {
                 onSiteClicked: function(s) { root.openSite(s) }
                 onLaunchSshRequested: function(ip, user) { root.launchSsh(ip, user) }
                 onLaunchPingRequested: function(ip) { root.launchPing(ip) }
+                onTimeRangeChanged: {
+                  if (siteCardSurface.timeRange && siteCardSurface.timeRange !== root.timeRange) {
+                    root.timeRange = siteCardSurface.timeRange
+                  }
+                }
               }
             }
           }

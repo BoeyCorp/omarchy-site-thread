@@ -2351,6 +2351,7 @@ class LiveWanSparklinesTests(unittest.TestCase):
         self.sparkline_qml = (ROOT / "components" / "WanSparkline.qml").read_text(encoding="utf-8")
         self.siterow_qml = (ROOT / "components" / "SiteRow.qml").read_text(encoding="utf-8")
         self.overview_qml = (ROOT / "views" / "OverviewView.qml").read_text(encoding="utf-8")
+        self.sites_qml = (ROOT / "views" / "SitesView.qml").read_text(encoding="utf-8")
         self.model_js = (ROOT / "Model.js").read_text(encoding="utf-8")
 
     def test_demo_summary_has_throughput(self) -> None:
@@ -2380,25 +2381,54 @@ class LiveWanSparklinesTests(unittest.TestCase):
     def test_wan_sparkline_component_features(self) -> None:
         self.assertIn("property var site: null", self.sparkline_qml)
         self.assertIn("property var throughputData: null", self.sparkline_qml)
-        self.assertIn('property string range: "60s"', self.sparkline_qml)
+        self.assertIn('property string range: "24h"', self.sparkline_qml)
         self.assertIn("property bool compact: false", self.sparkline_qml)
         self.assertIn("Canvas {", self.sparkline_qml)
         self.assertIn("id: sparkCanvas", self.sparkline_qml)
         self.assertIn("id: rollingTick", self.sparkline_qml)
-        self.assertIn('["60s", "1h"]', self.sparkline_qml)
+        self.assertIn("24-HOUR WAN THROUGHPUT", self.sparkline_qml)
         self.assertIn("downloadColor", self.sparkline_qml)
         self.assertIn("uploadColor", self.sparkline_qml)
 
     def test_siterow_embeds_compact_sparkline(self) -> None:
         self.assertIn("WanSparkline {", self.siterow_qml)
-        self.assertIn("compact: true", self.siterow_qml)
+        self.assertIn('range: "24h"', self.siterow_qml)
         self.assertIn("site: siteCardSurface.rowData", self.siterow_qml)
+        self.assertIn("throughputData: siteCardSurface.rowData ? Model.getSiteThroughput24h(siteCardSurface.rowData) : null", self.siterow_qml)
 
     def test_overview_embeds_fleet_sparkline_and_card_sparklines(self) -> None:
-        self.assertIn("WAN LIVE THROUGHPUT", self.overview_qml + self.sparkline_qml)
+        self.assertIn("24-HOUR WAN THROUGHPUT", self.overview_qml + self.sparkline_qml)
         self.assertIn("id: fleetWanSparkline", self.overview_qml)
-        self.assertIn("throughputData: root.fleetData && root.fleetData.fleetThroughput", self.overview_qml)
+        self.assertIn("Model.getFleetThroughput24h", self.overview_qml)
         self.assertIn("site: cardDelegate.modelData", self.overview_qml)
+
+    def test_sites_tab_individual_sparklines_match_overview(self) -> None:
+        self.assertNotIn("id: sitesFleetWanSparkline", self.sites_qml)
+        self.assertIn("throughputData: siteCardSurface.rowData ? Model.getSiteThroughput24h(siteCardSurface.rowData) : null", self.siterow_qml)
+        self.assertIn("compact: false", self.siterow_qml)
+        self.assertIn("interactive: true", self.siterow_qml)
+        self.assertIn("implicitHeight: Style.space(100)", self.siterow_qml)
+        self.assertIn("downloadColor: siteCardSurface.accent", self.siterow_qml)
+        self.assertIn("uploadColor: siteCardSurface.healthy", self.siterow_qml)
+        self.assertIn("Math.max(40, Math.ceil(root.peakRx / 20) * 20)", self.sparkline_qml)
+        self.assertIn("getThroughputDate", self.sparkline_qml)
+        self.assertIn("getThroughputTime", self.sparkline_qml)
+        self.assertIn("id: infoCard", self.sparkline_qml)
+        self.assertIn('text: root.range || "24h"', self.sparkline_qml)
+        self.assertIn('"24h ago", "18h", "12h", "6h", "Now"', self.sparkline_qml)
+
+    def test_sites_tab_time_options(self) -> None:
+        self.assertIn('"24 hours", "12 hours", "6 hours", "1 hour"', self.sites_qml)
+        self.assertIn('property string timeRange: "24 hours"', self.sites_qml)
+        self.assertIn('timeRange: root.timeRange', self.sites_qml)
+        self.assertIn('property string timeRange: "24 hours"', self.siterow_qml)
+        self.assertIn('["24h", "12h", "6h", "1h"]', self.sparkline_qml)
+        self.assertIn('12-HOUR WAN THROUGHPUT', self.sparkline_qml)
+        self.assertIn('6-HOUR WAN THROUGHPUT', self.sparkline_qml)
+        self.assertIn('1-HOUR WAN THROUGHPUT', self.sparkline_qml)
+        self.assertIn('["12h ago", "9h", "6h", "3h", "Now"]', self.sparkline_qml)
+        self.assertIn('["6h ago", "4.5h", "3h", "1.5h", "Now"]', self.sparkline_qml)
+        self.assertIn('["1h ago", "45m", "30m", "15m", "Now"]', self.sparkline_qml)
 
     def test_demo_summary_has_differentiated_24h_history(self) -> None:
         summary = SITE_THREAD.demo_summary()
@@ -2419,9 +2449,12 @@ class LiveWanSparklinesTests(unittest.TestCase):
         office_rx = office["wanHistory24h"]["rx"]
         wh_rx = warehouse["wanHistory24h"]["rx"]
 
-        self.assertEqual(len(home_rx), 24)
-        self.assertEqual(len(office_rx), 24)
-        self.assertEqual(len(wh_rx), 24)
+        self.assertEqual(len(home_rx), 288)
+        self.assertEqual(len(office_rx), 288)
+        self.assertEqual(len(wh_rx), 288)
+        self.assertEqual(home["wanHistory24h"].get("intervalMinutes"), 5)
+        self.assertEqual(office["wanHistory24h"].get("intervalMinutes"), 5)
+        self.assertEqual(warehouse["wanHistory24h"].get("intervalMinutes"), 5)
 
         # Home and Office must have distinct curves and peak rates
         self.assertNotEqual(home_rx, office_rx)
@@ -2438,6 +2471,55 @@ class LiveWanSparklinesTests(unittest.TestCase):
         overview_tab_qml = (ROOT / "views" / "analytics" / "OverviewTab.qml").read_text(encoding="utf-8")
         self.assertIn("function getSiteThroughput24h(site)", self.model_js)
         self.assertIn("Model.getSiteThroughput24h", overview_tab_qml)
+
+    def test_cloud_summary_populates_real_24h_wan_throughput_from_five_minutes_site(self) -> None:
+        from unittest.mock import patch
+        raw_hosts = [
+            {
+                "id": "h_gw",
+                "reportedState": {
+                    "state": "connected",
+                    "name": "Catalyse Office",
+                    "controllers": [{"name": "network", "isInstalled": True, "isRunning": True}],
+                }
+            }
+        ]
+        sites = [
+            {
+                "id": "s1",
+                "hostId": "h_gw",
+                "name": "Catalyse Office",
+                "gatewayModel": "UCG Max",
+                "gatewayIp": "58.169.41.158",
+                "status": "up",
+                "rxRate": 25.5,
+                "txRate": 6.8,
+            }
+        ]
+
+        # Fake 5minutes.site data with 288 intervals of wan-rx_bytes / wan-tx_bytes
+        # 37_500_000 bytes/5min = 1.0 Mbps
+        five_min_data = [
+            {"wan-rx_bytes": 37_500_000 * (i + 1), "wan-tx_bytes": 37_500_000 * ((i + 1) * 0.3)}
+            for i in range(288)
+        ]
+
+        def fake_cloud_json(key, ep, method="GET", payload=None):
+            if "5minutes.site" in ep:
+                return 200, {"data": five_min_data}
+            return 200, {"data": []}
+
+        with patch.object(SITE_THREAD, "cloud_json_request", side_effect=fake_cloud_json):
+            details = SITE_THREAD.extract_telemetry_details("fake_key", raw_hosts, sites)
+
+        self.assertIn("s1", details.wan_history)
+        hist = details.wan_history["s1"]
+        self.assertEqual(len(hist["rx"]), 288)
+        self.assertEqual(len(hist["tx"]), 288)
+        self.assertEqual(hist["rx"][0], 1.0)
+        self.assertEqual(hist["rx"][1], 2.0)
+        self.assertEqual(hist["rx"][-1], 288.0)
+        self.assertEqual(hist["intervalMinutes"], 5)
 
 
 class MultiProtocolChooserTests(unittest.TestCase):

@@ -72,7 +72,7 @@ ColumnLayout {
     if (typeof Model !== "undefined" && typeof Model.getSiteThroughput24h === "function") {
       return Model.getSiteThroughput24h(site)
     }
-    if (site && site.wanHistory24h && Array.isArray(site.wanHistory24h.rx) && site.wanHistory24h.rx.length === 24) {
+    if (site && site.wanHistory24h && site.wanHistory24h.rx && site.wanHistory24h.rx.length >= 24) {
       return { rx: site.wanHistory24h.rx, tx: site.wanHistory24h.tx || site.wanHistory24h.rx }
     }
     var isDown = String(site ? site.status : "") === "down"
@@ -101,18 +101,27 @@ ColumnLayout {
     }
 
     var activeSites = selectedSites.length > 0 ? selectedSites : allSites
+    var profiles = []
+    var maxLen = 24
+    for (var s = 0; s < activeSites.length; s++) {
+      var prof = getSiteThroughput(activeSites[s])
+      profiles.push(prof)
+      if (prof && prof.rx && prof.rx.length > maxLen) {
+        maxLen = prof.rx.length
+      }
+    }
+
     var totalRx = []
     var totalTx = []
-    for (var z = 0; z < 24; z++) {
+    for (var z = 0; z < maxLen; z++) {
       totalRx.push(0)
       totalTx.push(0)
     }
 
-    for (var s = 0; s < activeSites.length; s++) {
-      var prof = getSiteThroughput(activeSites[s])
-      var pRx = (prof && prof.rx) ? prof.rx : []
-      var pTx = (prof && prof.tx) ? prof.tx : []
-      for (var i = 0; i < 24; i++) {
+    for (var p = 0; p < profiles.length; p++) {
+      var pRx = (profiles[p] && profiles[p].rx) ? profiles[p].rx : []
+      var pTx = (profiles[p] && profiles[p].tx) ? profiles[p].tx : []
+      for (var i = 0; i < maxLen; i++) {
         if (pRx[i] !== undefined) totalRx[i] = Math.round((totalRx[i] + pRx[i]) * 10) / 10
         if (pTx[i] !== undefined) totalTx[i] = Math.round((totalTx[i] + pTx[i]) * 10) / 10
       }
@@ -120,7 +129,7 @@ ColumnLayout {
 
     var peakRx = 0
     var peakTx = 0
-    for (var k = 0; k < 24; k++) {
+    for (var k = 0; k < maxLen; k++) {
       if (totalRx[k] > peakRx) peakRx = totalRx[k]
       if (totalTx[k] > peakTx) peakTx = totalTx[k]
     }
@@ -131,32 +140,49 @@ ColumnLayout {
       peakRx: peakRx,
       peakTx: peakTx,
       activeSites: activeSites,
-      isFiltered: (selectedSites.length > 0)
+      isFiltered: (selectedSites.length > 0),
+      totalLen: maxLen
     }
   }
 
   function getThroughputDate(idx) {
-    if (idx < 0 || idx > 23) return ""
-    var now = new Date()
-    var hoursAgo = 23 - idx
-    var target = new Date(now.getTime() - hoursAgo * 3600 * 1000)
+    var tp = getActiveThroughput()
+    var totalLen = (tp && tp.rx && tp.rx.length > 0) ? tp.rx.length : 24
+    if (idx < 0 || idx >= totalLen) return ""
+    var intervalMins = totalLen > 24 ? 5 : 60
+    var minsAgo = (totalLen - 1 - idx) * intervalMins
+    var nowMs = Date.now()
+    if (intervalMins === 5) {
+      nowMs = Math.floor(nowMs / (5 * 60 * 1000)) * (5 * 60 * 1000)
+    }
+    var target = new Date(nowMs - minsAgo * 60 * 1000)
     var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     return days[target.getDay()] + ", " + months[target.getMonth()] + " " + target.getDate() + ", " + target.getFullYear()
   }
 
   function getThroughputTime(idx) {
-    if (idx < 0 || idx > 23) return ""
-    var now = new Date()
-    var hoursAgo = 23 - idx
-    var target = new Date(now.getTime() - hoursAgo * 3600 * 1000)
+    var tp = getActiveThroughput()
+    var totalLen = (tp && tp.rx && tp.rx.length > 0) ? tp.rx.length : 24
+    if (idx < 0 || idx >= totalLen) return ""
+    var intervalMins = totalLen > 24 ? 5 : 60
+    var minsAgo = (totalLen - 1 - idx) * intervalMins
+    var nowMs = Date.now()
+    if (intervalMins === 5) {
+      nowMs = Math.floor(nowMs / (5 * 60 * 1000)) * (5 * 60 * 1000)
+    }
+    var target = new Date(nowMs - minsAgo * 60 * 1000)
     var h = target.getHours()
+    var m = target.getMinutes()
     var ampm = h >= 12 ? "PM" : "AM"
     var h12 = h % 12
     if (h12 === 0) h12 = 12
     var hPad = (h12 < 10 ? "0" : "") + h12
-    var rel = hoursAgo === 0 ? "Now" : hoursAgo + "h ago"
-    return hPad + ":00 " + ampm + " (" + rel + ")"
+    var mPad = (m < 10 ? "0" : "") + m
+    var hours = Math.floor(minsAgo / 60)
+    var remMins = minsAgo % 60
+    var rel = minsAgo === 0 ? "Now" : (minsAgo < 60 ? (minsAgo + "m ago") : (remMins === 0 ? (hours + "h ago") : (hours + "h " + remMins + "m ago")))
+    return hPad + ":" + mPad + " " + ampm + " (" + rel + ")"
   }
 
 
@@ -227,7 +253,8 @@ ColumnLayout {
               var tp = root.getActiveThroughput()
               var siteNames = tp.activeSites.map(function(s) { return s.name }).join(" · ")
               if (!siteNames) siteNames = "All Managed Sites"
-              return siteNames + " · Peak: " + tp.peakRx.toFixed(1) + " Mbps DL / " + tp.peakTx.toFixed(1) + " Mbps UL"
+              var intervalNote = (tp.rx && tp.rx.length > 24) ? " · 5m intervals" : ""
+              return siteNames + intervalNote + " · Peak: " + tp.peakRx.toFixed(1) + " Mbps DL / " + tp.peakTx.toFixed(1) + " Mbps UL"
             }
             iconText: ""
             titleColor: root.foreground
@@ -386,9 +413,11 @@ ColumnLayout {
                   var rightPad = 10
                   var chartW = chartCanvas.width - leftPad - rightPad
                   if (chartW <= 0) return
+                  var tp = root.getActiveThroughput()
+                  var maxIdx = (tp.rx && tp.rx.length > 0) ? tp.rx.length - 1 : 23
                   var clampedX = Math.max(leftPad, Math.min(chartCanvas.width - rightPad, mouse.x))
                   var ratio = (clampedX - leftPad) / chartW
-                  var idx = Math.max(0, Math.min(23, Math.round(ratio * 23)))
+                  var idx = Math.max(0, Math.min(maxIdx, Math.round(ratio * maxIdx)))
                   root.chartHoverIndex = idx
                   root.chartHoverMouseX = mouse.x
                   root.chartHoverMouseY = mouse.y

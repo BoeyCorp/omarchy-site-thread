@@ -125,13 +125,10 @@ Column {
                 WanSparkline {
                   id: fleetWanSparkline
                   Layout.fillWidth: true
-                  throughputData: root.fleetData && root.fleetData.fleetThroughput ? root.fleetData.fleetThroughput : ({
-                    rxRate: (root.fleetData && root.fleetData.sites) ? root.fleetData.sites.reduce(function(acc, s) { return acc + (s.rxRate || 0) }, 0) : 0,
-                    txRate: (root.fleetData && root.fleetData.sites) ? root.fleetData.sites.reduce(function(acc, s) { return acc + (s.txRate || 0) }, 0) : 0
-                  })
+                  throughputData: (root.fleetData && root.fleetData.fleetThroughput) ? Model.getFleetThroughput24h(root.fleetData) : null
                   compact: false
                   interactive: true
-                  range: "60s"
+                  range: "24h"
                 }
               }
             }

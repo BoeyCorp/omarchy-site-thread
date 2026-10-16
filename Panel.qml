@@ -2571,6 +2571,9 @@ Panel {
     function setSitesSubView(view: string): void {
       root.sitesSubView = view === "devices" ? "devices" : "sites"
     }
+    function setSitesTimeRange(range: string): void {
+      if (sitesView) sitesView.timeRange = range
+    }
     function openSiteByIndex(index: int): void {
       var sites = root.data && root.data.sites ? root.data.sites : []
       if (index >= 0 && index < sites.length) {
@@ -2609,6 +2612,7 @@ Panel {
         analyticsCurrentTab: (analyticsWindowLoader.item ? analyticsWindowLoader.item.currentTab : -1),
         activeTab: root.activeTab,
         sitesSubView: root.sitesSubView,
+        sitesTimeRange: (sitesView ? sitesView.timeRange : ""),
         inSite: root.inSite,
         siteLoading: root.siteLoading,
         siteLiveRefreshing: root.siteLiveRefreshing,
