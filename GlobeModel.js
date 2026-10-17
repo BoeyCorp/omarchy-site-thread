@@ -119,6 +119,7 @@ function findSite(sites, identifier) {
     var s = sites[i]
     if (!s) continue
     if (s.id && String(s.id).trim().toLowerCase() === key) return s
+    if (s.hostId && String(s.hostId).trim().toLowerCase() === key) return s
     if (s.name && String(s.name).trim().toLowerCase() === key) return s
   }
   return null

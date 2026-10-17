@@ -173,8 +173,8 @@ Item {
     for (var i = 0; i < rawConns.length; i++) {
       var conn = rawConns[i]
       if (!conn) continue
-      var siteA = GlobeModel.findSite(siteList, conn.siteA)
-      var siteB = GlobeModel.findSite(siteList, conn.siteB)
+      var siteA = GlobeModel.findSite(siteList, conn.siteA) || GlobeModel.findSite(siteList, conn.siteIdA) || GlobeModel.findSite(siteList, conn.hostIdA)
+      var siteB = GlobeModel.findSite(siteList, conn.siteB) || GlobeModel.findSite(siteList, conn.siteIdB) || GlobeModel.findSite(siteList, conn.hostIdB)
       if (!siteA || !siteB) continue
       var latA = Number(siteA.lat)
       var lngA = Number(siteA.lng)
@@ -187,7 +187,7 @@ Item {
       var theta = GlobeModel.angularDistance(vA, vB)
       if (theta < 0.001) continue
 
-      var altitude = Math.min(0.12, Math.max(0.04, Math.sin(theta / 2) * 0.10))
+      var altitude = Math.min(0.14, Math.max(0.06, Math.sin(theta / 2) * 0.12 + 0.03))
       var steps = Math.max(20, Math.min(60, Math.round(theta * 24)))
       var waypoints = GlobeModel.generateArcWaypoints(vA, vB, altitude, steps)
       var ping = conn.ping !== undefined ? conn.ping : 0
@@ -232,8 +232,8 @@ Item {
       if (rawConns && rawConns.length > 0) {
         for (var c = 0; c < rawConns.length; c++) {
           var conn = rawConns[c]
-          var matchA = (site.name && String(site.name).toLowerCase() === String(conn.siteA).toLowerCase()) || (site.id && String(site.id).toLowerCase() === String(conn.siteA).toLowerCase())
-          var matchB = (site.name && String(site.name).toLowerCase() === String(conn.siteB).toLowerCase()) || (site.id && String(site.id).toLowerCase() === String(conn.siteB).toLowerCase())
+          var matchA = (site.name && String(site.name).toLowerCase() === String(conn.siteA).toLowerCase()) || (site.id && String(site.id).toLowerCase() === String(conn.siteA).toLowerCase()) || (conn.siteIdA && String(site.id).toLowerCase() === String(conn.siteIdA).toLowerCase()) || (conn.hostIdA && String(site.hostId || "").toLowerCase() === String(conn.hostIdA).toLowerCase())
+          var matchB = (site.name && String(site.name).toLowerCase() === String(conn.siteB).toLowerCase()) || (site.id && String(site.id).toLowerCase() === String(conn.siteB).toLowerCase()) || (conn.siteIdB && String(site.id).toLowerCase() === String(conn.siteIdB).toLowerCase()) || (conn.hostIdB && String(site.hostId || "").toLowerCase() === String(conn.hostIdB).toLowerCase())
           if (matchA) {
             sdwanInfo = " SD-WAN ⇄ " + conn.siteB + " (" + (conn.ping !== undefined ? conn.ping + "ms" : "mesh") + ")"
             break

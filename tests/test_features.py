@@ -361,6 +361,67 @@ class GlobeSdwanFeatureTests(unittest.TestCase):
             self.assertIn("ping", conn)
             self.assertIn("connected", conn)
 
+    def test_get_sdwan_telemetry_resolves_devices_and_site_ids(self) -> None:
+        from unittest.mock import patch
+        from typing import Any
+
+        def mock_cloud_json(key: str, path: str, method: str = "GET", payload: Any = None):
+            if path == "/v1/sd-wan-configs":
+                return 200, {"data": [{"id": "cfg-123", "name": "Site Magic", "type": "s2s-vpn"}]}
+            if path == "/v1/sd-wan-configs/cfg-123":
+                return 200, {
+                    "data": {
+                        "id": "cfg-123",
+                        "devices": [
+                            {
+                                "hostId": "host-1",
+                                "deviceName": "Catalyse Office",
+                                "sites": [{"siteId": "site-1", "siteName": "Default", "networks": [{"subnet": "192.168.1.0/24"}]}]
+                            },
+                            {
+                                "hostId": "host-2",
+                                "deviceName": "Lough Stanley Home",
+                                "sites": [{"siteId": "site-2", "siteName": "Default", "networks": [{"subnet": "192.168.2.0/24"}]}]
+                            }
+                        ]
+                    }
+                }
+            if path == "/v1/sd-wan-configs/cfg-123/status":
+                return 200, {
+                    "data": {
+                        "status": {
+                            "connections": [
+                                {
+                                    "sites": [
+                                        {"hostId": "host-1", "siteId": "site-1", "status": {"connected": True, "ping": 12}},
+                                        {"hostId": "host-2", "siteId": "site-2", "status": {"connected": True, "ping": 12}}
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            return 404, {}
+
+        sites = [
+            {"id": "site-1", "hostId": "host-1", "name": "Catalyse Office"},
+            {"id": "site-2", "hostId": "host-2", "name": "Lough Stanley Home"},
+        ]
+        with patch.object(SITE_THREAD, "cloud_json_request", side_effect=mock_cloud_json):
+            sdwan = SITE_THREAD.get_sdwan_telemetry("test_key", sites=sites)
+            self.assertTrue(sdwan["available"])
+            self.assertEqual(sdwan["status"], "connected")
+            self.assertEqual(len(sdwan["connections"]), 1)
+            conn = sdwan["connections"][0]
+            self.assertEqual(conn["siteA"], "Catalyse Office")
+            self.assertEqual(conn["siteB"], "Lough Stanley Home")
+            self.assertEqual(conn["siteIdA"], "site-1")
+            self.assertEqual(conn["siteIdB"], "site-2")
+            self.assertEqual(conn["subnetA"], "192.168.1.0/24")
+            self.assertEqual(conn["subnetB"], "192.168.2.0/24")
+            self.assertTrue(conn["connected"])
+            self.assertEqual(conn["ping"], 12)
+
 
 class GlobeZoomFeatureTests(unittest.TestCase):
     def setUp(self) -> None:

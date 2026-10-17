@@ -657,7 +657,7 @@ def site_coordinates(meta: dict[str, Any], timezone: str, index: int = 0) -> tup
         return round(lat, 4), round(lng, 4)
     if timezone in TIMEZONE_COORDS:
         base_lat, base_lng = TIMEZONE_COORDS[timezone]
-        offset = (index % 5) * 0.4
+        offset = (index % 5) * 4.0
         return round(base_lat + (offset if index % 2 == 0 else -offset), 4), round(base_lng + offset, 4)
     return 0.0, 0.0
 
@@ -2017,7 +2017,7 @@ def demo_summary() -> dict[str, Any]:
     return res
 
 
-def get_sdwan_telemetry(key: str) -> dict[str, Any]:
+def get_sdwan_telemetry(key: str, sites: list[dict[str, Any]] | None = None, site_map: dict[str, str] | None = None) -> dict[str, Any]:
     try:
         status, payload = cloud_json_request(key, "/v1/sd-wan-configs")
         if status != 200 or not isinstance(payload, dict):
@@ -2034,43 +2034,147 @@ def get_sdwan_telemetry(key: str) -> dict[str, Any]:
         detail_status, detail = cloud_json_request(key, f"/v1/sd-wan-configs/{cfg_id}")
         st_status, st_payload = cloud_json_request(key, f"/v1/sd-wan-configs/{cfg_id}/status")
 
+        # Build name mappings from fleet sites and site_map if provided
+        site_name_by_id: dict[str, str] = {
+            s["id"]: s["name"] for s in (sites or []) if isinstance(s, dict) and s.get("id") and s.get("name")
+        }
+        site_name_by_host: dict[str, str] = {
+            s["hostId"]: s["name"] for s in (sites or []) if isinstance(s, dict) and s.get("hostId") and s.get("name")
+        }
+
+        name_by_host_id: dict[str, str] = {}
+        name_by_site_id: dict[str, str] = {}
+        subnet_by_site_id: dict[str, str] = {}
+        subnet_by_host_id: dict[str, str] = {}
         sites_list: list[dict[str, Any]] = []
+
         if detail_status == 200 and isinstance(detail, dict) and isinstance(detail.get("data"), dict):
-            hosts = detail["data"].get("hosts", [])
+            data_dict = detail["data"]
+            # Devices can be under 'devices' or 'hosts' in UniFi API
+            hosts = data_dict.get("devices") or data_dict.get("hosts") or []
             for h in hosts:
-                h_name = model_string(h.get("hostName", "Site"))
-                for s in h.get("sites", []):
-                    for net in s.get("networks", []):
-                        sites_list.append({
-                            "name": h_name,
-                            "subnet": model_string(net.get("subnet", "")),
-                            "networkName": model_string(net.get("networkName", "")),
-                        })
+                if not isinstance(h, dict):
+                    continue
+                hid = model_string(h.get("hostId") or h.get("id") or "")
+                h_name = model_string(h.get("deviceName") or h.get("hostName") or h.get("name") or "")
+                if hid and h_name:
+                    name_by_host_id[hid] = h_name
+
+                raw_sites = h.get("sites", [])
+                if isinstance(raw_sites, list):
+                    for s in raw_sites:
+                        if not isinstance(s, dict):
+                            continue
+                        sid = model_string(s.get("siteId") or s.get("id") or "")
+                        s_name = model_string(s.get("siteName") or s.get("name") or "")
+                        effective_name = (
+                            s_name if (s_name and s_name.lower() != "default")
+                            else (h_name or site_name_by_id.get(sid) or site_name_by_host.get(hid) or (site_map or {}).get(sid) or (site_map or {}).get(hid) or "Site")
+                        )
+                        if sid:
+                            name_by_site_id[sid] = effective_name
+
+                        networks = s.get("networks", [])
+                        if isinstance(networks, list):
+                            for net in networks:
+                                if not isinstance(net, dict):
+                                    continue
+                                sub = model_string(net.get("subnet") or "")
+                                net_name = model_string(net.get("networkName") or net.get("name") or "")
+                                if sub:
+                                    if sid and sid not in subnet_by_site_id:
+                                        subnet_by_site_id[sid] = sub
+                                    if hid and hid not in subnet_by_host_id:
+                                        subnet_by_host_id[hid] = sub
+                                sites_list.append({
+                                    "hostId": hid,
+                                    "siteId": sid,
+                                    "name": effective_name,
+                                    "subnet": sub,
+                                    "networkName": net_name,
+                                })
 
         connections: list[dict[str, Any]] = []
         is_connected = True
         ping_ms = 0
         if st_status == 200 and isinstance(st_payload, dict) and isinstance(st_payload.get("data"), dict):
-            conns = st_payload["data"].get("status", {}).get("connections", [])
+            status_obj = st_payload["data"].get("status")
+            conns = status_obj.get("connections", []) if isinstance(status_obj, dict) else []
             for c in conns:
+                if not isinstance(c, dict):
+                    continue
                 pair_sites = c.get("sites", [])
-                if len(pair_sites) >= 2:
-                    st1 = pair_sites[0].get("status", {})
-                    st2 = pair_sites[1].get("status", {})
+                if isinstance(pair_sites, list) and len(pair_sites) >= 2:
+                    ps1 = pair_sites[0] if isinstance(pair_sites[0], dict) else {}
+                    ps2 = pair_sites[1] if isinstance(pair_sites[1], dict) else {}
+                    st1 = ps1.get("status") if isinstance(ps1.get("status"), dict) else {}
+                    st2 = ps2.get("status") if isinstance(ps2.get("status"), dict) else {}
                     conn_ok = bool(st1.get("connected") and st2.get("connected"))
                     if not conn_ok:
                         is_connected = False
-                    ping_ms = max(int(st1.get("ping", 0)), int(st2.get("ping", 0)))
-                    s1_name = sites_list[0]["name"] if len(sites_list) > 0 else "Site A"
-                    s1_sub = sites_list[0]["subnet"] if len(sites_list) > 0 else ""
-                    s2_name = sites_list[1]["name"] if len(sites_list) > 1 else "Site B"
-                    s2_sub = sites_list[1]["subnet"] if len(sites_list) > 1 else ""
+                    pair_ping = max(int(st1.get("ping", 0)), int(st2.get("ping", 0)))
+                    ping_ms = max(ping_ms, pair_ping)
+
+                    hid1 = model_string(ps1.get("hostId") or "")
+                    sid1 = model_string(ps1.get("siteId") or "")
+                    hid2 = model_string(ps2.get("hostId") or "")
+                    sid2 = model_string(ps2.get("siteId") or "")
+
+                    s1_name = (
+                        name_by_site_id.get(sid1)
+                        or site_name_by_id.get(sid1)
+                        or name_by_host_id.get(hid1)
+                        or site_name_by_host.get(hid1)
+                        or (site_map or {}).get(sid1)
+                        or (site_map or {}).get(hid1)
+                        or (sites_list[0]["name"] if sites_list else "Site A")
+                    )
+                    s2_name = (
+                        name_by_site_id.get(sid2)
+                        or site_name_by_id.get(sid2)
+                        or name_by_host_id.get(hid2)
+                        or site_name_by_host.get(hid2)
+                        or (site_map or {}).get(sid2)
+                        or (site_map or {}).get(hid2)
+                        or (sites_list[1]["name"] if len(sites_list) > 1 else "Site B")
+                    )
+                    s1_sub = subnet_by_site_id.get(sid1) or subnet_by_host_id.get(hid1) or ""
+                    s2_sub = subnet_by_site_id.get(sid2) or subnet_by_host_id.get(hid2) or ""
+
                     connections.append({
                         "siteA": s1_name,
+                        "siteIdA": sid1,
+                        "hostIdA": hid1,
                         "subnetA": s1_sub,
                         "siteB": s2_name,
+                        "siteIdB": sid2,
+                        "hostIdB": hid2,
                         "subnetB": s2_sub,
                         "connected": conn_ok,
+                        "ping": pair_ping,
+                    })
+
+        # Fallback: if status had no explicit connections but we have at least 2 participating sites
+        if not connections and len(sites_list) >= 2:
+            unique_sites: list[dict[str, Any]] = []
+            seen_ids = set()
+            for s in sites_list:
+                key_id = s.get("siteId") or s.get("hostId") or s.get("name")
+                if key_id not in seen_ids:
+                    seen_ids.add(key_id)
+                    unique_sites.append(s)
+            for i in range(len(unique_sites)):
+                for j in range(i + 1, len(unique_sites)):
+                    connections.append({
+                        "siteA": unique_sites[i]["name"],
+                        "siteIdA": unique_sites[i].get("siteId", ""),
+                        "hostIdA": unique_sites[i].get("hostId", ""),
+                        "subnetA": unique_sites[i].get("subnet", ""),
+                        "siteB": unique_sites[j]["name"],
+                        "siteIdB": unique_sites[j].get("siteId", ""),
+                        "hostIdB": unique_sites[j].get("hostId", ""),
+                        "subnetB": unique_sites[j].get("subnet", ""),
+                        "connected": True,
                         "ping": ping_ms,
                     })
 
@@ -3490,7 +3594,7 @@ def build_cloud_summary(key: str) -> dict[str, Any]:
     total_wired = sum(s.get("wiredClients", 0) for s in sites)
     total_gateways = sum(bool(s.get("gatewayModel")) for s in sites)
     issues = track_issues(sites, devices, is_demo=False, partial_devices=partial_devices)
-    sdwan = get_sdwan_telemetry(key)
+    sdwan = get_sdwan_telemetry(key, sites=sites, site_map=site_map)
 
     backups = extract_real_backups(raw_hosts, site_map)
     dev_names_map: dict[str, str] = {}
