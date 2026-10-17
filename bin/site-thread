@@ -657,7 +657,7 @@ def site_coordinates(meta: dict[str, Any], timezone: str, index: int = 0) -> tup
         return round(lat, 4), round(lng, 4)
     if timezone in TIMEZONE_COORDS:
         base_lat, base_lng = TIMEZONE_COORDS[timezone]
-        offset = (index % 5) * 4.0
+        offset = (index % 5) * 0.4
         return round(base_lat + (offset if index % 2 == 0 else -offset), 4), round(base_lng + offset, 4)
     return 0.0, 0.0
 
