@@ -675,7 +675,6 @@ Panel {
 
   Component.onCompleted: {
     refresh()
-    runDiagnostics()
   }
 
   Process {
@@ -696,9 +695,6 @@ Panel {
         root.loading = false
         root.refreshAgeSec = 0
         root.lastRefreshMs = Date.now()
-        if (parsed.ok && parsed.sites && parsed.sites.length > 0) {
-          root.prefetchSites()
-        }
       }
     }
     stderr: StdioCollector {

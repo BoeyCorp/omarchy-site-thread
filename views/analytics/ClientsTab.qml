@@ -135,61 +135,49 @@ ColumnLayout {
             }
           }
 
-          Flickable {
+          Rectangle {
+            visible: tab1View.filteredClients.length === 0
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            contentWidth: width
-            contentHeight: clientListCol.childrenRect.height + Style.space(16)
-            clip: true
+            implicitHeight: Style.space(56)
+            radius: 5
+            color: root.track
+            border.width: 1
+            border.color: root.clientsUnavailable ? root.urgent : root.outline
 
-            Column {
-              id: clientListCol
-              width: parent.width
-              spacing: Style.space(6)
+            ColumnLayout {
+              anchors.centerIn: parent
+              spacing: Style.space(3)
 
-              Rectangle {
-                visible: tab1View.filteredClients.length === 0
-                width: clientListCol.width
-                implicitHeight: Style.space(56)
-                radius: 5
-                color: root.track
-                border.width: 1
-                border.color: root.clientsUnavailable ? root.urgent : root.outline
-
-                ColumnLayout {
-                  anchors.centerIn: parent
-                  spacing: Style.space(3)
-
-                  Text {
-                    textFormat: Text.PlainText;
-                    Layout.alignment: Qt.AlignHCenter
-                    text: root.clientsUnavailable
-                      ? "Client telemetry unavailable (endpoint stat/sta error)"
-                      : (tab1View.rawClients.length === 0 ? "No clients discovered in fleet" : "No clients match the current search or filters.")
-                    color: root.clientsUnavailable ? root.urgent : root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                    font.bold: root.clientsUnavailable
-                  }
-
-                  Text {
-                    textFormat: Text.PlainText;
-                    visible: root.clientsUnavailable
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "Telemetry is partial. Check UI Account permissions or API key."
-                    color: root.dim
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption - 2
-                  }
-                }
+              Text {
+                textFormat: Text.PlainText;
+                Layout.alignment: Qt.AlignHCenter
+                text: root.clientsUnavailable
+                  ? "Client telemetry unavailable (endpoint stat/sta error)"
+                  : (tab1View.rawClients.length === 0 ? "No clients discovered in fleet" : "No clients match the current search or filters.")
+                color: root.clientsUnavailable ? root.urgent : root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                font.bold: root.clientsUnavailable
               }
 
-              // High-density table column headers
-              Rectangle {
-                width: clientListCol.width
-                height: Style.space(22)
-                color: "transparent"
-                visible: Boolean(tab1View.filteredClients.length > 0)
+              Text {
+                textFormat: Text.PlainText;
+                visible: root.clientsUnavailable
+                Layout.alignment: Qt.AlignHCenter
+                text: "Telemetry is partial. Check UI Account permissions or API key."
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+              }
+            }
+          }
+
+          // High-density table column headers
+          Rectangle {
+            Layout.fillWidth: true
+            height: Style.space(22)
+            color: "transparent"
+            visible: Boolean(tab1View.filteredClients.length > 0)
 
                 RowLayout {
                   anchors.fill: parent
@@ -277,12 +265,19 @@ ColumnLayout {
                 }
               }
 
-              // High-density tabular client rows
-              Repeater {
-                model: tab1View.filteredClients
-                delegate: Rectangle {
-                  required property var modelData
-                  width: clientListCol.width
+          // High-density virtualized tabular client rows
+          ListView {
+            id: clientListView
+            visible: Boolean(tab1View.filteredClients.length > 0)
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            spacing: Style.space(6)
+            boundsBehavior: Flickable.StopAtBounds
+            model: tab1View.filteredClients
+            delegate: Rectangle {
+              required property var modelData
+              width: clientListView.width
                   height: Style.space(40)
                   radius: 5
                   color: clientRowMouse.containsMouse ? root.cardHover : root.track
@@ -523,7 +518,5 @@ ColumnLayout {
                   }
                 }
               }
-            }
-          }
-        }
-      }
+    }
+}

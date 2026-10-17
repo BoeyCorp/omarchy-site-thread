@@ -2925,6 +2925,55 @@ class PermissionAndCapabilityWarningsTests(unittest.TestCase):
         self.assertIn("protect:stream", self.settings_qml)
 
 
+class PerformanceOptimizationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.panel_qml = (ROOT / "Panel.qml").read_text(encoding="utf-8")
+        self.clients_qml = (ROOT / "views" / "analytics" / "ClientsTab.qml").read_text(encoding="utf-8")
+
+    def test_panel_does_not_prefetch_on_summary_completed_or_diagnose_at_startup(self) -> None:
+        # summaryProc handler must not trigger prefetchSites
+        summary_proc_block = self.panel_qml[self.panel_qml.find("id: summaryProc"):self.panel_qml.find("id: prefetchProc")]
+        self.assertNotIn("root.prefetchSites()", summary_proc_block)
+
+        # Component.onCompleted must not trigger runDiagnostics
+        on_completed_block = self.panel_qml[self.panel_qml.find("Component.onCompleted:"):self.panel_qml.find("id: summaryProc")]
+        self.assertNotIn("runDiagnostics()", on_completed_block)
+        self.assertIn("refresh()", on_completed_block)
+
+        # 10-minute prefetch timer and on-demand function are preserved
+        self.assertIn("id: prefetchTimer", self.panel_qml)
+        self.assertIn("interval: 600000", self.panel_qml)
+        self.assertIn("function prefetchSites()", self.panel_qml)
+
+    def test_clients_tab_uses_virtualized_list_view(self) -> None:
+        # Must use virtualized ListView rather than eager Repeater in Flickable
+        self.assertIn("id: clientListView", self.clients_qml)
+        self.assertIn("model: tab1View.filteredClients", self.clients_qml)
+        self.assertIn("boundsBehavior: Flickable.StopAtBounds", self.clients_qml)
+        self.assertNotIn("id: clientListCol", self.clients_qml)
+
+    def test_telemetry_cache_helpers(self) -> None:
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            orig_dir = SITE_THREAD.TELEMETRY_CACHE_DIR
+            SITE_THREAD.TELEMETRY_CACHE_DIR = Path(tmp_dir)
+            try:
+                # Save item
+                SITE_THREAD.save_telemetry_cache("host1", "stat/report/5minutes.site", [{"val": 123}])
+                # Read valid cache
+                cached = SITE_THREAD.read_telemetry_cache("host1", "stat/report/5minutes.site", max_age=60)
+                self.assertEqual(cached, [{"val": 123}])
+                # Expired cache returns None
+                expired = SITE_THREAD.read_telemetry_cache("host1", "stat/report/5minutes.site", max_age=-1)
+                self.assertIsNone(expired)
+                # Non-existent returns None
+                non_existent = SITE_THREAD.read_telemetry_cache("host1", "other/path", max_age=60)
+                self.assertIsNone(non_existent)
+            finally:
+                SITE_THREAD.TELEMETRY_CACHE_DIR = orig_dir
+
+
 if __name__ == "__main__":
     unittest.main()
 
